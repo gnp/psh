@@ -1,7 +1,7 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($VERSION %custom_completions @bookmarks @netprograms $ac);
+use vars qw($VERSION %custom_completions @bookmarks @netprograms $ac $complete_first_word_dirs);
 
 use Cwd qw(:DEFAULT chdir);
 use Psh::Util qw(:all starts_with ends_with);
@@ -157,6 +157,7 @@ sub cmpl_executable
 
 	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_alias_commands();
 	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_builtin_commands();
+	push @result, cmpl_directories($cmd) if $complete_first_word_dirs;
 	
 	local $^W= 0;
 

@@ -50,6 +50,10 @@ Properly pipeable aliases.
 
 =item *
 
+New strategy "auto_cd"
+
+=item *
+
 Fallback and most other builtins are loaded on demand.
 
 =item *
