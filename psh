@@ -142,7 +142,7 @@ sub variable_expansion
 use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
 	    $perlfunc_expand_arguments $executable_expand_arguments
 	    $history_file $save_history $history_length
-	    $eval_preamble $currently_active
+	    $eval_preamble $currently_active $handle_segfaults
 	    @val @wday @mon @strategies %text
 	    %prompt_vars %built_ins %strategy_which %strategy_eval);
 
@@ -1708,6 +1708,8 @@ sub minimal_initialize
 
 sub finish_initialize
 {
+	$SIG{SEGV} = \&error_handler       if $psh::handle_segfaults;
+
 	$prompt          = $default_prompt if !defined($prompt);
 	$save_history    = 1               if !defined($save_history);
 	$history_length  = 50              if !defined($history_length);
@@ -1970,6 +1972,14 @@ sub ignore_handler
 	$SIG{$sig} = \&ignore_handler;
 }
 
+
+sub error_handler
+{
+	my ($sig) = @_;
+	print_error("Received SIG$sig - ignoring\n");
+	$SIG{$sig} = \&error_handler;
+	kill 'INT',getpid();
+}
 
 #
 # resize_handler()

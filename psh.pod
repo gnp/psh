@@ -338,6 +338,11 @@ Controls the prompt string in interactive use, see below.
 If this is true, the command history is saved in $psh::history_file
 from one invocation of B<psh> to the next.
 
+=item $psh::handle_segfaults (0)
+
+If set to true, psh will ignore all segfaults and attempt to
+continue.
+
 =item @psh::mon ( Jan, Feb, etc. )
 
 An array of month names used in printing dates, for example in prompt
