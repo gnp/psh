@@ -22,8 +22,6 @@ my %options=(
 			 'globbing'  => 1,
 			 'window_title' => '\w',
 			 'save_history' => 1,
-			 'history_file' => File::Spec->catfile(Psh::OS::get_home_dir(),
-												   '.'.$Psh::bin.'_history'),
 			);
 
 # setup defaults for ENV variables
