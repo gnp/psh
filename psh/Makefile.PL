@@ -3,6 +3,16 @@ use ExtUtils::MakeMaker;
 my $pms= {};
 my $pods= {};
 
+sub MY::postamble {
+	# to copy share files after installation
+	'
+
+install ::
+	$(PERL) postinstall.pl $(PREFIX)
+
+';
+}
+
 open( FILE, "< MANIFEST");
 while( <FILE>)
 {
@@ -38,6 +48,7 @@ WriteMakefile (
 					},
 	MAN1PODS     => $pods,
     PM           => $pms,
+	PM_FILTER    => 'grep -v \\"^\\#\\"',  # remove comments on install
 	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
 );
 
@@ -61,28 +72,3 @@ if ($@) {
 	print "The 'ulimit' command in psh will not work, unless you install BSD::Resource.\n";
 }
 
-
-#
-# Does anyone know how to get MakeMaker to do this automatically ?
-#
-
-if ($^O eq 'MSWin32') {
-	print <<TEXT;
-#########################################################################
-
-Please copy the 'share' directory to c:/psh after building and
-installing psh!!!
-
-#########################################################################
-TEXT
-}
-
-print <<TEXT;
-#########################################################################
-
-Do not forget to copy the 'share' directory to
-/usr/share/psh or /usr/local/share/psh or ~/.psh/share after building and
-installing !!!
-
-#########################################################################
-TEXT

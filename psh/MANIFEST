@@ -6,6 +6,7 @@ INSTALL.win32
 MANIFEST
 HACKING
 Makefile.PL
+postinstall.pl
 README
 README.perl5.004
 README.upgrade
