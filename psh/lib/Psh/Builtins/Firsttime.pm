@@ -153,11 +153,11 @@ sub _parse_sh_file {
 		} elsif ($line=~/^\s*(\S+)\=(.*)$/) {
 			my $key= uc($1);
 			my $value= _change_env_value($2);
-			$env.="setenv $key=\"$value\"\n";
+			$env.="setenv $key=$value\n";
 		} elsif ($line=~/^\s*export (\S+)\=(.+)$/) {
 			my $key= uc($1);
 			my $value= _change_env_value($2);
-			$env.="export $key=\"$value\"\n";
+			$env.="setenv $key=$value\n";
 		}
 
 	}
@@ -191,9 +191,8 @@ sub _parse_csh_file {
 				 $line=~/^\s*set\s+(\S+)\=([^#\s]+)\s*/) {
 			my $key= uc($1);
 			my $value= _change_env_value($2);
-			$env.="setenv $key=\"$value\"\n";
+			$env.="setenv $key=$value\n";
 		}
-
 	}
 	close(FILE);
 	return undef;
@@ -202,7 +201,10 @@ sub _parse_csh_file {
 sub _change_env_value
 {
 	my $val= shift;
+	return $val if ($val=~/^\'(.*)\'$/); # do not modify if single quotes
 	$val=~s/\$([a-zA-Z0-9_]+)/\$ENV\{$1\}/g;
+	$val=~s/\@/\\@/g;
+	return "\"$val\"" if ($val !~ /^\"(.*)\"$/);
 	return $val;
 }
 

@@ -1,0 +1,9 @@
+
+Upgrading from version 0.007 or earlier:
+
+- The @netprograms variable in Psh::Completion is no longer supported.
+Please use the 'complete' builtin to add new command names for hostname
+completion
+- The %custom_completions variable in Psh::Completion is no longer
+supported. Please use the new 'complete' builtin
+

@@ -6,7 +6,7 @@
 
 package Psh::Builtins::Complete;
 
-use Psh::PCompletion qw(pcomp_getopts %ACTION %COMPSPEC);
+use Psh::PCompletion qw(pcomp_getopts %ACTION %COMPSPEC compgen redir_test);
 
 =item * C<complete>
 
@@ -69,3 +69,29 @@ sub print_compspec ($) {
     print " -S $cs->{suffix}"	if defined $cs->{suffix};
     print " $cmd\n";
 }
+
+sub cmpl_complete {
+    my ($cur, $dummy, $start, $line) = @_;
+
+    my ($prev) = $start =~ /(\S+)\s+$/;
+
+    my @COMPREPLY = redir_test($cur, $prev);
+    return @COMPREPLY if @COMPREPLY;
+
+    if ($start =~ /^\s*(\S+)\s+$/ || $cur eq '-' ) {
+        return qw(-a -b -c -d -e -f -j -k -v -u -r -p -A -G -W -P -S -X -F -C);;
+    }
+
+    if ($prev eq '-A') {
+        return qw(alias arrayvar binding builtin command directory
+                  disabled enabled export file function helptopic hostname
+                  job keyword running setopt shopt signal stopped variable);
+    } elsif ($prev eq '-F') {
+        return compgen('-A', 'function', $cur);
+#    } elsif ($prev eq '-C') {
+#       return compgen('-c', $cur);
+    } else {
+        return compgen('-c', $cur);
+    }
+}
+

@@ -460,17 +460,11 @@ arguments.
 
 =over 4
 
-=item I<@Psh::Completion::netprograms> ( B<ping>, B<ftp>, B<ncftp>,
-B<ssh>, etc. )
-
-Contains names of a number of net based programs for enabling
-TAB completion of hostnames/bookmarks
-
 =item I<@Psh::Completion::bookmarks> ( from /etc/hosts )
 
 Supposed to contain your most used IP numbers, hostnames or URLs.
-Those will be eligible for TAB completion if you use one of the
-programs in C<@Psh::Completion::netprograms>. C<psh> will
+Those will be eligible for TAB completion if you add a command
+for completion using complete -A hostname command. C<psh> will
 initialize this list with your /etc/hosts file
 
 =item I<@Psh::executable_noexpand> ( B<whois>, B<^ezmlm->, etc. )
@@ -564,33 +558,6 @@ prompt strings. (See L<PROMPT STRINGS> below.)
 
 These hashes implement the named strategies used in B<psh>'s
 evaluation of input lines. It is possible to add new strategies, see below.
-
-=item I<%Psh::Completion::custom_completions>
-
-Allows you to add own TAB completions. The keys are names of programs
-to which the TAB completion should apply. The value is either a list
-reference with at least two values, up to three values, or a sub.
-If it's a sub it is called with the text to complete, text in front
-of the text to complete to the last whitespace and the word which
-triggered the completion.
-
-The first element of the rules list is the character which should be appended
-after the completion is successful, the second value is again a list
-reference containing all possible completions. If the optional third
-value is true, the custom completion will replace all results of
-standard completions (like filename or username completion), if the
-value is false, the custom completion just adds additional results.
-
-This is probably complicated but worth the effort.
-
-Example:
-
-%Psh::Completion::custom_completions = (
-      'scp'=>['',['server1:/path1','server1:/path2','server2:/path']],
-	  'foo'=>[' ',['bar','bla','fish'],1],
-	  'hmm'=> sub { return ['/',['1','2','3'],1] }
-     );
-
 
 =back
 
@@ -896,9 +863,9 @@ The following people have contributed to the development of C<psh>:
 =item Prodigious Contributors
 
 Markus Peter E<lt>F<warp@spin.de>E<gt> added job and signal handling,
-globbing, redirection, pipelines, completion code, Win32 port, i18n code,
-some bash compatibility builtins and environment variables and some more
-minor updates.
+globbing, redirection, pipelines, parts of completion code, Win32 port,
+i18n code, some bash compatibility builtins and environment variables
+and some more minor updates.
 
 Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
 strategies, improved interrupt/job handling, C<&Psh::evl>, C<$Psh::echo>,
@@ -907,6 +874,9 @@ more extensive documentation, and other more minor features.
 Omer Shenker E<lt>F<oshenker@iname.com>E<gt> added file locking, Win32
 code, login shell handling, various bits of documentation, and other minor
 features and updates.
+
+Hiroo Hayashi E<lt>F<hiroo.hayashi@computer.org>E<gt> added the current,
+bash compatible support for programmable completions and some small fixes
 
 =item ReadLine Support
 
