@@ -43,7 +43,7 @@ they are specified in:
 =item * B<-w>
 
 Enables Perl's warning mode. The B<-w> switch runs perl with the
-B<"-w"> switch and "use strict;".
+B<-w> switch and "use strict;".
 
 =item * B<-d>
 
