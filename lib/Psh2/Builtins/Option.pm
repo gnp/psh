@@ -69,6 +69,7 @@ sub get_printable_option {
 sub execute {
     my ($psh, $words)= @_;
     shift @$words;
+
     if (!@$words) {
 	my @opts= keys %{$psh->{option}};
 	foreach (keys %env_option) {
@@ -86,8 +87,8 @@ sub execute {
 	    } elsif (substr($tmp,0,1) eq '+') {
 		$psh->set_option(substr($tmp,1),1);
 	    } elsif (@$words>1 and $words->[0] eq '=') {
-		shift @$words; shift @$words;
-		$psh->set_option($tmp, $words->[1]);
+		shift @$words; my $val= shift @$words;
+		$psh->set_option($tmp, $val);
 	    } else {
 		my $val= get_printable_option($psh,$tmp,1);
 		$psh->print("$val\n");
