@@ -5,6 +5,8 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 use Cwd;
 use Cwd 'chdir';
+use Config;
+use Psh::OS;
 
 require Exporter;
 
@@ -19,7 +21,6 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 							which abs_path)] );
 
 Exporter::export_ok_tags('all'); # Add EXPORT_TAGS to EXPORT_OK
-
 
 sub print_warning
 {
@@ -89,6 +90,7 @@ if (!$@) {
 } else {
     sub abs_path {
 		my $dir = shift;
+		my $FS= Psh::OS::FILE_SEPARATOR();
 		
 		$dir = '~' unless defined $dir and $dir ne '';
 		
@@ -99,12 +101,14 @@ if (!$@) {
 			my $home;
 			
 			if ($user eq '') { $home = $ENV{HOME}; }
-			else             { $home = (getpwnam($user))[7]; }
+			else             { $home = get_home_dir($user);(getpwnam($user))[7]; }
 			
 			if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
 		}
-		
-		if (!$dir =~ m|^/|) { $dir = cwd . '/'. $dir }
+
+		if( !Psh::OS::is_path_absolute($dir)) {
+			$dir = cwd . $FS. $dir
+		}
 		
 		return $dir;
 	}
@@ -129,10 +133,12 @@ if (!$@) {
 	sub which
     {
 		my $cmd      = shift;
+		my $FS= Psh::OS::FILE_SEPARATOR();
+		my $qFS= "\\".$FS;
 
 		print_debug("[which $cmd]\n");
 
-		if ($cmd =~ m|/|) {
+		if ($cmd =~ m|$qFS|) {
 			my $try = abs_path($cmd);
 			if ((-x $try) and (! -d _)) { return $try; }
 			return undef;
@@ -143,7 +149,7 @@ if (!$@) {
 			@Psh::absed_path    = ();
 			%hashed_cmd    = ();
 
-			my @path = split(':', $ENV{PATH});
+			my @path = split(Psh::OS::PATH_SEPARATOR(), $ENV{PATH});
 
 			foreach my $dir (@path) {
 				push @Psh::absed_path, abs_path($dir);
@@ -151,13 +157,16 @@ if (!$@) {
 		}
 
 		if (exists($hashed_cmd{$cmd})) { return $hashed_cmd{$cmd}; }
-      
-		foreach my $dir (@Psh::absed_path) {
-			my $try = "$dir/$cmd";
 
-			if ((-x $try) and (!-d _)) { 
-				$hashed_cmd{$cmd} = $try;
-				return $try; 
+		my @path_extension=Psh::OS::get_path_extension();
+
+		foreach my $dir (@Psh::absed_path) {
+			my $try = $dir.$FS.$cmd;
+			foreach my $ext (@path_extension) {
+				if ((-x $try.$ext) and (!-d _)) { 
+					$hashed_cmd{$cmd} = $try.$ext;
+					return $try.$ext; 
+				}
 			}
 		}
       

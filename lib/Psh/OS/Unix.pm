@@ -43,6 +43,20 @@ sub exit() {
 	CORE::exit( shift);
 }
 
+sub PATH_SEPARATOR { return ':'; }
+sub FILE_SEPARATOR { return '/'; }
+
+sub get_home_dir {
+	return (getpwnam(shift))[7]
+}
+
+sub is_path_absolute {
+	my $path= shift;
+
+	return substr($path,0,1)='/';
+}
+
+sub get_path_extension { return (''); }
 
 ###################################################################
 # JOB CONTROL

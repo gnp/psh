@@ -6,11 +6,15 @@ use vars qw($VERSION);
 use Cwd;
 use Cwd 'chdir';
 use Psh::Util ':all';
+use Psh::OS;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
-%Psh::array_exports=('PATH'=>':','CLASSPATH'=>':','LD_LIBRARY_PATH'=>':',
-					 'FIGNORE'=>':','CDPATH'=>':');
+my $PS=Psh::OS::PATH_SEPARATOR();
+my $FS=Psh::OS::FILE_SEPARATOR();
+
+%Psh::array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
+					 'FIGNORE'=>$PS,'CDPATH'=>$PS);
 
 #
 # string do_setenv(string command)
@@ -109,14 +113,14 @@ sub export
 		my $in_dir = shift;
 		my $dirpath= $ENV{CDPATH} || '.';
 
-		foreach my $cdbase (split ':',$dirpath) {
+		foreach my $cdbase (split $PS,$dirpath) {
 			my $dir= $in_dir;
 			$dir = $last_dir if $dir eq '-';
 			if( $cdbase eq '.' ||
-				substr($dir,0,1) eq '/') {
+				substr($dir,0,1) eq $FS) {
 				$dir = Psh::Util::abs_path($dir);
 			} else {
-				$dir = Psh::Util::abs_path($cdbase.'/'.$dir);
+				$dir = Psh::Util::abs_path($cdbase.$FS.$dir);
 			}
 		
 			if ((-e $dir) and (-d _)) {
