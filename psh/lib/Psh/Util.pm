@@ -312,35 +312,3 @@ sub prompt {
 
 __END__
 
-=head1 NAME
-
-Psh::Utils - Containing certain Psh utility functions
-
-=head1 SYNOPSIS
-
-  use Psh::Utils (:all);
-
-=head1 DESCRIPTION
-
-TBD
-
-
-=head1 AUTHOR
-
-blaaa
-
-=head1 SEE ALSO
-
-=cut
-
-# The following is for Emacs - I hope it won't annoy anyone
-# but this could solve the problems with different tab widths etc
-#
-# Local Variables:
-# tab-width:4
-# indent-tabs-mode:t
-# c-basic-offset:4
-# perl-indent-level:4
-# End:
-
-
