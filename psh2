@@ -14,7 +14,7 @@ if (@ARGV) {
 }
 
 $psh->init_minimal();
-$psh->process_rc($opt{'f'}) unless $opt{'F'};
+$psh->process_rc($opt{'f'}) unless $opt{'F'} or $opt{'c'};
 $psh->init_finish();
 
 if ($opt{'c'}) {

@@ -2,13 +2,15 @@ package Psh2;
 
 use strict;
 require Psh2::Parser;
-use Data::Dumper;
+require Psh2::Jobs;
 
 if ($^O eq 'MSWin32') {
     require Psh2::Windows;
 } else {
     require Psh2::Unix;
 }
+
+build_builtin_list();
 
 sub AUTOLOAD {
     no strict;
@@ -49,6 +51,23 @@ sub new {
     return $self;
 }
 
+sub _eval {
+    my $lines= shift;
+    while (my $element= shift @$lines) {
+	my $type= shift @$element;
+	if ($type == Psh2::Parser::T_EXECUTE()) {
+	    Psh2::Jobs::start_job($element);
+	}
+	elsif ($type == Psh2::Parser::T_OR()) {
+	}
+	elsif ($type == Psh2::Parser::T_AND()) {
+	}
+	else {
+	    # TODO: Error handling
+	}
+    }
+}
+
 sub process {
     my ($self, $getter)= @_;
 
@@ -60,8 +79,10 @@ sub process {
 	}
 	my $tmp= eval { Psh2::Parser::parse_line($input, $self); };
 	print $@ if $@;
-	print Dumper($tmp) if $tmp;
 
+	if ($tmp and @$tmp) {
+	    _eval($tmp)
+	}
     }
 }
 
@@ -264,7 +285,100 @@ sub printdebug {
 	}
 	return undef;
     }
+}
 
+#
+# The following code is here because it is most probably
+# portable across at least a large number of platforms
+# If you need to override them, then modify the symbol
+# table :-)
+
+# recursive glob function used for **/anything glob
+sub _recursive_glob {
+	my( $pattern, $dir)= @_;
+	opendir( DIR, $dir) || return ();
+	my @files= readdir(DIR);
+	closedir( DIR);
+	my @result= map { catdir($dir,$_) }
+	  grep { /^$pattern$/ } @files;
+	foreach my $tmp (@files) {
+		my $tmpdir= catdir($dir,$tmp);
+		next if ! -d $tmpdir || !no_upwards($tmp);
+		push @result, _recursive_glob($pattern, $tmpdir);
+	}
+	return @result;
+}
+
+sub _escape {
+	my $text= shift;
+	if ($] >= 5.005) {
+		$text=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
+	} else {
+		# TODO: no escaping yet
+	}
+	return $text;
+}
+
+#
+# The Perl builtin glob STILL uses csh, furthermore it is
+# not possible to supply a base directory... so I guess this
+# is faster
+#
+sub glob {
+    my( $pattern, $dir, $already_absed) = @_;
+
+    return () unless $pattern;
+
+    my @result;
+    if( !$dir) {
+	$dir=$ENV{PWD};
+    } else {
+	$dir=abs_path($dir) unless $already_absed;
+    }
+    return unless $dir;
+
+    # Expand ~
+    my $home= $ENV{HOME}; #||get_home_dir();
+    if ($pattern eq '~') {
+	$pattern=$home;
+    } else {
+	$pattern=~ s|^\~/|$home/|;
+	$pattern=~ s|^\~([^/]+)|&get_home_dir($1)|e;
+    }
+    
+    return $pattern if $pattern !~ /[*?]/;
+    
+    # Special recursion handling for **/anything globs
+    if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
+	my $tlen= length($dir)+1;
+	my $prefix= $1||'';
+	$pattern= $2;
+	$prefix=~ s:/$::;
+	$dir= catdir($dir,$prefix);
+	$pattern=_escape($pattern);
+	$pattern=~s/\*/[^\/]*/g;
+	$pattern=~s/\?/./g;
+	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
+	@result= map { substr($_,$tlen) } _recursive_glob($pattern,$dir);
+    } elsif( $pattern=~ m:/:) {
+	# Too difficult to simulate, so use slow variant
+	my $old=$ENV{PWD};
+	CORE::chdir $dir;
+	$pattern=_escape($pattern);
+	@result= eval { CORE::glob($pattern); };
+	CORE::chdir $old;
+    } else {
+	# The fast variant for simple matches
+	$pattern=_escape($pattern);
+	$pattern=~s/\*/.*/g;
+	$pattern=~s/\?/./g;
+	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
+	
+	opendir( DIR, $dir) || return ();
+	@result= grep { /^$pattern$/ } readdir(DIR);
+	closedir( DIR);
+    }
+    return @result;
 }
 
 ############################################################################
@@ -381,8 +495,34 @@ sub list_option {
 ##
 ############################################################################
 
-sub is_builtin {
-    return 0;
+{
+    my %builtin;
+    my %builtin_aliases= (
+			  '.' => 'source',
+			  'options' => 'option',
+			 );
+    sub is_builtin {
+	my ($self, $com)= @_;
+	$com= $builtin_aliases{$com} if $builtin_aliases{$com};
+	return 1 if exists $builtin{$com};
+	return 0;
+    }
+
+    sub build_builtin_list {
+	%builtin= ();
+	my $unshift= '';
+	foreach my $tmp (@INC) {
+	    my $tmpdir= catdir( $tmp, 'Psh2', 'Builtins');
+	    if (-r $tmpdir) {
+		my @files= Psh2::glob('*.pm', $tmpdir, 1);
+		foreach (@files) {
+		    s/\.pm$//;
+		    $_= lc($_);
+		    $builtin{$_}= 1;
+		}
+	    }
+	}
+    }
 }
 
 1;
