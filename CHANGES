@@ -1,6 +1,23 @@
 CHANGES
 
 ------------------------------------------------------------
+0.004pre2 (Limited Release)                     [1999-12-05]
+------------------------------------------------------------
+
+Fixes of known 0.004pre1 bugs by Markus Peter. Also:
+
+  * Some more fixes, especially for the job managment code
+    which now works like bash does for background processes
+    trying to access the terminal.
+
+Additional features:
+
+  * Support for pipes in the executable completion, a new
+    built-in "export" or "setenv" and short description of
+    signals in handle_wait_status
+
+
+------------------------------------------------------------
 0.004pre1 (Limited Release)                     [1999-12-04]
 ------------------------------------------------------------
 
