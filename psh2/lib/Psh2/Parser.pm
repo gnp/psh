@@ -21,6 +21,18 @@ my $part2= '\\\'|\\"|q\\[|qq\\[';
 my $part1= '(\\n|\\|\\||\\&\\&|\\||;|\&>|\\&|>>|>|<|=|\\$\\{|\\$\\(|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 
+my %tmp_tokens=
+  (
+   '||' => 1, '&&' => 2,
+   ';' => 3, "\n" => 4,
+   '&' => 5,
+   '|' => 6,
+   '>' => 7,
+   '>>' => 8,
+   '&>' => 9,
+   '<'  => 10,
+  );
+
 ############################################################################
 ##
 ## Split up lines into handy parts
@@ -28,12 +40,12 @@ my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 ############################################################################
 
 sub decompose {
-    my ($psh, $line, $alias_disabled)= @_;
+    my ($psh, $line, $alias_disabled, $no_wordsplit)= @_;
 
     if ($line=~/^[a-zA-Z0-9]*$/ and index($line,"\n")==-1) { # perl 5.6 bug
 	if ($psh->{aliases} and $psh->{aliases}{$line} and
 	    !$alias_disabled->{$line}) {
-	    $alias_disabled->{$line}= 1;
+	    local $alias_disabled->{$line}= 1;
 	    return decompose($psh, $psh->{aliases}{$line}, $alias_disabled);
 	}
 	return [$line];
@@ -98,10 +110,6 @@ sub decompose {
     my @tmp= ();
     my $expand_aliases= 1;
 
-    use Data::Dumper;
-    print STDERR Dumper(\@pieces);
-
-
     foreach my $piece (@pieces) {
 	if (length($piece)<3) {
             if ($piece eq '[' or $piece eq '(' or $piece eq '{' or
@@ -128,18 +136,32 @@ sub decompose {
 	    }
 	    push @pieces2, $tmp;
 	} else {
-	    if ($expand_aliases and $psh->{aliases} and
-	        $psh->{aliases}{$piece} and
-	       !$alias_disabled->{$piece}) {
-		local $alias_disabled->{$piece}= 1;
-		push @pieces2, @{decompose($psh,$psh->{aliases}{$piece},
-					     $alias_disabled)};
-		$expand_aliases= 0;
-		next;
-	    }
-	    $piece=~ s/(?<!\\)(\$[a-zA-Z0-9_]+)/&expand_dollar($psh,$1)/ge;
+	    if ($expand_aliases and %{$psh->{aliases}}) {
+		if ($piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s*)$/ or
+		    $piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s.*)$/) {
+		    my ($pre, $main, $post)= ($1, $2, $3);
 
-            push @pieces2, $piece;
+		    if ($main and $psh->{aliases}{$main} and
+			!$alias_disabled->{$main}) {
+			local $alias_disabled->{$main}= 1;
+			my @tmppiec= @{decompose($psh, $psh->{aliases}{$main},
+						 $alias_disabled, 1)};
+			$tmppiec[0]= $pre.$tmppiec[0];
+			push @pieces2, @tmppiec;
+			$expand_aliases= 0;
+			$piece= $post;
+		    }
+		}
+	    }
+
+	    $piece=~ s/(?<!\\)(\$[a-zA-Z0-9_]+)/&expand_dollar($psh,$1)/ge;
+	    $piece=~ s/(?<!\\)(\$\([a-zA-Z0-9_]+\))/&expand_dollar($psh,$1)/ge;
+
+	    if ($tmp_tokens{$piece}) {
+		push @pieces2, [$tmp_tokens{$piece}];
+	    } else {
+		push @pieces2, $piece;
+	    }
 	    if (
 		$piece eq ';' or $piece eq '|' or $piece eq '&' or
 	        $piece eq "\n" or $piece eq '&&' or $piece eq '||') {
@@ -152,22 +174,31 @@ sub decompose {
     if (@open) {
 	die "parse: needmore: nest: missing @open";
     }
+    return \@pieces2 if $no_wordsplit;
+
     my @pieces3= ();
     my $space= 0;
     while (my $piece= shift @pieces2) {
-	my $char= substr($piece,0,1);
-	if (length($piece)<3 and
-	    (
-	     $piece eq '|' or $piece eq ';' or $piece eq '&' or
-	     $piece eq '&&' or $piece eq '||' or $piece eq '>' or
-	     $piece eq '>>' or $piece eq '<' or $piece eq '=' or
-	     $piece eq '&>' or $piece eq "\n") or
-	    $char eq '{' or $char eq '(' or $char eq '[' or
-	    $char eq '"' or $char eq "'" or
-	    (length($piece)>2 and substr($piece,0,2) eq 'q[') or
-	    (length($piece)>3 and substr($piece,0,3) eq 'qq[')) {
+	if (ref $piece) {
 	    push @pieces3, $piece;
 	    $space= 1;
+	    next;
+	}
+	my $char= substr($piece,0,1);
+	if ( $char eq '{' or $char eq '(' or $char eq '[' or
+	     $piece eq '=') {
+	    push @pieces3, $piece;
+	    $space= 1;
+	} elsif ( $char eq '"' or $char eq "'" or
+		  (length($piece)>2 and substr($piece,0,2) eq 'q[') or
+		  (length($piece)>3 and substr($piece,0,3) eq 'qq[')) {
+	    _clean_word(\$piece);
+	    if (!$space and @pieces3>0) {
+		my $old= pop @pieces3;
+		$piece= $old. $piece
+	    }
+	    push @pieces3, $piece;
+	    $space= 0;
 	} else {
 	    @tmp= split /(?<!\\)\s+/, $piece, -1;
 	    if ($tmp[0] eq '') {
@@ -187,13 +218,11 @@ sub decompose {
 	    push @pieces3, @tmp;
 	}
     }
-
     return \@pieces3;
 }
 
 sub expand_dollar {
     my ($psh, $piece)= @_;
-    print STDERR "piece=$piece\n";
     if (length($piece)>2 and substr($piece,0,2) eq '${') {
 	return qq['$piece'];
     }
@@ -204,9 +233,7 @@ sub expand_dollar {
 	    $piece= substr($piece,1);
 	}
 	my $tmp= $ENV{uc($piece)}||'';
-	$tmp=~ s/'/''/g;
-	$tmp=~ s/\s+/'/g;
-	return qq['$tmp'];
+	return $tmp;
     }
 }
 
@@ -325,27 +352,28 @@ sub make_tokens {
 
     my $tmp;
     while (defined ($tmp= shift @parts)) {
-	if (length($tmp)<3) {
-	    if ($tmp eq '||' or $tmp eq '&&') {
+	if (ref $tmp) {
+	    my $num= $tmp->[0];
+	    if ($num==1 or $num==2) {
 		push @tokens, [1, 1, $pipes],
-		  [ $tmp eq '||'? T_OR: T_AND ];
+		  [ $num==1? T_OR: T_AND ];
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
 		next;
-	    } elsif ($tmp eq ';' or $tmp eq "\n" ) {
+	    } elsif ($num==3 or $num==4 ) {
 		push @tokens, [1, 1, $pipes];
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
 		next;
-	    } elsif ($tmp eq '&') {
+	    } elsif ($num==5) {
 		push @tokens, [1, 0, $pipes];
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
 		next;
-	    } elsif ($tmp eq '|') {
+	    } elsif ($num==6) {
 		my @fileno= (1,0);
 		my $bothflag= 0;
 		$bothflag ||= _parse_fileno(\@parts, \@fileno);
@@ -357,12 +385,11 @@ sub make_tokens {
 		$words= [];
 		push @$pipes, $words, $redirects;
 		next;
-	    } elsif ($tmp eq '>' or $tmp eq '>>' or
-		     $tmp eq '&>') {
+	    } elsif ( $num>6 and $num<10 ) {
 		my $bothflag= 0;
-		if ($tmp eq '&>') {
+		if ($num==9) {
 		    $bothflag= 1;
-		    $tmp= '>';
+		    $num= 7;
 		}
 		my @fileno= (1,0);
 		my $file;
@@ -370,9 +397,8 @@ sub make_tokens {
 		$bothflag ||= _parse_fileno(\@parts, \@fileno);
 		if ($fileno[1]==0) {
 		    $file= shift @parts;
-		    _clean_word(\$file);
 		    die "parse: redirection >: file missing" unless $file;
-		    push @$redirects, [3, $tmp, $fileno[0], $file];
+		    push @$redirects, [3, $num==7?'>':'>>', $fileno[0], $file];
 		} else {
 		    push @$redirects, [3, '>&', @fileno];
 		}
@@ -380,23 +406,21 @@ sub make_tokens {
 		    push @$redirects, [3, '>&', 2, $fileno[0]];
 		}
 		next;
-	    } elsif ($tmp eq '<') {
+	    } elsif ($num==10) {
 		my $file;
 		my @fileno= (0,0);
 		_parse_fileno(\@parts, \@fileno);
 		if ($fileno[0]==0) {
 		    $file= shift @parts;
-		    _clean_word(\$file);
 		    die "parse: redirection <: file missing" unless $file;
 		    push @$redirects, [3, '<', $fileno[1], $file];
 		} else {
 		    push @$redirects, [3, '<&', $fileno[1], $fileno[0]];
 		}
 		next;
+	    } else {
+		die "Unknown token: $num\n";
 	    }
-	}
-	if (length($tmp)>1) {
-	    _clean_word(\$tmp);
 	}
 	push @$words, $tmp;
     }
@@ -505,8 +529,6 @@ sub _parse_simple {
 	    }
 	}
     }
-    eval "use Data::Dumper;";
-    print STDERR Dumper(\@words);
     die "duh";
 }
 

@@ -15,7 +15,7 @@ sub execute {
 	if ($tmp eq '=') {
 	    $tmp= shift @$words;
 	}
-	$ENV{$var}= $tmp;
+	$ENV{uc($var)}= $tmp;
     } else {
 	$psh->printerrln($psh->gt('setenv: setenv NAME not supported yet.'));
     }
