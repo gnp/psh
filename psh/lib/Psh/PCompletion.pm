@@ -9,12 +9,13 @@
 package Psh::PCompletion;
 
 use strict;
-use vars qw(%COMPSPEC %ACTION @ISA @EXPORT_OK $LOADED);
+use vars qw(%COMPSPEC %ACTION @ISA @EXPORT_OK);
 require Exporter;
 require Psh::Completion;
 require Psh::Parser;
 
-$LOADED=1;
+$Psh::PCompletion::LOADED=1; # tell other packages which optionally want to call us that we're here now
+
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(pcomp_getopts %ACTION %COMPSPEC compgen redir_test);
 
