@@ -12,8 +12,6 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 # Construct a prompt string from TEMPLATE.
 #
 
-my $default_prompt='\s% ';
-
 %prompt_vars = (
 	'd' => sub {
 			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
@@ -54,8 +52,8 @@ my $default_prompt='\s% ';
 		},
 	'#' => sub { return $Psh::cmd; },
 	'$' => sub { return ($> ? '$' : '#'); },
-	'[' => sub { return ''},
-	']' => sub { return ''},
+	'[' => sub { return $Psh::term->ReadLine() eq 'Term::ReadLine::Gnu'?"\001":''},
+	']' => sub { return $Psh::term->ReadLine() eq 'Term::ReadLine::Gnu'?"\002":''},
 );
 
 
@@ -143,7 +141,7 @@ sub prompt_string
 sub normal_prompt {
 	my $prompt= $Psh::prompt;
 	$prompt= $ENV{PS1} unless defined $prompt;
-	$prompt= $default_prompt unless defined $prompt;
+	$prompt= '\s% ' unless defined $prompt;
 	return $prompt;
 }
 
@@ -159,8 +157,10 @@ sub pre_prompt_hook {
 }
 
 sub change_title {
-	my $title= $ENV{PSH_TITLE};
+	my $title= $Psh::window_title;
+	$title= $ENV{PSH_TITLE} unless defined $title;
 	return if !$title;
+	$title= prompt_string($title);
 	my $term= $ENV{TERM};
 	if( $term=~ /^(rxvt.*)|(xterm.*)|(.*xterm)|(kterm)|(aixterm)|(dtterm)/) {
 		print "\017\033]2;$title\007";

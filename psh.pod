@@ -142,12 +142,13 @@ function, call the subroutine associated with that built-in; the
 subroutine receives a single argument, which is the remainder of the
 input line exactly as entered.
 
-=item * C<perlfunc> (not enabled by default)
+=item * C<perlfunc>
 
-If the first word of the input line matches either a built-in Perl
-function (as determined by the %Psh::perl_builtins hash), or the name
-of defined Perl subroutine, pass the line
-to eval. If C<$Psh::perlfunc_expand_arguments> is true and the line
+If the first word of the input line matches the name of a defined
+Perl subroutine - or - if $Psh::perlfunc_builtins is set a built-in
+Perl function (as determined by the %Psh::perl_builtins hash),
+pass the line to eval. If C<$Psh::perlfunc_expand_arguments> is
+true and the line
 contains no parens, or braces or commas (except for {a,b,c} as in
 shell brace-expansion), then this strategy tries to
 interpret the arguments on the command line in a "shell-like" manner:
@@ -407,6 +408,11 @@ The fully qualified host name of the machine B<psh> is running on.
 
 A file giving news for the shell.
 
+=item I<$Psh::perlfunc_builtins> (0)
+
+If this variable is true, the perlfunc evaluation strategy will
+also match those Perl builtins determined by %Psh::perl_builtins
+
 =item I<$Psh::perlfunc_expand_arguments> (0)
 
 If this variable is true, then command lines interpreted by the
@@ -426,6 +432,11 @@ Controls the prompt string in interactive use, see below.
 
 Just like I<$Psh::prompt>, but for continuation lines when multi-line
 input is being read.
+
+=item I<$Psh::window_title> ('\w')
+
+Controls the window title in interactive use. See prompt evaluation
+for escape codes.
 
 =item I<$Psh::result_array> ('Psh::val') 
 
@@ -507,6 +518,11 @@ LD_LIBRARY_PATH, FIGNORE and CDPATH.
 
 The keys are command names, the values are subroutine references which
 are called with the remainder of the line exactly as input.
+
+=item I<%Psh::fallback_builtins>
+
+A list of fallback builtins Psh should provide. This currently defaults
+to ls and env.
 
 =item I<%Psh::perl_builtins> (by default, all Perl builtins and keywords)
 
@@ -632,7 +648,11 @@ variables supported are:
 
 =item d The date in ``Weekday Month Day'' format
 
-=item h The hostname
+=item E The escape character
+
+=item h The short hostname
+
+=item H The long hostname
 
 =item n A carriage return and line feed
 
@@ -649,6 +669,8 @@ variables supported are:
 =item # The command number of the current command
 
 =item $ `#' if the effective UID is zero, else `$'
+
+=item [ ] Used for Term::ReadLine::Gnu to ignore control characters while determining the length of the prompt
 
 =back
 
@@ -844,10 +866,8 @@ environment variable as prompt.
 B<PS2> - If $Psh::prompt_cont is unset, psh will try to use
 this variable as continuation prompt.
 
-B<PSH_TITLE> - If set and psh runs within a terminal it knows and which
-supports changing window titles, then psh will set the window title to
-the value of this variable. Note that this is modified automatically
-if $Psh::change_title is true.
+B<PSH_TITLE> - If $Psh::window_title is unset, psh will try to use
+this variable as window title.
 
 B<USER> - The name of the current user
 
