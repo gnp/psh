@@ -265,7 +265,6 @@ sub process
 		}
 
 		chomp $input;
-
 		my ($success,@result) = evl($input);
 
 		my $qEcho = 0;
@@ -303,12 +302,12 @@ sub process
 			if (scalar(@result) > 1) {
 				my $n = scalar(@{$result_array_ref});
 				push @{$result_array_ref}, \@result;
-				print_out("\$$result_array_name\[$n] = [", join(',',@result), "]\n");
+				print_out("\$$result_array_name\[$n] = [", join(',',@result), "]\n") if $interactive;
 			} else {
 				my $n = scalar(@{$result_array_ref});
 				my $res = $result[0];
 				push @{$result_array_ref}, $res;
-				print_out("\$$result_array_name\[$n] = \"$res\"\n");
+				print_out("\$$result_array_name\[$n] = \"$res\"\n") if $interactive;
 			}
 			if (@{$result_array_ref}>100) {
 				shift @{$result_array_ref};

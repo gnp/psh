@@ -52,7 +52,7 @@ perl interpreter (might be used later on for a special rc file compiler)
 
 =item *
 
-New optional strategy B<darwin_apps> - tries to locate Darwin/Mac OS X
+New strategy B<darwin_apps> - tries to locate Darwin/Mac OS X
 Appbundle programs and execute them.
 
 =item *
