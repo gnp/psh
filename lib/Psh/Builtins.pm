@@ -48,7 +48,7 @@ use vars qw(%aliases @dir_stack $dir_stack_pos);
 
 use Psh::Util qw(:all print_list);
 require Psh::OS;
-use File::Spec ();
+require File::Spec;
 
 my $PS=$Psh::OS::PATH_SEPARATOR;
 

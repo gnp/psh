@@ -2,10 +2,10 @@ package Psh::OS::Unix;
 
 use strict;
 use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
-use Config ();
-use File::Spec ();
-
-use Psh::Util ':all';
+require Config;
+require File::Spec;
+require Psh::Util;
+require Psh::OS;
 
 $Psh::OS::PATH_SEPARATOR=':';
 $Psh::OS::FILE_SEPARATOR='/';
@@ -91,6 +91,9 @@ sub get_rc_files {
 
 	if (-r '/etc/pshrc') {
 		push @rc, '/etc/pshrc';
+	}
+	if (-r '/usr/share/psh/pshrc') {
+		push @rc, '/usr/share/psh/pshrc';
 	}
 	my $home= Psh::OS::get_home_dir();
 	if ($home) { push @rc, File::Spec->catfile($home,'.pshrc') };
