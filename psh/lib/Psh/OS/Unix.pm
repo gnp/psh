@@ -425,6 +425,7 @@ my %special_handlers= (
 					   'CHLD' => \&_ignore_handler,
 					   'CLD'  => \&_ignore_handler,
 					   'TTOU' => \&_ttou_handler,
+					   'TTIN' => \&_ttou_handler,
 					   'SEGV' => 0,
 					   'WINCH'=> 0,
 					   'ZERO' => 0,
