@@ -108,19 +108,19 @@ sub _set_theme {
 
 sub bi_theme {
 	my $line= shift;
-	my @dirs= (File::Spec->catdir(File::Spec->rootdir,'usr','share',
+	my @dirs= (Psh::OS::catdir(Psh::OS::rootdir(),'usr','share',
 								  'psh','themes'),
-			   File::Spec->catdir(File::Spec->rootdir,'usr','local','share',
+			   Psh::OS::catdir(Psh::OS::rootdir(),'usr','local','share',
 								  'psh','themes'),
-			   File::Spec->catdir(Psh::OS::get_home_dir(),'.psh','share','themes'),
-			   File::Spec->catdir(File::Spec->rootdir,'psh','themes'));
+			   Psh::OS::catdir(Psh::OS::get_home_dir(),'.psh','share','themes'),
+			   Psh::OS::catdir(Psh::OS::rootdir(),'psh','themes'));
 	if ($line eq 'list') {
 		my @result=();
 		foreach my $dir (@dirs) {
 			next unless -r $dir;
 			my @tmp= Psh::OS::glob('*',$dir);
 			foreach my $file (@tmp) {
-				my $full= File::Spec->catfile($dir,$file);
+				my $full= Psh::OS::catfile($dir,$file);
 				next if !-r $full or -d _;
 				next if $file =~ /\~$/;
 				$file=~ s/\.bt$//;
@@ -138,7 +138,7 @@ sub bi_theme {
 			} else {
 				foreach my $dir (@dirs) {
 					next unless -r $dir;
-					my $file= File::Spec->catfile($dir,$line);
+					my $file= Psh::OS::catfile($dir,$line);
 					if (-r "$file.bt") {
 						return _set_theme("$file.bt");
 					} elsif (-r $file) {

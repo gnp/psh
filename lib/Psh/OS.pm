@@ -7,16 +7,12 @@ my $ospackage;
 BEGIN {
 	if ($^O eq 'MSWin32') {
 		$ospackage='Psh::OS::Win';
-		require File::Spec::Win32;
 		require Psh::OS::Win;
-		@File::Spec::ISA=('File::Spec::Win32');
 		die "Could not find OS specific package $ospackage: $@" if $@;
 	} else {
 		$ospackage='Psh::OS::Unix';
-		require File::Spec::Unix;
 		require Psh::OS::Unix;
 		die "Could not find OS specific package $ospackage: $@" if $@;
-		@File::Spec::ISA=('File::Spec::Unix');
 	}
 }
 
@@ -25,9 +21,10 @@ sub AUTOLOAD {
 	$AUTOLOAD=~ s/.*:://;
 	my $name="${ospackage}::$AUTOLOAD";
 	$name="Psh::OS::fb_$AUTOLOAD" unless ref *{$name}{CODE} eq 'CODE';
-	require Carp;
-	Carp::croak "Function `$AUTOLOAD' in Psh::OS does not exist." unless
-		ref *{$name}{CODE} eq 'CODE';
+	unless (ref *{$name}{CODE} eq 'CODE') {
+		require Carp;
+		Carp::croak "Function `$AUTOLOAD' in Psh::OS does not exist.";
+	}
 	*$AUTOLOAD=  *$name;
 	goto &$AUTOLOAD;
 }
@@ -44,11 +41,11 @@ sub _recursive_glob {
 	opendir( DIR, $dir) || return ();
 	my @files= readdir(DIR);
 	closedir( DIR);
-	my @result= map { File::Spec->catdir($dir,$_) }
-	                     grep { /^$pattern$/ } @files;
+	my @result= map { catdir($dir,$_) }
+	  grep { /^$pattern$/ } @files;
 	foreach my $tmp (@files) {
-		my $tmpdir= File::Spec->catdir($dir,$tmp);
-		next if ! -d $tmpdir || !File::Spec->no_upwards($tmp);
+		my $tmpdir= catdir($dir,$tmp);
+		next if ! -d $tmpdir || !no_upwards($tmp);
 		push @result, _recursive_glob($pattern, $tmpdir);
 	}
 	return @result;
@@ -99,7 +96,7 @@ sub fb_glob {
 		my $prefix= $1||'';
 		$pattern= $2;
 		$prefix=~ s:/$::;
-	    $dir= File::Spec->catdir($dir,$prefix);
+	    $dir= catdir($dir,$prefix);
 		$pattern=_escape($pattern);
 		$pattern=~s/\*/[^\/]*/g;
 		$pattern=~s/\?/./g;
@@ -188,7 +185,7 @@ sub fb_exit_psh {
 
 sub fb_getcwd_psh {
 	eval { require Cwd; };
-	return Cwd::getcwd();
+	return eval { Cwd::getcwd(); } || '';
 }
 
 sub fb_LOCK_SH { 1; }
@@ -264,6 +261,23 @@ sub fb_reinstall_resize_handler { 1; }
 		}
 	}
 }
+
+
+# File::Spec
+#
+# We add the necessary functions directly because:
+# 1) Changes to File::Spec might be fatal to psh's file location mechanisms
+# 2) File::Spec loads unwanted modules
+# 3) We don't need it anyway as we need platform-specific OS modules
+#    anyway
+#
+# Normally I wouldn't do it - but this is a shell and memory
+# consumption and startup time is worth something for everyday work...
+
+sub fb_no_upwards {
+    return grep(!/^\.{1,2}\Z(?!\n)/s, @_);
+}
+
 
 1;
 

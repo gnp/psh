@@ -9,7 +9,6 @@ sent unchanged to the perl interpreter
 
 
 require Psh::Strategy;
-require Psh::Strategy::Eval;
 
 @Psh::Strategy::Perl::ISA=('Psh::Strategy');
 

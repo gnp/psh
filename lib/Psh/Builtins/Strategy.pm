@@ -69,8 +69,8 @@ sub bi_strategy
 		} else {
 			my $tmp='';
 			foreach my $line (@INC) {
-				my $tmpfile= File::Spec->catfile(
-								File::Spec->catdir($line,'Psh','Strategy'),
+				my $tmpfile= Psh::OS::catfile(
+								Psh::OS::catdir($line,'Psh','Strategy'),
 												 ucfirst($words->[1]).'.pm');
 				$tmp= Psh::Builtins::Help::get_pod_from_file($tmpfile,
 															$words->[1]);

@@ -41,12 +41,12 @@ sub bi_complete {
 	    $_[1][1]) {
 		my @dirs=
 		  (
-		   File::Spec->catdir(File::Spec->rootdir,'usr','share',
+		   Psh::OS::catdir(Psh::OS::rootdir(),'usr','share',
 							  'psh','complete'),
-		   File::Spec->catdir(File::Spec->rootdir,'usr','local','share',
+		   Psh::OS::catdir(Psh::OS::rootdir(),'usr','local','share',
 							  'psh','complete'),
-		   File::Spec->catdir(Psh::OS::get_home_dir(),'.psh','share','complete'),
-		   File::Spec->catdir(File::Spec->rootdir,'psh','complete')
+		   Psh::OS::catdir(Psh::OS::get_home_dir(),'.psh','share','complete'),
+		   Psh::OS::catdir(Psh::OS::rootdir(),'psh','complete')
 		  );
 		if ($_[1][1] eq 'list') {
 			my @result=();
@@ -54,7 +54,7 @@ sub bi_complete {
 				next unless -r $dir;
 				my @tmp= Psh::OS::glob('*',$dir);
 				foreach my $file (@tmp) {
-					my $full= File::Spec->catfile($dir,$file);
+					my $full= Psh::OS::catfile($dir,$file);
 					next if !-r $full or -d _;
 					next if $file=~/\~$/;
 					push @result,$file;
@@ -67,7 +67,7 @@ sub bi_complete {
 			my $file=$_[1][1];
 			my @lines;
 			foreach my $dir (@dirs) {
-				my $full= File::Spec->catfile($dir,$file);
+				my $full= Psh::OS::catfile($dir,$file);
 				if (-r $full and !-d $full) {
 					$file= $full;
 					last;

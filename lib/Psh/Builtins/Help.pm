@@ -39,12 +39,13 @@ sub bi_help
 	if( $arg) {
 		my $tmpfile;
 		foreach my $line (@INC) {
-			$tmpfile= File::Spec->catfile(
-			 File::Spec->catdir($line,'Psh','Builtins'),ucfirst($arg).'.pm');
+			$tmpfile= Psh::OS::catfile(
+									   Psh::OS::catdir($line,'Psh','Builtins'),
+									   ucfirst($arg).'.pm');
 			$tmp= get_pod_from_file($tmpfile,$arg);
 			last if $tmp;
-			$tmpfile= File::Spec->catfile(
-		   			File::Spec->catdir($line,'Psh','Builtins','Fallback'),
+			$tmpfile= Psh::OS::catfile(
+									   Psh::OS::catdir($line,'Psh','Builtins','Fallback'),
 										  ucfirst($arg).'.pm');
 			$tmp= get_pod_from_file($tmpfile,$arg);
 			last if $tmp;

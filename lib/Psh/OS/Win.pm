@@ -265,7 +265,7 @@ sub get_rc_files {
 	push @rc, "\\etc\\pshrc" if -r "\\etc\\pshrc";
 	push @rc, "$ENV{WINDIR}\\pshrc" if -r "$ENV{WINDIR}\\pshrc";
 	my $home= Psh::OS::get_home_dir();
-	if ($home) { push @rc, File::Spec->catfile($home,'pshrc') };
+	if ($home) { push @rc, catfile($home,'pshrc') };
 	return @rc;
 }
 
@@ -315,6 +315,116 @@ sub get_editor {
     return $suggestion||$ENV{VISUAL}||$ENV{EDITOR}||'edit';
 }
 
+
+# From File::Spec
+
+
+sub canonpath {
+    my ($path) = @_;
+    $path =~ s/^([a-z]:)/\u$1/s;
+    $path =~ s|/|\\|g;
+    $path =~ s|([^\\])\\+|$1\\|g;                  # xx////xx  -> xx/xx
+    $path =~ s|(\\\.)+\\|\\|g;                     # xx/././xx -> xx/xx
+    $path =~ s|^(\.\\)+||s unless $path eq ".\\";  # ./xx      -> xx
+    $path =~ s|\\\Z(?!\n)||
+	  unless $path =~ m#^([A-Z]:)?\\\Z(?!\n)#s;   # xx/       -> xx    return $path;
+}
+
+sub catfile {
+    my $file = pop @_;
+    return $file unless @_;
+    my $dir = catdir(@_);
+    $dir .= "\\" unless substr($dir,-1) eq "\\";
+    return $dir.$file;
+}
+
+sub catdir {
+    my @args = @_;
+    foreach (@args) {
+        # append a slash to each argument unless it has one there
+        $_ .= "/" if $_ eq '' || substr($_,-1) ne "/";
+    }
+    return canonpath(join('', @args));
+}
+
+sub file_name_is_absolute {
+	my $file= shift;
+    return scalar($file =~ m{^([a-z]:)?[\\/]}is);
+}
+
+sub rootdir {
+	"\\";
+}
+
+sub splitdir {
+    my ($directories) = @_ ;
+
+    if ( $directories !~ m|[\\/]\Z(?!\n)| ) {
+        return split( m|[\\/]|, $directories );
+    }
+    else {
+        my( @directories )= split( m|[\\/]|, "${directories}dummy" ) ;
+        $directories[ $#directories ]= '' ;
+        return @directories ;
+    }
+}
+
+sub splitpath {
+    my ($path, $nofile) = @_;
+    my ($volume,$directory,$file) = ('','','');
+    if ( $nofile ) {
+        $path =~
+            m{^( (?:[a-zA-Z]:|(?:\\\\|//)[^\\/]+[\\/][^\\/]+)? )
+                 (.*)
+             }xs;
+        $volume    = $1;
+        $directory = $2;
+    }
+    else {
+        $path =~
+            m{^ ( (?: [a-zA-Z]: |
+                      (?:\\\\|//)[^\\/]+[\\/][^\\/]+
+                  )?
+                )
+                ( (?:.*[\\\\/](?:\.\.?\Z(?!\n))?)? )
+                (.*)
+             }xs;
+        $volume    = $1;
+        $directory = $2;
+        $file      = $3;
+    }
+ 
+    return ($volume,$directory,$file);
+}
+sub rel2abs {
+    my ($path,$base ) = @_;
+
+    if ( ! file_name_is_absolute( $path ) ) {
+        if ( !defined( $base ) || $base eq '' ) {
+            $base = Psh::OS::getcwd_psh() ;
+        }
+        elsif ( ! file_name_is_absolute( $base ) ) {
+            $base = rel2abs( $base ) ;
+        }
+        else {
+            $base = canonpath( $base ) ;
+        }
+ 
+        my ( $path_directories, $path_file ) =
+            (splitpath( $path, 1 ))[1,2] ;
+ 
+        my ( $base_volume, $base_directories ) =
+		  splitpath( $base, 1 ) ;
+ 
+        $path = catpath(
+						$base_volume,
+						catdir( $base_directories, $path_directories ),
+						$path_file
+					   ) ;
+    }
+ 
+    return canonpath( $path ) ;
+}
 
 1;
 

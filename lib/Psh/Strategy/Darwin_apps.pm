@@ -28,13 +28,13 @@ sub _recursive_search {
 	opendir( DIR, $dir) || return ();
 	my @files= readdir(DIR);
 	closedir( DIR);
-	my @result= map { File::Spec->catdir($dir,$_) }
+	my @result= map { Psh::OS::catdir($dir,$_) }
 	  grep { lc("$file.app") eq lc($_) } @files;
 	return $result[0] if @result;
 	if ($lvl<10) {
 		foreach my $tmp (@files) {
-			my $tmpdir= File::Spec->catdir($dir,$tmp);
-			next if ! -d $tmpdir || !File::Spec->no_upwards($tmp);
+			my $tmpdir= Psh::OS::catdir($dir,$tmp);
+			next if ! -d $tmpdir || !Psh::OS::no_upwards($tmp);
 			next if index($tmpdir,'.')>=0;
 			push @result, _recursive_search($file, $tmpdir, $lvl+1);
 		}

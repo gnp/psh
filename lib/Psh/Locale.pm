@@ -1,10 +1,5 @@
 package Psh::Locale;
 
-use strict;
-use locale;
-
-require POSIX;
-
 #
 # Here is the list of ISO-639:1988 language codes. Obtained from
 # http://www.uk.adlibsoft.com/iso/iso639.html on 1999-12-26.
@@ -172,7 +167,20 @@ require POSIX;
 #  zu Zulu
 #
 
-my %alias_table= (
+my (@mon,@wday);
+my $locale_loaded;
+my $special_locale=0;
+
+sub load_locale {
+	return if $locale_loaded;
+	require Psh::Locale::Default;
+
+	my $lang= $ENV{LANG};
+	# Now try to use a locale module depending on LANG
+	if( $lang and $lang ne "C" and $lang ne "POSIX") {
+		$lang=lc($lang);
+
+		my %alias_table= (
 				  "de_de"     => "German",
 				  "deutsch"   => "German",
 				  "de"        => "German",
@@ -195,19 +203,8 @@ my %alias_table= (
 				  "português" => "Portuguese",
 				  "portugues" => "Portuguese",
 				  "pt_pt"     => "Portuguese",
-);
+						 );
 
-my (@mon,@wday);
-my $locale_loaded;
-
-sub load_locale {
-	return if $locale_loaded;
-	require Psh::Locale::Default;
-
-	my $lang= $ENV{LANG};
-	# Now try to use a locale module depending on LANG
-	if( $lang and $lang ne "C" and $lang ne "POSIX") {
-		$lang=lc($lang);
 		$lang=$alias_table{$lang} if( exists $alias_table{$lang});
 	    $lang=ucfirst($lang);
 		eval "use Psh::Locale::$lang";
@@ -216,6 +213,7 @@ sub load_locale {
 		# A better way would be to maybe use Locale::PGetText
 		# but that would again increase the requirements for
 		# psh unnecessarily
+		$special_locale=1;
 	}
 	$locale_loaded=1;
 }
@@ -230,8 +228,13 @@ sub months {
 		@mon=@_;
 	} else {
 		unless (@mon) {
-			for( my $i=0; $i<12; $i++) {
-				push( @mon, POSIX::strftime("%b",0,0,0,1,$i,99));
+			if ($speciallocale) {
+				require POSIX;
+				for( my $i=0; $i<12; $i++) {
+					push( @mon, POSIX::strftime("%b",0,0,0,1,$i,99));
+				}
+			} else {
+				@mon= qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov);
 			}
 		}
 	}
@@ -243,8 +246,13 @@ sub weekdays {
 		@wday=@_;
 	} else {
 		unless (@wday) {
-			for( my $i=0; $i<7; $i++) {
-				push( @wday, POSIX::strftime("%a",0,0,0,19+$i,11,99,$i));
+			if ($speciallocale) {
+				require POSIX;
+				for( my $i=0; $i<7; $i++) {
+					push( @wday, POSIX::strftime("%a",0,0,0,19+$i,11,99,$i));
+				}
+			} else {
+				@wday=qw(Sun Mon Tue Wed Thu Fri Sat);
 			}
 		}
 	}
