@@ -1,7 +1,5 @@
 package Psh::Builtins::Exit;
 
-use File::Spec;
-
 =item * C<exit>
 
 Exit out of the shell.

@@ -8,7 +8,7 @@ sub MY::postamble {
 	'
 
 install ::
-	$(PERL) postinstall.pl $(PREFIX)
+	$(PERL) postinstall.pl $(SITEPREFIX)
 
 ';
 }

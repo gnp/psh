@@ -3,12 +3,9 @@ package Psh::Util;
 use strict;
 
 require Psh::OS;
-require File::Spec;
 
-use vars qw(%command_hash %path_hash);
-
-%command_hash=();
-%path_hash=();
+%Psh::Util::command_hash=();
+%Psh::Util::path_hash=();
 
 sub print_warning
 {
@@ -134,7 +131,7 @@ sub print_list
 sub abs_path {
 	my $dir= shift;
 	return undef unless $dir;
-	return $path_hash{$dir} if $path_hash{$dir};
+	return $Psh::Util::path_hash{$dir} if $Psh::Util::path_hash{$dir};
 	my $result= Psh::OS::abs_path($dir);
 	unless ($result) {
 		if ($dir eq '~') {
@@ -176,7 +173,7 @@ sub abs_path {
 			$result.='/' unless $result=~ m:[/\\]:;  # abs_path strips / from letter: on Win
 		}
 	}
-	$path_hash{$dir}= $result if File::Spec->file_name_is_absolute($dir);
+	$Psh::Util::path_hash{$dir}= $result if File::Spec->file_name_is_absolute($dir);
 	return $result;
 }
 
@@ -228,7 +225,7 @@ sub abs_path {
 		if ($last_path_cwd ne ($ENV{PATH} . $ENV{PWD})) {
 			$last_path_cwd = $ENV{PATH} . $ENV{PWD};
 			@Psh::absed_path    = ();
-			%command_hash    = ();
+			%Psh::Util::command_hash    = ();
 
 			my @path = split($Psh::OS::PATH_SEPARATOR, $ENV{PATH});
 
@@ -245,7 +242,7 @@ sub abs_path {
 			# does not exist
 		}
 
-		return $command_hash{$cmd} if exists $command_hash{$cmd};
+		return $Psh::Util::command_hash{$cmd} if exists $Psh::Util::command_hash{$cmd};
 
 		my @path_extension=Psh::OS::get_path_extension();
 
@@ -254,12 +251,12 @@ sub abs_path {
 			my $try = File::Spec->catfile($dir,$cmd);
 			foreach my $ext (@path_extension) {
 				if ((-x $try.$ext) and (!-d _)) {
-					$command_hash{$cmd} = $try.$ext;
+					$Psh::Util::command_hash{$cmd} = $try.$ext;
 					return $try.$ext;
 				}
 			}
 		}
-		$command_hash{$cmd} = undef;
+		$Psh::Util::command_hash{$cmd} = undef;
 
 		return undef;
 	}

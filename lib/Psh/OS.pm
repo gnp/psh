@@ -1,15 +1,24 @@
 package Psh::OS;
 
 use strict;
-require File::Spec;
 
-my $ospackage='Psh::OS::Unix';
+my $ospackage;
 
-#$ospackage='Psh::OS::Mac' if( $^O eq 'MacOS');
-$ospackage='Psh::OS::Win' if( $^O eq 'MSWin32');
-
-eval "use $ospackage;";
-die "Could not find OS specific package $ospackage: $@" if $@;
+BEGIN {
+	if ($^O eq 'MSWin32') {
+		$ospackage='Psh::OS::Win';
+		require File::Spec::Win32;
+		require Psh::OS::Win;
+		@File::Spec::ISA=('File::Spec::Win32');
+		die "Could not find OS specific package $ospackage: $@" if $@;
+	} else {
+		$ospackage='Psh::OS::Unix';
+		require File::Spec::Unix;
+		require Psh::OS::Unix;
+		die "Could not find OS specific package $ospackage: $@" if $@;
+		@File::Spec::ISA=('File::Spec::Unix');
+	}
+}
 
 sub AUTOLOAD {
 	no strict;

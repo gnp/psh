@@ -10,8 +10,7 @@ way Perl Shell processes the input
 require Psh::Strategy;
 require Psh::Support::Debug;
 
-use vars qw(@ISA);
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Debug::ISA=('Psh::Strategy');
 
 sub new { Psh::Strategy::new(@_) }
 

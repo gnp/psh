@@ -2,7 +2,6 @@ package Psh::Options;
 
 require Psh;
 require Psh::OS;
-require File::Spec;
 
 # externally stored options
 my %env_options= qw( cdpath 1 fignore 1 histsize 1 ignoreeof 1

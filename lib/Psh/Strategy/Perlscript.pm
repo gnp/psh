@@ -21,10 +21,7 @@ never trigger.
 
 =cut
 
-
-use vars qw(@ISA);
-
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Perlscript::ISA=('Psh::Strategy');
 
 sub new { Psh::Strategy::new(@_) }
 

@@ -11,9 +11,7 @@ sent unchanged to /bin/sh
 =cut
 
 
-
-use vars qw(@ISA);
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Bang::ISA=('Psh::Strategy');
 
 sub consumes {
 	return Psh::Strategy::CONSUME_LINE;

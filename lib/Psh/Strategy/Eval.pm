@@ -9,10 +9,7 @@ any conditions.
 
 require Psh::Strategy;
 
-use strict;
-use vars qw(@ISA);
-
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Eval::ISA=('Psh::Strategy');
 
 sub new { Psh::Strategy::new(@_) }
 

@@ -12,8 +12,7 @@ shell, you can move this strategy ahead of executable.
 
 require Psh::Strategy;
 
-use vars qw(@ISA);
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Fallback_builtin::ISA=('Psh::Strategy');
 
 my %fallback_builtin = ('ls'=>1, 'env'=>1 );
 

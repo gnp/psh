@@ -1,11 +1,15 @@
 package Psh;
 
 use locale;
-require File::Spec;
+
+
+BEGIN {
+	require Psh::OS;
+}
+
 require Psh::Util;
 require Psh::Locale;
 require Psh::Strategy;
-require Psh::OS;
 require Psh::Joblist;
 require Psh::Parser;
 require Psh::PerlEval;
@@ -20,26 +24,6 @@ require Psh::Options;
 ##############################################################################
 ##############################################################################
 
-
-
-#
-# Global Variables:
-#
-# The use vars variables are intended to be accessible to the user via
-# explicit Psh:: package qualification. They are documented in the pod
-# page.
-#
-#
-# The other global variables are private, lexical variables.
-#
-
-use vars qw($bin $cmd $host $debugging
-			$term @absed_path
-			$eval_preamble $currently_active
-			$result_array $which_regexp $old_shell
-		    $login_shell $window_title
-            $interactive $current_options
-			@val @history %text );
 
 #
 # Private, Lexical Variables:
@@ -75,7 +59,7 @@ sub handle_message
 
 	if ($message) {
 		return if ($from eq 'hide');
-		if ($message =~ m/^SECRET $bin:(.*)$/s) {
+		if ($message =~ m/^SECRET $Psh::bin:(.*)$/s) {
 			if ($from ne 'main_loop') { Psh::Util::print_out("$1\n"); }
 		} else {
 			Psh::Util::print_error("$from error ($message)!\n");
@@ -162,7 +146,7 @@ sub read_until
 		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),
 					  1,\&Psh::Prompt::pre_prompt_hook);
 		if (!defined($temp)) {
-			Psh::Util::print_error_i18n('input_incomplete',$sofar,$bin);
+			Psh::Util::print_error_i18n('input_incomplete',$sofar,$Psh::bin);
 			return '';
 		}
 		last if $temp =~ m/^$terminator$/;
@@ -191,7 +175,7 @@ sub read_until_complete
 		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),1,
 					  \&Psh::Prompt::pre_prompt_hook);
 		if (!defined($temp)) {
-			Psh::Util::print_error_i18n('input_incomplete',$sofar,$bin);
+			Psh::Util::print_error_i18n('input_incomplete',$sofar,$Psh::bin);
 			return '';
 		}
 		$sofar .= $temp;
@@ -222,7 +206,7 @@ sub read_until_complete
 sub process
 {
 	my ($q_prompt, $get) = @_;
-	local $cmd;
+	local $Psh::cmd;
 
 	my $last_result_array = '';
 	my $result_array_ref = \@Psh::val;
@@ -238,12 +222,12 @@ sub process
 		}
 
 		Psh::OS::reap_children(); # Check wether we have dead children
-		Psh::OS::check_terminal_size() if $interactive;
+		Psh::OS::check_terminal_size() if $Psh::interactive;
 
-		$cmd++;
+		$Psh::cmd++;
 
 		unless (defined($input)) {
-			last unless $interactive;
+			last unless $Psh::interactive;
 			print STDOUT "\n";
 			$control_d_counter++;
 			my $control_d_max=$ENV{IGNOREEOF}||0;
@@ -278,7 +262,7 @@ sub process
 		if (ref($echo) eq 'CODE') {
 			$qEcho = &$echo(@result);
 		} elsif (ref($echo)) {
-			Psh::Util::print_warning_i18n('psh_echo_wrong',$bin);
+			Psh::Util::print_warning_i18n('psh_echo_wrong',$Psh::bin);
 		} else {
 			if ($echo) { $qEcho = defined_and_nonempty(@result); }
 		}
@@ -296,7 +280,7 @@ sub process
 						$result_array_name = 'anonymous';
 					}
 				} elsif ($what) {
-					Psh::Util::print_warning_i18n('psh_result_array_wrong',$bin);
+					Psh::Util::print_warning_i18n('psh_result_array_wrong',$Psh::bin);
 					$result_array_ref = \@Psh::val;
 					$result_array_name = 'Psh::val';
 				} else { # Ordinary string
@@ -308,7 +292,7 @@ sub process
 			if (scalar(@result) > 1) {
 				my $n = scalar(@{$result_array_ref});
 				push @{$result_array_ref}, \@result;
-				if ($interactive) {
+				if ($Psh::interactive) {
 					my @printresult=();
 					foreach my $val (@result) {
 						if (defined $val) {
@@ -323,7 +307,7 @@ sub process
 				my $n = scalar(@{$result_array_ref});
 				my $res = $result[0];
 				push @{$result_array_ref}, $res;
-				Psh::Util::print_out("\$$result_array_name\[$n] = \"$res\"\n") if $interactive;
+				Psh::Util::print_out("\$$result_array_name\[$n] = \"$res\"\n") if $Psh::interactive;
 			}
 			if (@{$result_array_ref}>100) {
 				shift @{$result_array_ref};
@@ -388,15 +372,15 @@ sub process_file
 	my $path= shift;
 
 	Psh::Util::print_debug("[PROCESSING FILE $path]\n");
-	local $interactive=0;
+	local $Psh::interactive=0;
 
 	if (!-r $path) {
-		Psh::Util::print_error_i18n('cannot_read_script',$path,$bin);
+		Psh::Util::print_error_i18n('cannot_read_script',$path,$Psh::bin);
 		return;
 	}
 
 	unless (open(FILE, "< $path")) {
-		Psh::Util::print_error_i18n('cannot_open_script',$path,$bin);
+		Psh::Util::print_error_i18n('cannot_open_script',$path,$Psh::bin);
 		return;
 	}
 
@@ -464,11 +448,11 @@ sub iget
 	my $prompt_pre= '';
 	my $line;
 	my $sigint = 0;
-	$interactive=1;
+	$Psh::interactive=1;
 
 	# Additional newline handling for prompts as Term::ReadLine::Perl
 	# cannot use them properly
-	if( $term->ReadLine eq 'Term::ReadLine::Perl' &&
+	if( $Psh::term->ReadLine eq 'Term::ReadLine::Perl' &&
 		$prompt=~ /^(.*\n)([^\n]+)$/) {
 		$prompt_pre=$1;
 		$prompt=$2;
@@ -480,10 +464,10 @@ sub iget
 		$sigint= 0 if ($sigint);
 		# Trap ^C in an eval.  The sighandler will die which will be
 		# trapped.  Then we reprompt
-		if ($term) {
+		if ($Psh::term) {
 			&$prompt_hook if $prompt_hook;
 			print $prompt_pre if $prompt_pre;
-			eval { $line = $term->readline($prompt); };
+			eval { $line = $Psh::term->readline($prompt); };
 		} else {
 			eval {
 				&$prompt_hook if $prompt_hook;
@@ -520,10 +504,10 @@ sub add_history
 {
 	my $line=shift;
 	return if !$line or $line =~ /^\s*$/;
-	if (!@history || $history[$#history] ne $line) {
+	if (!@Psh::history || $Psh::history[$#history] ne $line) {
 		my $len= Psh::Options::get_option('histsize');
-		$term->addhistory($line) if $term;
-		push(@history, $line);
+		$Psh::term->addhistory($line) if $Psh::term;
+		push(@Psh::history, $line);
 		if( @Psh::history>$len) {
 			splice(@Psh::history,0,-$len);
 		}
@@ -532,13 +516,13 @@ sub add_history
 
 sub save_history
 {
-	return unless $term;
+	return unless $Psh::term;
 	Psh::Util::print_debug_class('o',"[Saving history]\n");
 	if( Psh::Options::get_option('save_history')) {
 		my $file= Psh::Options::get_option('history_file');
 		return unless $file;
 		if ($Psh::readline_saves_history) {
-			$term->StifleHistory(Psh::Options::get_option('histsize'));
+			$Psh::term->StifleHistory(Psh::Options::get_option('histsize'));
 			$Psh::term->WriteHistory($file);
 		} else {
 			if (open(F_HISTORY,">> $file")) {
@@ -569,26 +553,26 @@ sub minimal_initialize
 	# Set up accessible psh:: package variables:
 	#
 
-	$eval_preamble               = 'package main;';
-	$currently_active            = 0;
-	$result_array                = '';
-	$which_regexp                = '^[-a-zA-Z0-9_.~+]+$'; #'
+	$Psh::eval_preamble          = 'package main;';
+	$Psh::currently_active       = 0;
+	$Psh::result_array           = '';
+	$Psh::which_regexp           = '^[-a-zA-Z0-9_.~+]+$'; #'
 
 	if ($]>=5.005) {
 		eval {
-			$which_regexp= qr($which_regexp); # compile for speed reasons
+			$Psh::which_regexp= qr($which_regexp); # compile for speed reasons
 		};
 		Psh::Util::print_debug_class('e',"(minimal_init) Error: $@") if $@;
 	}
 
-	$cmd                         = 1;
+	$Psh::cmd                    = 1;
 	my @tmp= File::Spec->splitdir($0);
-	$bin= pop @tmp;
+	$Psh::bin= pop @tmp;
 	Psh::Options::set_option('history_file',
 							 File::Spec->catfile(Psh::OS::get_home_dir(),
 												 '.'.$Psh::bin.'_history'));
 
-	$old_shell = $ENV{SHELL} if $ENV{SHELL};
+	$Psh::old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
 	$ENV{OLDPWD}= $ENV{PWD} = Psh::OS::getcwd_psh();
 
@@ -598,10 +582,10 @@ sub minimal_initialize
 	# The following accessible variables are undef during the
 	# .pshrc file:
 	undef $longhost;
-	undef $host;
+	undef $Psh::host;
 
-	@val = ();
-	@history= ();
+	@Psh::val = ();
+	@Psh::history= ();
 
 	Psh::Strategy::setup_defaults();
 }
@@ -622,11 +606,11 @@ sub finish_initialize
 		$longhost                    = $ENV{HOSTNAME}||Psh::OS::get_hostname();
 		chomp $longhost;
 	}
-	if (!defined($host)) {
-		$host= $longhost;
-		$host= $1 if( $longhost=~ /([^\.]+)\..*/);
+	if (!defined($Psh::host)) {
+		$Psh::host= $longhost;
+		$Psh::host= $1 if( $longhost=~ /([^\.]+)\..*/);
 	}
-	$ENV{HOSTNAME}= $host;
+	$ENV{HOSTNAME}= $Psh::host;
 }
 
 sub initialize_interactive_mode {
@@ -636,29 +620,29 @@ sub initialize_interactive_mode {
 		#
 		eval { require Term::ReadLine; };
 		if ($@) {
-			$term = undef;
+			$Psh::term = undef;
 			Psh::Util::print_error_i18n('no_readline');
 		} else {
-			eval { $term= Term::ReadLine->new('psh'); };
+			eval { $Psh::term= Term::ReadLine->new('psh'); };
 			if( $@) {
 				# Try one more time after a second, maybe the tty is
 				# not setup
 				sleep 1;
-				eval { $term= Term::ReadLine->new('psh'); };
+				eval { $Psh::term= Term::ReadLine->new('psh'); };
 				if( $@) {
 					Psh::Util::print_error_i18n('readline_error',$@);
-					$term= undef;
+					$Psh::term= undef;
 				}
 			}
-			if( $term) {
-				$term->MinLine(10000);   # We will handle history adding
+			if( $Psh::term) {
+				$Psh::term->MinLine(10000);   # We will handle history adding
 				# ourselves (undef causes trouble).
-				$term->ornaments(0);
-				Psh::Util::print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
-				if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
+				$Psh::term->ornaments(0);
+				Psh::Util::print_debug_class('i',"[Using ReadLine: ", $Psh::term->ReadLine(), "]\n");
+				if ($Psh::term->ReadLine() eq "Term::ReadLine::Gnu") {
 					$readline_saves_history = 1;
 				}
-				my $attribs= $term->Attribs;
+				my $attribs= $Psh::term->Attribs;
 				$attribs->{completion_function} =
 				  \&completion_dummy;
 
@@ -676,18 +660,18 @@ sub initialize_interactive_mode {
 		setup_term_misc();
 	}
 
-	if (defined($term) and Psh::Options::get_option('save_history')) {
+	if (defined($Psh::term) and Psh::Options::get_option('save_history')) {
 		my $file= Psh::Options::get_option('history_file');
 		return unless $file;
 		if ($readline_saves_history) {
-			$term->StifleHistory(Psh::Options::get_option('histsize'));
-			$term->ReadHistory($file);
+			$Psh::term->StifleHistory(Psh::Options::get_option('histsize'));
+			$Psh::term->ReadHistory($file);
 		} else {
 			if (open(F_HISTORY,"< $file")) {
 				Psh::OS::lock(*F_HISTORY);
 				while (<F_HISTORY>) {
 					chomp;
-					$term->addhistory($_);
+					$Psh::term->addhistory($_);
 				}
 				Psh::OS::unlock(*F_HISTORY);
 				close(F_HISTORY);
@@ -706,22 +690,23 @@ sub completion_dummy {
 
 	require Psh::Completion;
 	Psh::Completion::init();
-    $term->Attribs->{completion_function} =
+    $Psh::term->Attribs->{completion_function} =
 	  \&Psh::Completion::completion;
 	return Psh::Completion::completion(@_);
 }
 
 sub setup_term_misc {
-	return unless $term;
-	if ($term->can('add_defun')) { # Term::ReadLine::Gnu
-		$term->add_defun('run-help', \&run_help);
-		$term->parse_and_bind("\"\eh\":run-help"); # bind to ESC-h
+	return unless $Psh::term;
+	if ($Psh::term->can('add_defun')) { # Term::ReadLine::Gnu
+		$Psh::term->add_defun('run-help', \&run_help);
+		$Psh::term->parse_and_bind("\"\eh\":run-help"); # bind to ESC-h
 	}
 }
 
 sub run_help {
 	require Psh::Builtins::Help;
-	my $line= substr($term->Attribs->{line_buffer},0,$term->Attribs->{end});
+	my $line= substr($Psh::term->Attribs->{line_buffer},0,
+					 $Psh::term->Attribs->{end});
 	Psh::Builtins::Help::any_help($line);
 }
 

@@ -1,6 +1,6 @@
 package Psh::Builtins::Theme;
 
-require File::Spec;
+require Psh::OS;
 require Psh::Util;
 require Psh::Parser;
 

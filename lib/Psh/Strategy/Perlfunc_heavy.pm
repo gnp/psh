@@ -1,6 +1,6 @@
 package Psh::Strategy::Perlfunc_heavy;
 
-=item * C<perlfuncheavy>
+=item * C<perlfunc_heavy>
 
 Tries to detect perl builtins - this is helpful if you e.g. have
 a print command on your system.
@@ -9,12 +9,12 @@ a print command on your system.
 
 require Psh::Strategy;
 
-use vars qw($builtins $packages $expand_arguments @ISA);
+use vars qw($builtins $packages $expand_arguments);
 
 $builtins=0;
 $packages=1;
 
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Perlfunc_heavy::ISA=('Psh::Strategy');
 
 
 sub new { Psh::Strategy::new(@_) }
