@@ -365,7 +365,7 @@ sub read_until_complete
 
 sub process
 {
-	my ($q_prompt, $get) = @_;
+	my ($q_prompt, $get, $interaflag) = @_;
 	local $cmd;
 
 	my $last_result_array = '';
@@ -391,7 +391,10 @@ sub process
 
 		unless (defined($input)) {
 			$control_d_counter++;
-			last if $control_d_counter>=$control_d_max;
+			if (!$interaflag || $control_d_counter>=$control_d_max) {
+				print "\n" if $interaflag;
+				last;
+			}
 			next;
 		}
 		$control_d_counter=0;
@@ -532,7 +535,7 @@ sub process_file
 				my $txt=<$pfh>;
 				print_debug_class('f',$txt);
 				return $txt;
-			}); # don't prompt
+			}, 0); # don't prompt
 
 	eval { flock($pfh, LOCK_UN); };
 	$pfh->close();
@@ -883,7 +886,7 @@ sub main_loop
 	if ($interactive) { $get = \&iget;                  }
 	else              { $get = sub { return <STDIN>; }; }
 
-	process($interactive, $get);
+	process($interactive, $get, $interactive);
 }
 
 # bool is_number(ARG)

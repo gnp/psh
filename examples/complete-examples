@@ -260,7 +260,7 @@ sub _umount_func {
     close(MOUNT);
     return @COMPREPLY;
 }
-complete -F _umount_func umount
+complete -F _umount_func umount mount
 
 sub _configure_func {
     my ($cur, $line, $start, $cmd) = @_;
