@@ -27,7 +27,7 @@ $VERSION='0.009';
 #
 # option -i is ignored
 
-getopts('iwrd:f:c:', \%opt);
+getopts('Fiwrd:f:c:', \%opt);
 
 if ($opt{'r'}) {
 	Psh::Util::print_error_i18n('no_r_flag');
@@ -55,7 +55,7 @@ else                   { $Psh::debugging = 0; }
 Psh::Util::print_debug("Debugging!\n");
 
 Psh::minimal_initialize;
-Psh::process_rc($opt{'f'});
+Psh::process_rc($opt{'f'}) unless $opt{'F'};
 Psh::finish_initialize;
 
 # TODO: Is this implementation equivalent to sh's ?
