@@ -81,6 +81,9 @@ bi_which_no_command=which: requires a command or command line as argument
 bi_alias_none=No aliases.
 bi_alias_cant_a=Cannot alias '-a'.
 bi_jobs_none=No jobs.
+bi_strategy_list=Following strategies are used:
+bi_strategy_wrong_arg=Wrong argument for builtin strategy.
+bi_strategy_notfound=Could not find strategy %1.
 
 # Stuff for Job handling
 done=done\

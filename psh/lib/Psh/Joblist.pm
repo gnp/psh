@@ -91,6 +91,24 @@ sub find_job {
 	return undef;
 }
 
+sub find_last_with_name {
+	my ($self, $name, $runningflag) = @_;
+	$self->enumerate();
+	my $index=0;
+	while( my $job= $self->each) {
+		next if $runningflag && $job->{running};
+		my $call= $job->{call};
+		if( $call=~ m:/([^/\s]+)\s*$: ) {
+			$call= $1;
+		}
+		if( $call eq $name) {
+			return ($index,$job->{pid});
+		}
+		$index++;
+	}
+	return ();
+}
+
 #
 # Resets the enumeration counter for access using "each"
 #

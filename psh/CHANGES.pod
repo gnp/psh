@@ -18,6 +18,8 @@
 
 =head2 11 Jan 2000 - warp
 
+New features:
+
 =over 4
 
 =item * Windows titles (PSH_TITLE and $Psh::window_title) behave like prompt
@@ -25,7 +27,23 @@ strings now.
 
 =item * Perlfunc strategy is now again a default strategy. $Psh::perlfunc_builtins determines wether Perl builtins should be evaled (default 0)
 
-=item * Fallback builtins are loaded on demand
+=item * Builtin 'kill' now supports sending a signal to a name job (e.g. "emacs & ; kill emacs")
+
+=item * Added builtin 'strategy' for loading strategies on demand and adding them to the list of strategies to use.
+
+=back
+
+Internal changes:
+
+=over 4
+
+=item * Aliases are now hardcoded into parser again so they are properly pipable
+
+=item * Fallback builtins and most other builtins are loaded on demand
+
+=item * Made Psh::symbols() a builtin
+
+=item * Some less used strategies are loadable on demand using builtin 'strategy'
 
 =back
 

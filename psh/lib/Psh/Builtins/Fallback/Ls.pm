@@ -1,7 +1,11 @@
 package Psh::Builtins::Fallback;
 
-# void bi_ls
-# like the Unix binary but without options
+=item * C<ls>
+
+Shows the files in the current directory
+
+=cut
+
 sub bi_ls
 {
 	my $pattern= shift || '*';
@@ -14,3 +18,5 @@ sub bi_ls
 	Psh::Util::print_list(@files);
 	return undef;
 }
+
+1;

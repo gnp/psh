@@ -413,6 +413,11 @@ A file giving news for the shell.
 If this variable is true, the perlfunc evaluation strategy will
 also match those Perl builtins determined by %Psh::perl_builtins
 
+=item I<$Psh::perlfunc_packages> (1)
+
+If this variable is true, the perlfunc evaluation strategy will
+also match functions with full package specification
+
 =item I<$Psh::perlfunc_expand_arguments> (0)
 
 If this variable is true, then command lines interpreted by the

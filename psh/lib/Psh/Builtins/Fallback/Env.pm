@@ -1,11 +1,10 @@
 package Psh::Builtins::Fallback::Env;
 
-#
-# void env
-#
-# Prints out the current environment if no 'env' command is on
-# the system
-#
+=item * C<env>
+
+Prints out the current environment
+
+=cut
 
 sub bi_env
 {
@@ -14,3 +13,5 @@ sub bi_env
 	}
 	return undef;
 }
+
+1;

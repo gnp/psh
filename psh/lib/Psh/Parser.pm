@@ -306,26 +306,8 @@ sub unquote {
 	return $text;
 }
 
-sub parse_line {
-	my ($line, @use_strats) = @_;
-
-	my @words= std_tokenize($line);
-	foreach my $strat (@Psh::unparsed_strategies) {
-		if (!defined($Psh::strategy_which{$strat})) {
-			Psh::Util::print_warning_i18n('no_such_strategy',
-										  $strat,$Psh::bin);
-			next;
-		}
-
-		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
-
-		if ($how) {
-			Psh::Util::print_debug("Using strategy $strat by $how\n");
-			return [ 1, [$Psh::strategy_eval{$strat},
-						 $how, [], \@words, $strat ]];
-		}
-	}
-
+sub _make_tokens {
+	my $line= shift;
 	my @parts= decompose('(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)',
 						 $line, undef, 1,
 						 {"'"=>"'","\""=>"\"","{"=>"}"});
@@ -423,6 +405,30 @@ sub parse_line {
 			$previous_token= $tmp;
 		}
 	}
+	return @tokens;
+}
+
+sub parse_line {
+	my ($line, @use_strats) = @_;
+
+	my @words= std_tokenize($line);
+	foreach my $strat (@Psh::unparsed_strategies) {
+		if (!defined($Psh::strategy_which{$strat})) {
+			Psh::Util::print_warning_i18n('no_such_strategy',
+										  $strat,$Psh::bin);
+			next;
+		}
+
+		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
+
+		if ($how) {
+			Psh::Util::print_debug("Using strategy $strat by $how\n");
+			return [ 1, [$Psh::strategy_eval{$strat},
+						 $how, [], \@words, $strat ]];
+		}
+	}
+
+	my @tokens= _make_tokens( $line);
 
 	my @elements=();
 	my $element;
@@ -484,6 +490,15 @@ sub parse_simple_command {
 		} elsif ($token->[0] eq 'REDIRECT') {
 			push @options, $token;
 		}
+	}
+
+	# Hmm.. the code below sucks... doesn't allow to pipe etc.
+	# within an alias
+	if( $Psh::Builtins::aliases{$words[0]}) {
+		my $alias= $Psh::Builtins::aliases{$words[0]};
+		$alias =~ s/\'/\\\'/g;
+		shift(@words);
+		unshift(@words,std_tokenize($alias));
 	}
 
 	my $line= join ' ', @words;
