@@ -471,7 +471,7 @@ sub iget
 
 	Psh::OS::setup_readline_handler();
 
-	do {
+	LINE: do {
 		$sigint= 0 if ($sigint);
 		# Trap ^C in an eval.  The sighandler will die which will be
 		# trapped.  Then we reprompt
@@ -479,7 +479,6 @@ sub iget
 			&$prompt_hook if $prompt_hook;
 			print $prompt_pre if $prompt_pre;
 			eval { $line = $term->readline($prompt); };
-			Psh::Util::print_debug_class('e',"(iget) Error: $@") if $@;
 		} else {
 			eval {
 				&$prompt_hook if $prompt_hook;
@@ -487,7 +486,6 @@ sub iget
 				print $prompt if $prompt;
 				$line = <STDIN>;
 			};
-			Psh::Util::print_debug_class('e',"(iget) Error: $@") if $@;
 		}
 		if( $@) {
 			if( $@ =~ /Signal INT/) {
@@ -497,9 +495,8 @@ sub iget
 					Psh::OS::remove_readline_handler();
 					return undef;
 				}
-				next;
 			} else {
-				handle_message( $@, 'main_loop');
+				handle_message( $@, 'iget');
 			}
 		}
 	} while ($sigint);

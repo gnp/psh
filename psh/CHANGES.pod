@@ -88,7 +88,7 @@ front of any command to disable the specified expansion or all of them.
 
 =back
 
-=head2 New builtins
+=head2 New/enhanced builtins
 
 =over 4
 
@@ -101,6 +101,10 @@ front of any command to disable the specified expansion or all of them.
 =item * B<hash>
 
 =item * B<rehash>
+
+=item * B<jobs> has new flags B<-rsp>
+
+=item * B<fc> has protection against endless loops and a more sensible range parsing
 
 =back
 
