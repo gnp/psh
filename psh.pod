@@ -637,9 +637,7 @@ psh needs several optional Perl modules to offer full functionality:
 =over 4
 
 =item Term::ReadLine::Gnu or Term::ReadLine::Perl for readline support
-(command history, special editing chars etc.). Term::ReadLine::Gnu
-support is by far more advanced currently than support for
-Term::ReadLine::Perl
+(command history, special editing chars etc.).
 
 =item Term::Size or Term::ReadKey to offer the ability to change the
 environment variables LINES and COLUMNS when the terminal window size

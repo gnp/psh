@@ -153,11 +153,6 @@ sub cmpl_usernames
 
 #
 # Tries to find executables for possible completions
-# TODO: This is sloooow... but probably not only because
-# of searching the whole path but also because of the way
-# Term::ReadLine::Gnu works... hmm
-#
-
 sub cmpl_executable
 {
 	my $cmd= shift;
