@@ -286,12 +286,13 @@ sub execute_complex_command {
 	my @tmp;
 
 	for( my $i=0; $i<@array; $i++) {
-		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
+		# ([ $strat, $how, \@options, \@words, $line]);
+		my ($strategy, $how, $options, $words, $text)= @{$array[$i]};
 		$text||='';
 
 		my $line= join(' ',@$words);
 		my $forcefork;
-		($eval_thingie,$words,$forcefork, @return_val)= &$coderef( \$line, $words,$how,$i>0);
+		($eval_thingie,$words,$forcefork, @return_val)= $strategy->execute( \$line, $words, $how, $i>0);
 
 		$forcefork||=$i<$#array;
 

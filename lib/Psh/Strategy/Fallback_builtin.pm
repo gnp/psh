@@ -10,6 +10,10 @@ shell, you can move this strategy ahead of executable.
 
 =cut
 
+%fallback_builtin = ('ls'=>1, 'env'=>1 );
+
+
+
 $Psh::strategy_which{fallback_builtin}= sub {
 		my $fnname = ${$_[1]}[0];
 		
