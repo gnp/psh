@@ -5,6 +5,11 @@ see CHANGES.pod
 
 Upgrading from version 0.009 or earlier:
 
+- New redirection handling!
+  We switched to rc-like syntax instead of sh-like syntax.
+  "foo 2> bar" does not work anymore - use
+  "foo >[2] bar" instead.
+
 - There's no comment strategy anymore. A line starting with # will now
   already be ignored by the parser, so comments are mandatory.
 

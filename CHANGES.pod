@@ -43,6 +43,24 @@ The new B<if> builtin allows mixing evaluation strategies. Example:
 
 =item *
 
+New B<forfile> builtin:
+
+   forfile *.txt less $_
+
+is equivalent to
+
+   for i in *; do less $i; done
+
+in (ba)sh
+
+=item *
+
+New redirection and piping syntax - incompatible to the old sh-like
+syntax. The new syntax is allowing many nice things like redirecting
+to opened Perl filehandles ( command >[=FILEHANDLE])
+
+=item *
+
 Perl shell now integrates with Perl backticks, you you can finally do
 things like:
 
@@ -86,6 +104,15 @@ in a normal shell.
 Global precommand modifiers: You can put B<noglob>, B<noalias>, B<noexpand> in
 front of any command to disable the specified expansion or all of them.
 
+=item *
+
+Prompt themes - see the B<theme> builtin.
+
+=item *
+
+Completion modules - allows large sets of predefined completion rules
+without loading them all at startup time - see the B<complete> builtin.
+
 =back
 
 =head2 New/enhanced builtins
@@ -105,6 +132,8 @@ front of any command to disable the specified expansion or all of them.
 =item * B<jobs> has new flags B<-rsp>
 
 =item * B<fc> has protection against endless loops and a more sensible range parsing
+
+=item * B<which> largely extended with flags B<-mrav>
 
 =item *
 

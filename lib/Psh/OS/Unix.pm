@@ -317,7 +317,8 @@ sub execute_complex_command {
 	my $string='';
 	my @tmp;
 
-	my ($read,$write,$input);
+	my ($read,$chainout,$chainin);
+
 	for( my $i=0; $i<@array; $i++) {
 		# ([ $strat, $how, \@options, \@words, $line]);
 		my ($strategy, $how, $options, $words, $text, $opt)= @{$array[$i]};
@@ -331,14 +332,18 @@ sub execute_complex_command {
 		$forcefork||=$i<$#array;
 
 		if( defined($eval_thingie)) {
-			if( $#array) {
-				($read,$write)= POSIX::pipe();
-			}
-			if( $i>0) {
-				unshift(@$options,[Psh::Parser::T_REDIRECT(),'<&',0,$input]);
-			}
-			if( $i<$#array) {
-				unshift(@$options,[Psh::Parser::T_REDIRECT(),'>&',1,$write]);
+  			if( $#array) {
+  				($read,$chainout)= POSIX::pipe();
+  			}
+			foreach (@$options) {
+				if ($_->[0]==Psh::Parser::T_REDIRECT() and
+				    ($_->[1] eq '<&' or $_->[1] eq '>&')) {
+					if ($_->[3] eq 'chainin') {
+						$_->[3]= $chainin;
+					} elsif ($_->[3] eq 'chainout') {
+						$_->[3]= $chainout;
+					}
+				}
 			}
 			my $termflag=!($i==$#array);
 
@@ -351,10 +356,10 @@ sub execute_complex_command {
 				$pgrp_leader=$pid;
 			}
 
-			if( $i<$#array && $#array) {
-				POSIX::close($write);
-				$input= $read;
-			}
+  			if( $i<$#array && $#array) {
+  				POSIX::close($chainout);
+  				$chainin= $read;
+  			}
 			if( @return_val < 1 ||
 				!defined($return_val[0])) {
 				@return_val= @tmp;

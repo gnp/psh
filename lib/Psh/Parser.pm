@@ -23,7 +23,7 @@ my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
 my $def_quoteexp;
 my %def_qhash;
 my $def_metaexp= '[\[\]{}()``]';
-my $def_tokenizer='(\s+|\||;|\&|[1-2]?>>|[1-2]?>|<|\\|=)';
+my $def_tokenizer='(\s+|\|\|\&\&|\||;;|;|\&|>>|>|<<|<|\\|=)';
 my $nevermatches = "(?!a)a";
 
 %def_qhash = %perlq_hash;
@@ -47,7 +47,7 @@ sub decompose
     my ($delimexp,$line,$num,$keep,$quotehash,$metaexp,$unmatched) = @_;
 	my @matches;
 
-    if (!defined($delimexp) or $delimexp eq ' ') { $delimexp = '\s+'; }
+    if (!defined($delimexp)) { $delimexp = $def_tokenizer; }
     if (!defined($num)) { $num = -1; }
     if (!defined($keep)) { $keep = 1; }
     if (!defined($metaexp)) { $metaexp = $nevermatches; }
@@ -169,12 +169,6 @@ sub decompose
     if (length($line)) { $pieces[$#pieces] .= $line; }
     if (defined($unmatched)) { ${$unmatched} = $uquote; }
     return wantarray?@pieces:\@pieces;
-}
-
-sub std_tokenize
-{
-    my ($line,$pieces) = @_;
-    return decompose(' ',$line,$pieces,1,undef,'\&');
 }
 
 sub incomplete_expr
@@ -301,6 +295,38 @@ sub ungroup {
 	return $text;
 }
 
+sub parse_fileno {
+	my $tmp= shift;
+	my $default1= shift;
+	my $default2= shift;
+	
+	my @tmp= split('=', $tmp);   # [out=in] - not supported fully yet
+	if (@tmp>2) {
+		return undef;
+	}
+	if (@tmp<2) {
+		push @tmp, $default2;
+	}
+	if (@tmp==2 && !$tmp[0]) {
+		$tmp[0]= $default1;
+	}
+	my @result=();
+	foreach (@tmp) {
+		no strict 'refs';
+		if (lc($_) eq 'all') {
+			$_=1;
+		}
+		if (/^\d+$/) {
+			push @result, $_+0;
+		} else {
+			if (ref *{"main::$_"}{FILEHANDLE}) {
+				push @result, fileno(*{"main::$_"});
+			}
+		}
+	}
+	return @result;
+}
+
 sub make_tokens {
 	my $line= shift;
 	my @tmpparts= @{scalar(decompose($def_tokenizer,
@@ -329,31 +355,53 @@ sub make_tokens {
 	}
 
 	my @tokens= ();
+	my @t=();
 	my $previous_token= '';
 	my $tmp;
 	while( defined($tmp= shift @parts)) {
-		if( $tmp =~ /^\s*\|\s*$/ ) {
-			if( $previous_token eq '|') {
-				pop @tokens;
-				push @tokens, [T_END],[T_OR];
-				$previous_token= '';
-			} elsif( $previous_token eq "\\") {
+		if ($tmp eq '||') {
+			push @t, @tokens;
+			push @t, [T_END],[T_OR];
+			@tokens=();
+			$previous_token= '';
+		}
+		elsif( $tmp eq '|') {
+			if( $previous_token eq "\\") {
 				pop @tokens;
 				push @tokens, [T_WORD,'|'];
 				$previous_token= '';
 			} else {
-				push @tokens, [T_PIPE];
 				$previous_token= '|';
+				my @fileno=(1,0);
+				if (@parts>0) {
+					my $tmp= shift @parts;
+					if ($tmp=~/^\[(.+?)\]$/) {
+						my $tmp2= $1;
+						if (lc($tmp2) eq 'all') {
+							push @tokens, [T_REDIRECT, '>&', 2, 1];
+						}
+						@fileno= parse_fileno($tmp2,1,0);
+						if (!@fileno) {
+							print STDERR "Illegal syntax\n"; ## FIXME
+							return undef;
+						}
+					} else {
+						unshift @parts, $tmp;
+					}
+				}
+				push @t, [T_REDIRECT, '>&', $fileno[0], 'chainout']; # needs to come first
+				push @t, @tokens;
+				push @t, [T_PIPE];
+				@tokens=( [T_REDIRECT, '<&', $fileno[1], 'chainin']);
 			}
-		} elsif( $tmp =~ /^([1-2]?)(>>?)$/) {
-			my $handle= $1||1;
-			my $tmp= $2;
+		} elsif( $tmp =~ /^(>>?)$/) {
+			my $tmp= $1;
 
-			if( $previous_token eq '=') {
+			if( $previous_token eq '=' && $tmp eq '>') {
 				pop @tokens;
 				push @tokens, [T_WORD,'=>'];
 				$previous_token= '';
-			} elsif ($previous_token =~ /-$/) {
+			} elsif ($previous_token =~ /-$/ && $tmp eq '>') {
 				($tmp,$tmp)=@{pop @tokens};
 				$tmp=~s/-$//;
 				push @tokens, [T_WORD,$tmp];
@@ -361,67 +409,102 @@ sub make_tokens {
 				$previous_token= '';
 			} else {
 				my $file;
-				while( @parts>0) {
-					$file= shift @parts;
-					last if( $file !~ /^\s+$/);
-					$file='';
+				my @fileno=(1,0);
+				my $allflag=0;
+				if (@parts>0) {
+					my $tmp= shift @parts;
+					if ($tmp=~/^\[(.+?)\]$/) {
+						my $tmp2= $1;
+						if (lc($tmp2) eq 'all') {
+							$allflag=1;
+						}
+						@fileno= parse_fileno($tmp2,1,0);
+						if (!@fileno) {
+							print STDERR "Illegal syntax\n"; ## FIXME
+							return undef;
+						}
+					} else {
+						unshift @parts, $tmp;
+					}
 				}
-				if( !$file or substr($file,0,1) eq '&') {
-					Psh::Util::print_error_i18n('redirect_file_missing',
-												$tmp,$Psh::bin);
-					return undef;
+				if ($fileno[1]==0) {
+					while( @parts>0) {
+						$file= shift @parts;
+						last if( $file !~ /^\s+$/);
+						$file='';
+					}
+					if( !$file or substr($file,0,1) eq '&') {
+						Psh::Util::print_error_i18n('redirect_file_missing',
+													$tmp,$Psh::bin);
+						return undef;
+					}
+					push @tokens, [T_REDIRECT,$tmp,$fileno[0],unquote($file)];
+				} else {
+					push @tokens, [T_REDIRECT, '>&', @fileno];
 				}
-				push @tokens, [T_REDIRECT,$tmp,$handle,unquote($file)];
+				if ($allflag) {
+					push @tokens, [T_REDIRECT, '>&', 2, 1];
+				}
 				$previous_token='';
 			}
 		} elsif( $tmp eq '<') {
-			if( $previous_token eq '<') {
-				pop @tokens;
-				push @tokens, [T_WORD,'<<'];
-				$previous_token='';
-			} elsif( $previous_token eq "\\") {
+			if( $previous_token eq "\\") {
 				pop @tokens;
 				push @tokens, [T_WORD,'<'];
 				$previous_token='';
 			} else {
 				my $file;
-				while( @parts>0) {
-					$file= shift @parts;
-					last if( $file !~ /^\s+$/);
-					$file='';
+				my @fileno=(0,0);
+				if (@parts>0) {
+					my $tmp= shift @parts;
+					if ($tmp=~/^\[(.+?)\]$/) {
+						@fileno= parse_fileno($1,0,0);
+						if (!@fileno) {
+							print STDERR "Illegal syntax\n"; ## FIXME
+							return undef;
+						}
+					}
+					else {
+						unshift @parts, $tmp;
+					}
 				}
-				if( !$file or substr($file,0,1) eq '&') {
-					Psh::Util::print_error_i18n('redirect_file_missing',
-												$tmp,$Psh::bin);
-					return undef;
+				if ($fileno[0]==0) {
+					while( @parts>0) {
+						$file= shift @parts;
+						last if( $file !~ /^\s+$/);
+						$file='';
+					}
+					if( !$file or substr($file,0,1) eq '&') {
+						Psh::Util::print_error_i18n('redirect_file_missing',
+													$tmp,$Psh::bin);
+						return undef;
+					}
+					push @tokens, [T_REDIRECT,'<',$fileno[1],unquote($file)];
+				} else {
+					push @tokens, [T_REDIRECT,'<&',$fileno[1],$fileno[0]];
 				}
-				push @tokens, [T_REDIRECT,'<',0,unquote($file)];
 				$previous_token='<';
 			}
 		} elsif( $tmp eq '&') {
-			if( $previous_token eq '&') {
-				pop @tokens;
-				pop @tokens; # pop T_END and T_BACKGROUND
-				push @tokens, [T_END],[T_AND];
-				$previous_token='';
-			} elsif( $previous_token eq "\\") {
+			if( $previous_token eq "\\") {
 				pop @tokens;
 				push @tokens, [T_WORD,'&'];
 				$previous_token='';
 			} else {
-				push @tokens, [T_BACKGROUND],[T_END];
+				push @t, @tokens;
+				push @t, [T_BACKGROUND],[T_END];
+				@tokens=();
 				$previous_token='&';
 			}
 		} elsif( $tmp eq ';') {
-			if( $previous_token eq ';' ||
-				$previous_token eq "\\") {
-				# ;; parses as \; as one needs it often in .e.g
-				# finds
+			if( $previous_token eq "\\") {
 				pop @tokens;
 				push @tokens, [T_WORD,';'];
 				$previous_token='';
 			} else {
-				push @tokens, [T_END];
+				push @t, @tokens;
+				push @t, [T_END];
+				@tokens= ();
 				$previous_token=';';
 			}
 		} elsif ($tmp eq '`') {
@@ -442,7 +525,8 @@ sub make_tokens {
 			$previous_token= $tmp;
 		}
 	}
-	return @tokens;
+    push @t, @tokens;
+	return @t;
 }
 
 sub parse_line {
@@ -517,8 +601,8 @@ sub _subparse_complex_command {
 
 	while (@$tokens > 0 && $tokens->[0][0] == T_PIPE) {
 		shift @$tokens;
-		push @simplecommands, parse_simple_command($tokens,$use_strats,$piped,$alias_disabled,$foreground);
 		$$piped= 1;
+		push @simplecommands, parse_simple_command($tokens,$use_strats,$piped,$alias_disabled,$foreground);
 	}
 
 	if (@$tokens > 0 && $tokens->[0][0] == T_BACKGROUND) {
@@ -533,25 +617,26 @@ sub parse_simple_command {
 	my (@words,@options,@savetokens,@precom);
 	my $opt={};
 
-	my $token = shift @$tokens;
-	while ($token->[1] eq 'noglob' or
-		   $token->[1] eq 'noexpand' or
-		   $token->[1] eq 'noalias') {
-		push @precom, $token;
-		$opt->{$token->[1]}=1;
-		$token= shift @$tokens;
-	}
-	push @words, $token->[1];
-
+	my $firstwords=1;
 	while (@$tokens > 0 and
 		   ($tokens->[0][0] == T_WORD or
 			$tokens->[0][0] == T_REDIRECT)) {
 		my $token = shift @$tokens;
-		push @savetokens,$token;
 		if ($token->[0] == T_WORD) {
-			push @words, $token->[1];
+			if ($firstwords and
+			    ($token->[1] eq 'noglob' or
+				 $token->[1] eq 'noexpand' or
+				 $token->[1] eq 'noalias')) {
+				push @precom, $token;
+				$opt->{$token->[1]}=1;
+			} else {
+				$firstwords=0;
+				push @savetokens,$token;
+				push @words, $token->[1];
+			}
 		} elsif ($token->[0] == T_REDIRECT) {
 			push @options, $token;
+		} else {
 		}
 	}
 
@@ -562,9 +647,12 @@ sub parse_simple_command {
 		my $alias= $Psh::Support::Alias::aliases{$words[0]};
 		$alias =~ s/\'/\\\'/g;
 		$alias_disabled->{$words[0]}=1;
-		unshift @savetokens, make_tokens($alias);
-		unshift @savetokens, @precom;
-		return _subparse_complex_command(\@savetokens,$use_strats,$piped,$foreground,$alias_disabled);
+		my @tmp= make_tokens($alias);
+		unshift @tmp, @precom;
+		shift @savetokens;
+		push @tmp, @savetokens;
+		push @tmp, @options;
+		return _subparse_complex_command(\@tmp,$use_strats,$piped,$foreground,$alias_disabled);
 	} elsif (substr($words[0],0,1) eq "\\") {
 		$words[0]=substr($words[0],1);
 	}
@@ -582,7 +670,7 @@ sub parse_simple_command {
 			my $name= $strat->name;
 			Psh::Util::print_debug_class('s',
 										 "[Using strategy $name: $how]\n");
-			return ([ $strat, $how, \@options, \@words, $line, $opt]);
+			return [ $strat, $how, \@options, \@words, $line, $opt];
 		}
 	}
 	Psh::Util::print_error_i18n('clueless',$line,$Psh::bin);
@@ -656,8 +744,7 @@ decompose returns the array of pieces. If UNMATCHED_QUOTE is
 specified, 1 will be placed in the scalar referred to if LINE
 contained an unmatched quote, 0 otherwise.
 
-If DELIMITER is undefined or equal to ' ', the regexp '\s+' is used
-to break on whitespace. If PIECES is undefined, as many pieces as
+If PIECES is undefined, as many pieces as
 necessary are used. KEEP defaults to 1. If QUOTINGPAIRS is
 undefined, {"'" => "'", "\"" => "\""} is used, i.e. single and
 double quotes are recognized. Supply a reference to an empty hash to
@@ -672,13 +759,6 @@ then decompose(' ', $line) should break it at the
 following places marked by vertical bars: 
 
 echo|fred(joe,|"Happy Days",|' steve"jan',|"\"Oh, no!\"")
-
-=item *
-
-  array std_tokenize(string LINE, [int PIECES])
-
-Wrapper for decompose, returns the "standard" psh tokenization of an
-(unmodified) line of psh input
 
 =item *
 
