@@ -40,3 +40,4 @@ test_decompose 'echo foo\\.bar', [ 'echo', ' ', 'foo.bar'];
 test_decompose 'echo foo\\\\bar', [ 'echo', ' ', 'foo\\bar'];
 test_decompose 'foo ( bar )', [ 'foo',' ','( bar )'];
 test_decompose 'foo "" bar', [ 'foo',' ','""',' ','bar'];
+test_decompose 'foo  bar', [ 'foo', ' ', 'bar'];

@@ -59,6 +59,10 @@ sub decompose {
 	}
 
 	if (defined $delimiter) {
+	    if ($delimiter ne ' ' and
+	        $delimiter =~ /^\s+$/) {
+		$delimiter=' ';
+	    }
 	    $pieces[$#pieces] .= $prefix;
 	    if (length($pieces[$#pieces]) or !$fresh_piece) {
 		push @pieces, $delimiter;
@@ -371,9 +375,6 @@ sub _parse_simple {
     my $line= join ' ', @words;
     $psh->{tmp}{options}= $opt;
 
-    @words= @{glob_expansion($psh, \@words)} unless $opt->{noglob};
-    @words= map { unquote($_)} @words;
-
     if ($words[0] and substr($words[0],-1) eq ':') {
 	my $tmp= lc(substr($words[0],0,-1));
 	if (exists $psh->{language}{$tmp}) {
@@ -387,6 +388,9 @@ sub _parse_simple {
 	    die "parse: unsupported language $tmp";
 	}
     }
+
+    @words= @{glob_expansion($psh, \@words)} unless $opt->{noglob};
+    @words= map { unquote($_)} @words;
 
     unless ($opt->{nobuiltin}) {
 	if ($psh->is_builtin($words[0])) {
@@ -424,10 +428,13 @@ sub glob_expansion {
     my @retval  = ();
 
     for my $word (@{$words}) {
-	if ( $word=~ m/['#`]/ or
+	if (
+	     (substr($word,0,1) eq '"' and substr($word,-1) eq '"') or
+	     (substr($word,0,1) eq '`' and substr($word,-1) eq '`') or
+	     (substr($word,0,1) eq "'" and substr($word,-1) eq "'") or
 	     (substr($word,0,1) eq '(' and substr($word,-1) eq ')') or
 	     (substr($word,0,1) eq '{' and substr($word,-1) eq '}') or
-	     $word !~ m/\[.*\]|[*?]/
+	     $word !~ m/\[.*\]|[*?~]/
 	   ) {
 	    push @retval, $word;
 	} else {

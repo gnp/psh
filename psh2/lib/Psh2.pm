@@ -144,6 +144,9 @@ sub main_loop {
 sub init_minimal {
     my $self= shift;
     $| = 1;
+    if (!$ENV{HOME}) {
+	$ENV{HOME}= $self->get_home_dir();
+    }
     setup_signal_handlers();
 }
 
@@ -360,8 +363,9 @@ sub _recursive_glob {
     my @result= map { catdir(undef, $dir,$_) }
       grep { $_ =~ $pattern } @files;
     foreach my $tmp (@files) {
+	next if $tmp eq '.' or $tmp eq '..';
 	my $tmpdir= catdir(undef, $dir,$tmp);
-	next if ! -d $tmpdir || !no_upwards($tmp);
+	next if ! -d $tmpdir;
 	push @result, _recursive_glob($pattern, $tmpdir);
     }
     return @result;
@@ -392,16 +396,16 @@ sub glob {
     return unless $dir;
 
     # Expand ~
-    my $home= $ENV{HOME}; #||get_home_dir();
+    my $home= $ENV{HOME};
     if ($pattern eq '~') {
 	$pattern=$home;
     } else {
 	$pattern=~ s|^\~/|$home/|;
-	$pattern=~ s|^\~([^/]+)|&get_home_dir($1)|e;
+	$pattern=~ s|^\~([^/]+)|&get_home_dir($self, $1)|e;
     }
-    
+
     return $pattern if $pattern !~ /[*?\[\]]/;
-    
+
     # Special recursion handling for **/anything globs
     if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
 	my $tlen= length($dir)+1;
@@ -416,14 +420,16 @@ sub glob {
 	@result= map { substr($_,$tlen) } _recursive_glob($pattern,$dir);
     } elsif( index($pattern,'/')>-1 or 
 	     index($pattern,'[')>-1) {
-	print STDERR "Slow glob!\n";
-	# Too difficult to simulate, so use slow variant
+	require File::Glob;
 	my $old=$ENV{PWD};
-	CORE::chdir $dir;
+	if ($old ne $dir) {
+	    CORE::chdir $dir;
+	}
 	$pattern=_escape($pattern);
-	my $coderef= eval '\&CORE::glob';
-	@result= eval { &$coderef($pattern); };
-	CORE::chdir $old;
+	@result= eval { File::Glob::glob($pattern, File::Glob::GLOB_QUOTE()); };
+	if ($old ne $dir) {
+	    CORE::chdir $old;
+	}
     } else {
 	# The fast variant for simple matches
 	$pattern=_escape($pattern);
