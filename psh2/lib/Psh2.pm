@@ -69,10 +69,10 @@ sub _eval {
 	    $self->{status}= $self->start_job($element);
 	}
 	elsif ($type == Psh2::Parser::T_OR()) {
-	    return 1 if $self->{status};
+	    return if $self->{status};
 	}
 	elsif ($type == Psh2::Parser::T_AND()) {
-	    return 0 unless $self->{status};
+	    return unless $self->{status};
 	}
 	else {
 	    # TODO: Error handling
@@ -703,7 +703,7 @@ sub del_option {
 	    my $visline= join('|',@visline);
 	    if ($^O eq 'MSWin32') {
 	    } else {
-		$job= Psh2::Unix::Job->new( pgrp_leader => $pgrp_leader,
+		$job= Psh2::Unix::Job->new( pid => $pgrp_leader,
 					    pids => \@pids,
 					    desc => $visline,
 					    psh  => $self,);
@@ -713,7 +713,7 @@ sub del_option {
 		push @order, $job;
 		$current_job= $#order;
 		if ($fgflag) {
-		    $success= $job->wait_for_finish(1);
+		    $success= $job->wait_for_finish();
 		} elsif ($self->{interactive}) {
 		    my $visindex= @order;
 		    my $verb= $self->gt('background');
@@ -741,7 +741,7 @@ sub del_option {
     }
 
     sub get_current_job {
-	return $order[$current_job];
+	return $list{$current_job};
     }
 
     sub set_current_job {

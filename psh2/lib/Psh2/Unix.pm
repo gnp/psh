@@ -1,5 +1,7 @@
 package Psh2::Unix;
 
+use POSIX ':signal_h';
+
 sub path_separator { ':' }
 sub file_separator { '/' }
 sub getcwd {
@@ -23,35 +25,16 @@ sub get_home_dir {
 ############################################################################
 
 {
-    my @signals= grep { substr($_,0,1) ne '_' } keys %SIG;
-    my %special_handlers=
-      (
-       CHLD => \&_ignore_handler,
-       CLD  => \&_ignore_handler,
-       TERM => \&_term_handler,
-       INT  => 0,
-       SEGV => 0,
-       WINCH => 0,
-       ZERO => 0,
-      );
+    my $sigset_all= POSIX::SigSet->new(SIGTERM);
+    my $sigact_term= POSIX::SigAction->new('Psh2::Unix::_term_handler', SIGTERM, SA_NOCLDSTOP|SA_RESTART);
+    my $sigact_term_dfl= POSIX::SigAction->new(SIG_DFL, SIGTERM);
 
     sub setup_signal_handlers {
-	foreach my $sig (@signals) {
-	    if (exists $special_handlers{$sig}) {
-		if (ref $special_handlers{$sig}) {
-		    $SIG{$sig}= $special_handlers{$sig};
-		}
-		next;
-	    }
-	    $SIG{$sig}= \&_default_handler;
-	}
+	POSIX::sigaction(SIGTERM, $sigact_term);
     }
 
     sub remove_signal_handlers {
-	foreach my $sig (@signals) {
-	    next if exists $special_handlers{$sig} and !ref $special_handlers{$sig};
-	    $SIG{$sig}= 'DEFAULT';
-	}
+	POSIX::sigaction(SIGTERM, $sigact_term_dfl);
     }
 
     sub _default_handler {
@@ -63,6 +46,10 @@ sub get_home_dir {
 
     sub _ignore_handler {
 #	$SIG{$_[0]}= \&_ignore_handler;
+    }
+
+    sub _ttou_handler {
+	give_terminal_to(undef,$$);
     }
     
     sub _term_handler {
@@ -98,11 +85,11 @@ sub execute {
     } elsif ($strategy eq 'builtin') {
 	no strict 'refs';
 	my $coderef= *{$how.'::execute'};
-	return &{$coderef}($self, $words);
+	return !&{$coderef}($self, $words);
     } elsif ($strategy eq 'language') {
 	no strict 'refs';
 	my $coderef= *{$how.'::execute'};
-	return &{$coderef}($self, $words);
+	return !&{$coderef}($self, $words);
     }
 }
 
@@ -116,10 +103,10 @@ sub fork {
 	    CORE::exit(2)
 	    # Error handling
 	}
+	remove_signal_handlers();
 	_setup_redirects($options);
 	POSIX::setpgid( 0, $pgrp_leader || $$ );
 	give_terminal_to( $self, $pgrp_leader || $$ ) if $fgflag and $giveterm;
-	remove_signal_handlers();
 	my @tmp= execute($self, $tmp);
 	CORE::exit($tmp[0]);
     }
@@ -220,7 +207,7 @@ sub catdir {
 sub file_name_is_absolute {
     my $self= shift;
     my $file= shift;
-    return scalar($file =~ m:^/:s);
+    return substr($file,0,1) eq '/';
 }
 
 sub rootdir {
@@ -241,23 +228,16 @@ sub splitdir {
 }
 
 sub rel2abs {
-    my ($self, $path,$base ) = @_;
+    my ($self, $path, $base ) = @_;
 
-    # Clean up $path
-    if ( !file_name_is_absolute( $self, $path ) ) {
-        # Figure out the effective $base and clean it up.
+    if (substr($path,0,1) ne '/') {
         if ( !defined $base or $base eq '' ) {
             $base = getcwd() ;
         }
-        elsif ( !file_name_is_absolute( $self, $base ) ) {
+        elsif ( substr($path,0,1) ne '/' ) {
             $base = rel2abs( $self, $base ) ;
         }
-        else {
-            $base = canonpath( $self, $base ) ;
-        }
-
-        # Glom them together
-        $path = catdir( $self, $base, $path ) ;
+	$path= $base.'/'.$path;
     }
     return canonpath( $self, $path ) ;
 }
@@ -268,7 +248,7 @@ package Psh2::Unix::Job;
 sub new {
     my ($class, %self)= @_;
     my $self= \%self;
-    die "missing pgrp leader" unless $self->{pgrp_leader};
+    die "missing pgrp leader" unless $self->{pid};
     $self->{running}= 1;
     bless $self, $class;
     return $self;
@@ -276,7 +256,7 @@ sub new {
 
 sub resume {
     my $self= shift;
-    kill 'CONT', -$self->{pgrp_leader};
+    kill 'CONT', -$self->{pid};
     $self->{running}= 1;
 }
 
@@ -292,14 +272,14 @@ sub restart {
     } else {
 	$verb= ucfirst($psh->gt('restart'));
     }
-    my $visindex= $psh->get_job_number($self->{pgrp_leader});
-    $psh->set_current_job($visindex-1);
+    my $visindex= $psh->get_job_number($self->{pid});
+    $psh->set_current_job($self->{pid});
 
-    $psh->print("[$visindex] $verb $self->{pgrp_leader} $self->{desc}\n");
+    $psh->print("[$visindex] $verb $self->{pid} $self->{desc}\n");
 
     if ($fgflag) {
 	eval {
-	    $self->wait_for_finish(0);
+	    $self->wait_for_finish();
 	};
     } elsif (!$self->{running}) {
 	$self->resume();
@@ -308,14 +288,13 @@ sub restart {
 
 sub wait_for_finish {
     my $self= shift;
-    my $quiet= shift;
 
     my $psh= $self->{psh};
     my $psh_pgrp= CORE::getpgrp();
     my $pid_status= -1;
     my $status= 1;
     my @pids= @{$self->{pids}};
-    my $term_pid= $self->{pgrp_leader} || $pids[$#pids];
+    my $term_pid= $self->{pid} || $pids[$#pids];
     $psh->give_terminal_to($term_pid);
     my $returnpid;
     my @output=();
@@ -331,22 +310,19 @@ sub wait_for_finish {
 
 	if ($psh->{interactive}) {
 	    if ($returnpid == $term_pid) {
-		push @output, _handle_wait_status($self, $pid_status, $quiet, 1 );
+		push @output, _handle_wait_status($self, $pid_status, 1, 1 );
 	    } else {
 		my $tmpjob= $psh->get_job($returnpid);
-		push @output, _handle_wait_status($tmpjob, $pid_status, $quiet, 1);
+		push @output, _handle_wait_status($tmpjob, $pid_status, 1, 1);
 	    }
 	} else {
 	    if (POSIX::WIFEXITED($pid_status) or
 	        POSIX::WIFSIGNALED($pid_status)) {
 		$psh->delete_job($returnpid);
 	    } elsif (POSIX::WIFSTOPPED($pid_status)) {
-		if ($returnpid == $term_pid) {
-		    $self->{running}= 0;
-		} else {
-		    my $tmpjob= $psh->get_job($returnpid);
-		    $tmpjob->{running}= 0;
-		}
+		my $tmpjob= $psh->get_job($returnpid);
+		$tmpjob->{running}= 0;
+		$psh->set_current_job($returnpid);
 	    }
 	}
 	if ($returnpid == $pids[$#pids]) {
@@ -363,7 +339,7 @@ sub _handle_wait_status {
     my ($self, $pid_status, $quiet, $collect)= @_;
 
     my $psh= $self->{psh};
-    my $pid= $self->{pgrp_leader};
+    my $pid= $self->{pid};
     my $verb='';
     my $visindex;
 
@@ -387,6 +363,7 @@ sub _handle_wait_status {
 	$psh->delete_job($pid);
     } elsif (POSIX::WIFSTOPPED($pid_status)) {
 	$self->{running}= 0;
+	$psh->set_current_job($pid);
 	if ($psh->{interactive}) {
 	    my $tmp= $psh->gt('stopped');
 	    $verb = "\u$tmp (SIG". POSIX::WSTOPSIG($pid_status).')';
