@@ -82,8 +82,7 @@ sub glob {
 		$pattern= $2;
 		$prefix=~ s:/$::;
 	    $dir= File::Spec->catdir($dir,$prefix);
-		$pattern=~s/\\/\\\\/g;
-		$pattern=~s/\./\\./g;
+		$pattern=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
 		$pattern=~s/\*/[^\/]*/g;
 		$pattern=~s/\?/./g;
 		$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
@@ -92,12 +91,11 @@ sub glob {
 		# Too difficult to simulate, so use slow variant
 		my $old=$ENV{PWD};
 		chdir $dir;
-		@result= CORE::glob($pattern);
+		@result= eval { CORE::glob($pattern); };
 		chdir $old;
 	} else {
 		# The fast variant for simple matches
-		$pattern=~s/\\/\\\\/g;
-		$pattern=~s/\./\\./g;
+		$pattern=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
 		$pattern=~s/\*/.*/g;
 		$pattern=~s/\?/./g;
 		$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');

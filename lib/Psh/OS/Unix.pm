@@ -367,6 +367,10 @@ sub _fork_process {
 	}
 
 	unless ($pid = fork) { #child
+		unless (defined $pid) {
+			Psh::Util::print_error_i18n('fork_failed');
+			return (-1,undef);
+		}
 		$Psh::OS::Unix::forked_already=1;
 		close(READ) if( $pgrp_leader);
 		_setup_redirects($options);
