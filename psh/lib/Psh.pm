@@ -533,9 +533,24 @@ sub matches_perl_binary
 
 $strategy_eval{brace}= $strategy_eval{eval}= sub {
 	my $todo= ${$_[0]};
-	return (sub {
-		return protected_eval($todo,'eval');
-	}, undef);
+    
+	if( $_[3]) { # we are second or later in a pipe
+		my $code;
+		$todo=~ s/\}([qg])\s*$/\}/;
+		my $mods= $1 || '';
+		if( $mods eq 'q' ) { # non-print mode
+			$code='while(<STDIN>) { '.$todo.' ; }';
+		} elsif( $mods eq 'g') { # grep mode
+			$code='while(<STDIN>) { @_= split /\s+/; print $_ if eval { '.$todo.' }; } ';
+		} else {
+			$code='while(<STDIN>) { '.$todo.' ; print $_ if $_; }';
+		}
+		return (sub {return protected_eval($code); }, undef);
+    } else {
+		return (sub {
+			return protected_eval($todo,'eval');
+		}, undef);
+	}
 };
 
 $strategy_eval{perlfunc}= sub {
@@ -1087,11 +1102,12 @@ sub finish_initialize
 		if ($readline_saves_history) {
 			$term->ReadHistory($history_file);
 		} else {
-			my $fhist = new FileHandle($history_file);
+			my $fhist = new FileHandle($history_file,'r');
 			if (defined($fhist)) {
 				flock($fhist, LOCK_SH);
 				while (<$fhist>) {
-					$term->addhistory(chomp($_));
+					chomp;
+					$term->addhistory($_);
 				}
 				flock($fhist, LOCK_UN);
 				$fhist->close();
