@@ -51,7 +51,9 @@ within the Psh::Builtins:: namespace and has at least one subroutine, called
 'bi_builtinname'. Additionally, it may provide a cmpl_builtinname
 subroutine for a custom completion. Furthermore, a builtin should
 contain some pod documentation, starting with "=item * " and ending
-with "=cut".
+with "=cut". The builtin will be called with 2 arguments, the first
+one if the rest of the line while the second one is an array to
+all the words psh discovered.
 
 For a list of the predefined B<psh> builtins, use the "help" command from within B<psh>.
 
@@ -76,7 +78,5 @@ and a third argument, which is the string returned by
 I<$strategy_which{foo}>. It should do the evaluation, and return the
 result. Note that the I<$strategy_eval> function will be evaluated in
 an array context. 
-
-
 
 =cut
