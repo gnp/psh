@@ -88,6 +88,10 @@ bi_bsdresource=Please install the BSD::Resource package. This builtin will not w
 bi_tieopt_badtype_array=Option %1 is not an array
 bi_tieopt_badtype_hash=Option %1 is not a hash
 bi_tieopt_badtype_scalar=Option %1 is not a scalar
+bi_tieopt_fetch_badtype_scalar=Option %1 is no longer a scalar
+bi_tieopt_fetch_badtype_hash=Option %1 is no longer a hash
+bi_tieopt_fetch_badtype_array=Option %1 is no longer an array
+
 
 # Stuff for Job handling
 done=done\
