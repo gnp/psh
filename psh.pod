@@ -57,6 +57,10 @@ diagnostic output, including primarily the result of the "which"
 builtin before every execution. Note that you can also enter/leave this
 debugging mode in a running B<psh> via the C<$Psh::debugging> variable.
 
+=item * B<-i>
+
+Only for compatibility reasons and ignored by Perl Shell.
+
 =item * B<-r> I<file>
 
 The B<-r> option specifies a file of commands to be read in and
@@ -72,6 +76,7 @@ F<$ENV{HOME}/.pshrc>.
 If the B<-c> flag is present, then commands are read from
 C<string>, and then B<psh> exits. In particular, any FILE1
 ... arguments will be ignored.
+
 
 =back
 

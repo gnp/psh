@@ -4,14 +4,17 @@
 # A reverse-chronological order list of changes to the Perl Shell.
 #
 
+=head1 NAME
 
-###############################################################################
-###############################################################################
-##
-## 0.007
-##
-###############################################################################
-###############################################################################
+Change log for psh - Perl SHell
+
+=head1 DESCRIPTION
+
+A reverse-chronological ordered list of changes
+
+=cut
+
+# This is so pod2man won't complain ;-)
 
 =head1 CVS
 
@@ -29,15 +32,32 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * Understands environment variable IGNOREEOF - warp [2000-03-11]
 
+=item * Accepts the -i command line switch and ignores it (bash compatibility) - warp [2000-03-11]
+
 =back
 
 =head2 Bugfixes
 
 =over 4
 
-=item * Fixed some small problems with globbing code [2000-03-09]
+=item * Fixed some small problems with globbing code - warp [2000-03-09]
+
+=item * Fixed problem with pod2man and CHANGES.pod reported on Sourceforge - warp [2000-03-09]
+
+=item * SIGTERM is now not ignored anymore and exits the Perl Shell instead  - warp [2000-03-09]
 
 =back
+
+=cut
+
+###############################################################################
+###############################################################################
+##
+## 0.007
+##
+###############################################################################
+###############################################################################
+
 
 =head1 0.007 [2000-02-14]
 

@@ -25,8 +25,9 @@ $VERSION='0.007';
 # file so that the results apply to all the setting up we do before the
 # MAIN program.
 #
+# option -i is ignored
 
-getopts('dwr:c:', \%opt);
+getopts('diwr:c:', \%opt);
 
 
 #
