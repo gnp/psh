@@ -49,6 +49,16 @@ sub _recursive_glob {
 	return @result;
 }
 
+sub _escape {
+	my $text= shift;
+	if ($] >= 5.005) {
+		$text=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
+	} else {
+		# TODO: no escaping yet
+	}
+	return $text;
+}
+
 #
 # The Perl builtin glob STILL uses csh, furthermore it is
 # not possible to supply a base directory... so I guess this
@@ -77,7 +87,7 @@ sub glob {
 		$pattern= $2;
 		$prefix=~ s:/$::;
 	    $dir= File::Spec->catdir($dir,$prefix);
-		$pattern=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
+		$pattern=_escape($pattern);
 		$pattern=~s/\*/[^\/]*/g;
 		$pattern=~s/\?/./g;
 		$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
@@ -86,12 +96,12 @@ sub glob {
 		# Too difficult to simulate, so use slow variant
 		my $old=$ENV{PWD};
 		chdir $dir;
-		$pattern=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
+		$pattern=_escape($pattern);
 		@result= eval { CORE::glob($pattern); };
 		chdir $old;
 	} else {
 		# The fast variant for simple matches
-		$pattern=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
+		$pattern=_escape($pattern);
 		$pattern=~s/\*/.*/g;
 		$pattern=~s/\?/./g;
 		$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
