@@ -68,6 +68,8 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * Fixed problem with quoting which was not removed for the executable strategy - warp [2000-03-12]
 
+=item * Builtin unalias does not remove builtins of the same name anymore - warp [2000-03-14]
+
 =back
 
 =cut
