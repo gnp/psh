@@ -1,8 +1,6 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($ac $complete_first_word_dirs);
-
 require Psh::Util;
 require Psh::OS;
 
@@ -81,7 +79,7 @@ sub cmpl_filenames
 	if (substr($globtext,0,1) eq '~' and !($globtext=~/\//)) {
 		# after ~ try username completion
 		@result= cmpl_usernames($globtext);
-		$ac="/" if @result;
+		$Psh::Completion::ac="/" if @result;
 		return @result;
 	}
 
@@ -108,9 +106,9 @@ sub cmpl_filenames
 
 	if(@result==1) {
 		if (substr($result[0],-1) eq '/') {
-			$ac='';
+			$Psh::Completion::ac='';
 		}
-		$ac=$prepend.$ac if $prepend;
+		$Psh::Completion::ac=$prepend.$Psh::Completion::ac if $prepend;
 	}
 
 	foreach (@result) {
@@ -139,13 +137,13 @@ sub cmpl_directories
 	if (substr($globtext,0,1) eq '~' and !($globtext=~/\//)) {
 		# after ~ try username completion
 		@result= cmpl_usernames($globtext);
-		$ac="/" if @result;
+		$Psh::Completion::ac="/" if @result;
 		return @result;
 	}
 
 	@result= grep { -d $_ } Psh::OS::glob("$globtext*");
 
-	$ac=$prepend||'';
+	$Psh::Completion::ac=$prepend||'';
 
 	@result= map { $_.'/' } @result;
 
@@ -186,7 +184,7 @@ sub cmpl_executable
 		}
 		push @result, grep { Psh::Util::starts_with($_,$cmd) } Psh::Support::Builtins::get_builtin_commands();
 	}
-	push @result, cmpl_directories($cmd) if $complete_first_word_dirs;
+	push @result, cmpl_directories($cmd) if $Psh::Completion::complete_first_word_dirs;
 	
 	local $^W= 0;
 
@@ -312,7 +310,7 @@ sub cmpl_method {
 						 !$prefix && @Psh::Completion::keyword,
 						 map($prefix . $_, @packages, @subs));
 		if (@result==1) {
-			$ac='';
+			$Psh::Completion::ac='';
 		}
 		return @result;
     }
@@ -427,7 +425,7 @@ sub completion
 
 	my $firstflag= $starttext !~/\s/;
 
-	$ac=' ';
+	$Psh::Completion::ac=' ';
 
 	$command =~ m|^\s*(\S*/)?(\S*)|;
 	my $dir=$1||'';
@@ -466,7 +464,7 @@ sub completion
 					return ();
 				}
 			} else {
-				$attribs->{$APPEND}=$ac;
+				$attribs->{$APPEND}=$Psh::Completion::ac;
 				return @tmp;
 			}
 		}
@@ -475,15 +473,15 @@ sub completion
 	if ($starttext =~ m/\$([\w:]+)\s*(->)?\s*{\s*['"]?$/) {
 		# $foo{key, $foo->{key
 		@tmp= cmpl_hashkeys($text, $line, $start);
-		$ac = '}';
+		$Psh::Completion::ac = '}';
 	} elsif ($starttext =~ m/\$([\w:]+)\s*->\s*['"]?$/) {
 		# $foo->method
 		@tmp= cmpl_method($text, $line, $start);
-		$ac = ' ';
+		$Psh::Completion::ac = ' ';
 	} elsif ( $text =~ /^\$#|[\@\$%&]/) {
 		# $foo, @foo, $#foo, %foo, &foo
 		@tmp= cmpl_symbol($text, $line, $start);
-		$ac = '';
+		$Psh::Completion::ac = '';
 	} elsif( $firstflag || $starttext =~ /[\|\`]\s*$/) {
 		# we have the first word in the line or a pipe sign/backtick in front
 		# of the current item, so we try to complete executables
@@ -516,7 +514,7 @@ sub completion
 		}
 	}
 
-	$attribs->{$APPEND}=$ac;
+	$attribs->{$APPEND}=$Psh::Completion::ac;
 	return @tmp;
 }
 

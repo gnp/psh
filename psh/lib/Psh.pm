@@ -538,7 +538,7 @@ sub save_history
 	if( Psh::Options::get_option('save_history')) {
 		my $file= Psh::Options::get_option('history_file');
 		return unless $file;
-		if ($Psh::readline_saves_history) {
+		if ($readline_saves_history) {
 			$Psh::term->StifleHistory(Psh::Options::get_option('histsize'));
 			$Psh::term->WriteHistory($file);
 		} else {
