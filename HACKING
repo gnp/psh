@@ -38,3 +38,8 @@ we are not currently using.
 After you've edited a file, built and tested psh, then:
 
 	foo$ cvs commit -m 'Fixed minor tpyos' HACKING
+	sfuser@cvs.psh.sourceforge.net's password: 
+	Checking in HACKING;
+	/cvsroot/psh/psh/HACKING,v <-- HACKING
+	new revision: 1.3; previous revision: 1.2
+	done
