@@ -48,7 +48,7 @@ sub bi_complete {
 		   Psh::OS::catdir(Psh::OS::rootdir(),'psh','complete')
 		  );
 		if ($_[1][1] eq 'list') {
-			my @result=();
+			my %result=();
 			foreach my $dir (@dirs) {
 				next unless -r $dir;
 				my @tmp= Psh::OS::glob('*',$dir);
@@ -56,11 +56,10 @@ sub bi_complete {
 					my $full= Psh::OS::catfile($dir,$file);
 					next if !-r $full or -d _;
 					next if $file=~/\~$/;
-					push @result,$file;
+					$result{$file}=1;
 				}
 			}
-			@result= sort @result;
-			Psh::Util::print_list(@result);
+			Psh::Util::print_list( sort keys %result);
 			return (1,undef);
 		} else {
 			my $file=$_[1][1];

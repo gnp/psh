@@ -17,7 +17,7 @@ sub MY::postamble {
 	"
 
 install ::
-	\$(PERL) postinstall.pl \$(SITEPREFIX)
+	\$(PERL) postinstall.pl \$(SITEPREFIX) \$(PREFIX)
 
 
 lib/Psh/StrategyBunch.pm : $sb_depends
