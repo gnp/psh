@@ -153,9 +153,9 @@ eval "use Cwd 'fast_abs_path';";
 if (!$@) {
 	print_debug("Using &Cwd::fast_abs_path()\n");
 #	sub abs_path { return fast_abs_path(@_); }
-	*abs_path = \&fast_abs_path;
+	*abs_path = sub { eval { &fast_abs_path; }};
 } else {
-	*abs_path = \&basic_abs_path;
+	*abs_path = sub { eval { &basic_abs_path; }};
 }
 
 
@@ -198,9 +198,13 @@ if (!$@) {
 
 			my @path = split($Psh::OS::PATH_SEPARATOR, $ENV{PATH});
 
-			foreach my $dir (@path) {
-				push @Psh::absed_path, abs_path($dir);
-			}
+			eval {
+				foreach my $dir (@path) {
+					push @Psh::absed_path, abs_path($dir);
+				}
+			};
+			# Without the eval Psh might crash if the directory
+			# does not exist
 		}
 
 		if (exists($hashed_cmd{$cmd})) { return $hashed_cmd{$cmd}; }
