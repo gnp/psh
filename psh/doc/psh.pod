@@ -1,0 +1,977 @@
+=head1 NAME
+
+psh - Perl SHell
+
+
+=for README
+Please read the perlpod manpage! Pay particular attention to the markup
+sequences (B<>, C<>, I<>, etc.).
+
+
+=head1 SYNOPSIS
+
+B<psh> [options] [file]
+
+
+=head1 COPYRIGHT
+
+Copyright (C) 1999-2000 Gregor N. Purdy. All rights reserved.
+This script is free software. It may be copied or modified according
+to the same terms as Perl itself.
+
+
+=head1 DESCRIPTION
+
+B<psh> is a Perl program which executes a read-eval loop with enough
+options so that general behavior reasonably similar to more
+traditional shells like 'B<sh>' or 'B<bash>' can be achieved, while still
+allowing arbitrary perl expressions to be evaluated.
+
+By default within B<psh>, the Perl B<-w> flag and 'C<use strict>' are not
+employed so that the user is not bound by their stipulations. 
+They can both be turned on via a command-line flag; or setting
+C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
+(almost) do the usual thing if called by the user (see LIMITATIONS, below).
+
+
+=head1 OPTIONS
+
+The command-line arguments to B<psh> are:
+
+ psh [-d [options]] [-w] [-f RC_FILE] [-c STRING ] [FILE1 FILE2 ....]
+
+They are processed in the following order, regardless of what order
+they are specified in:
+
+=over 4
+
+=item * B<-w>
+
+Enables Perl's warning mode. The B<-w> switch runs perl with the
+B<-w> switch and "use strict;".
+
+=item * B<-d> [debug options]
+
+The B<-d> option puts B<psh> into "debugging" mode, which prints
+diagnostic output. Note that you can also enter/leave this
+debugging mode in a running B<psh> via the C<$Psh::debugging> variable.
+
+=item * B<-i>
+
+Only for compatibility reasons and ignored by Perl Shell.
+
+=item * B<-f> I<file>
+
+The B<-f> option specifies a file of commands to be read in and
+evaluated before processing begins. If it is not set, and
+C<$ENV{HOME}> is set, and the file F<$ENV{HOME}/.pshrc> is present, it
+will be used. If B<-r> is not specified and the current directory is
+different from C<$ENV{HOME}> and it contains a F<.pshrc> file, that
+file will be read and executed in addition to
+F<$ENV{HOME}/.pshrc>. 
+
+=item * B<-c> I<string>
+
+If the B<-c> flag is present, then commands are read from
+C<string>, and then B<psh> exits. In particular, any FILE1
+... arguments will be ignored.
+
+
+=back
+
+If any FILE1 ... arguments are specified on the command line, they
+will be read and executed and then B<psh> will exit. Otherwise, B<psh>
+will enter an interactive command loop.
+
+
+=head1 DESCRIPTION
+
+Each line of input is read. B<psh> knows a number of possible
+strategies for evaluating the line, such as "send it to C<system()> if it
+starts with the name of an executable visible in C<$ENV{PATH}>". (See
+below for a complete list.)
+Each strategy in turn (from a user-definable
+list) examines the command line to see if it can apply, and the first
+matching strategy evaluates the line. There is a B<psh> configuration
+variable (see below) which controls whether the perl value of the
+evaluation is saved and printed after each command.
+
+B<psh> automatically collects several lines of input into a unit
+processed as a single line if there are unfinished Perl constructs on
+the line. In particular, if there is an unmatched quote, paren, brace,
+or square bracket, input is read until these characters match. If an
+input line contains the Perl "here document" construct as in
+C<E<lt>E<lt>XXX>, (anywhere on the line), then input is read and
+accumulated until C<XXX> occurs on a line by itself. Then the
+accumulated input is processed as if it were a single line.
+
+=head2 TOKENIZATION
+
+Some evaluation strategies examine the "words" of the input. These are
+produced by a tokenizer which behaves very similarly to traditional
+shells: words are broken at whitespace, '&' is a metacharacter which
+means that it always forms its own word, and backslash and double and
+single quotes act as quoting characters, preventing word breaks at
+whitespace and the "meta-ness" of &.
+
+If the description of the strategy does not mention the "words", then
+the tokenization is irrelevant to that strategy.
+
+=head2 STANDARD EVALUATION STRATEGIES
+
+B<psh> includes the following evaluation strategies, sorted by the
+order we suggest for @Psh::strategies.
+
+=over 4
+
+=item * C<comment>
+
+If the first word of the input line begins with a '#' character, ignore
+the line.
+
+=item * C<bang>
+
+If the first word of the input line begins with a '!' character, send
+everything after the '!' to system().
+
+=item * C<brace>
+
+If the first word of the input line begins with a '{' character,
+evaluate the entire line as a Perl expression (including the brace).
+
+=item * C<built_in>
+
+If the first word of the input line matches a B<psh> "built-in"
+function, call the subroutine associated with that built-in; the
+subroutine receives a single argument, which is the remainder of the
+input line exactly as entered.
+
+=item * C<perlfunc>
+
+If the first word of the input line matches the name of a defined
+Perl subroutine - or - if $Psh::Strategy::Perlfunc::builtins is set a built-in
+Perl function (as determined by the %Psh::Strategy::Perlfunc::perl_builtins hash),
+pass the line to eval. If C<$Psh::Strategy::Perlfunc::expand_arguments> is
+true and the line
+contains no parens, or braces or commas (except for {a,b,c} as in
+shell brace-expansion), then this strategy tries to
+interpret the arguments on the command line in a "shell-like" manner:
+strings are literal except for variable expansion, brace expansion,
+and glob expansion. 
+
+The idea of this strategy is to allow perl functions, especially
+subroutines in main, to be called like "ordinary commands" (i.e.,
+executables on disk). Or put another way, the idea is to replace
+bash's "shell function" capacity with ordinary Perl subroutines. The
+slogan is, "If the command line looks like an ordinary shell command,
+interpret it like one, even if the first word is a Perl subroutine."
+
+=item * C<auto_resume> (not enabled by default)
+
+If the input line matches the name of a stopped job then brings that
+job to the foreground instead of starting a new programm with that
+name.
+
+=item * C<perlscript> (not enabled by default)
+
+If (1) the first word of the input line matches the name of a file found in
+one of the directories listed in the path (C<$ENV{PATH}>), and (2) that file
+starts with C<#!/.../perl>, and (3) that C<perl> is the
+same as the Perl under which B<psh> is running, B<psh> will fork and run
+the script using the already-loaded Perl interpreter. The idea is to
+save the exec half of the fork-exec that the executable strategy would 
+do; typically the exec is more expensive. Right now this strategy can
+only handle the B<-w> command-line switch on the C<#!> line. Note this 
+strategy only makes sense before the "executable" strategy; if it came 
+after, it could never trigger.
+
+=item * C<executable>
+
+If the first word of the input line matches the name of an executable
+file in the path given by C<$ENV{PATH}>, then pass the line to
+system. Perl variable substitution will be done on the line first if
+the C<$Psh::executable_expand_arguments> configuration variable is
+true and the binary which is executed does not match one of the
+regular expresions in C<@Psh::executable_noexpand>
+
+=item * C<fallback_builtin>
+
+If the first word of the input line is a "fallback builtin" provided
+for operating systems that do not have common binaries -- such as
+"ls", "env", etc, then call the associated subroutine like an ordinary 
+builtin. If you want all of these commands to be executed within the
+shell, you can move this strategy ahead of executable.
+
+=item * C<eval>
+
+Pass the line to eval, regardless of any condition. This is a catch-all
+strategy; strategies placed after it will never be triggered.
+
+=back
+
+The list of evaluation strategies to try is kept in the configuration
+variable C<@Psh::strategies>, which defaults to
+C<qw(comment bang brace built_in executable fallback_builtin eval)>. 
+If you want to ensure that "print" (for example) refers to the Perl
+function "print" and not "/usr/bin/print", try adding the "perlfunc"
+strategy before "executable".
+
+=head2 GLOBBING
+
+Globbing is used to expand filenames against patterns. Perl Shell
+understands the sh '*' and '?' globbing characters (where * matches
+any string and ? matches exactly one character).
+
+In addition, Perl Shell knows the very powerful '**' globbing,
+replacing many C<find>s in your daily work. '**' will be replaced
+by 'current directories and all sub directories'. For example:
+
+    grep foo lib/**/*.pm
+
+will search for foo in all *.pm files which are somewhere
+(recursivly) within the lib directory.
+
+
+=head2 PIPELINES
+
+Pipelines are used to construct processing chains.
+
+    cat a.txt b.txt | wc -l
+
+
+=head2 MANIFEST FILTERS
+
+A manifest filter is a chunk of code that causes the creation of a
+filter process. They are handy for creating simple one-time filters
+because they don't require creating a program file, setting permissions
+and so on.
+
+There are three kinds of manifest filters: quick, grep and substitution.
+
+A quick filter consists of a block of code surrounded by curly braces,
+with a trailing 'C<q>' modifier. The Perl Shell turns this into a line-by-line
+filter. For the code in the braces, C<$_> will contain the line as it was
+read from input (including any end-of-line character). The filter block
+should
+
+     ls | { print ++$i, ": $_"; }q
+
+A grep filter consists of a block of code surrounded by curly braces,
+with a trailing 'C<g>' modifier. The Perl Shell turns this into a line-by-line
+filter. Only those lines for which the code in the braces returns a true
+value will be printed. For the code in the braces, C<@_> will contain the
+results of splitting C<$_> with the pattern C<\s+>.
+
+     netstat | { $_[1]>2; }g
+
+A substitution filter consists of a perl-style s/// operator instance.
+The Perl Shell will turn this into a line-by-line filter that performs the
+substitution on each line, and then prints the line. For example:
+
+    ls | s/a/b/
+
+A substitution filter is logically equivalent to a block filter containing
+the substitution and a statement to print the resulting line. The example
+above is equivalent to:
+
+    ls | { s/a/b/; print; }q 
+
+
+=head2 BUILT-IN FUNCTIONS
+
+The following functions are provided as built-in functions of
+C<psh>. You can add an additional built-in called 'C<foo>' by setting the
+hash C<$Psh::built_ins{foo}> to a reference to a subroutine. When a line
+like "C<foo bar $baz>" is then evaluated by the 'C<built_in>' strategy, the
+string 'C<bar $baz>' will be passed to your subroutine as its only
+argument. This is precisely the difference between making 'C<foo>' a
+built-in as opposed to simply defining a procedure C<main::foo> and
+letting the C<eval> strategy call C<foo>: the built-in subroutine will get
+the precise input string entered, whereas the ordinary procedure will
+of course get arguments that have already been evaluated by the Perl
+evaluator. Which you want depends on the nature of the function being
+defined.
+
+If C<$Psh::built_ins{foo}> does not exist, but
+C<&Psh::Builtins::bi_foo> is defined, then foo will still be
+considered a builtin calling that function. This is primarily to
+ensure that the original builtins are always accessible, for example
+if they have been aliased and unaliased.
+
+"Fallback builtins" are provided similarly to this last option: "foo"
+is a fallback builtin if C<&Psh::Builtins::Fallback::bi_foo> is
+defined.
+
+For a list of the predefined B<psh> builtins, see L<Psh::Builtins> or use the "help" command from within B<psh>.
+
+=head2 PSH SCALAR VARIABLES
+
+B<psh> makes a number of variables and functions accessible to the
+user in the C<Psh::> package for configuration or utility
+purposes. Their default values are given in parentheses below. If the
+variable is also marked "[late]", then it is undefined at the start of 
+the F<.pshrc> file, but any value given to it during that file will be 
+used instead of the default setting.
+
+=over 4
+
+=item I<$Psh::bin> (the basename of the file B<psh> was invoked by)
+
+The name of the current shell.
+
+=item I<$Psh::cmd>
+
+The command serial number in the currently-executing processing loop.
+
+=item I<$Psh::change_title> (1)
+
+If set to true, the environment variable PSH_TITLE will be set to
+the current working directory to display it in the window title if
+possible.
+
+=item I<$Psh::currently_active> (0)
+
+The pid of the process B<psh> will currently forward signals to, or 0
+if B<psh> will handle the signals internally. Usually
+0 unless B<psh> is waiting for a process in the "foreground".
+
+=item I<$Psh::debugging> (the value of the B<-d> option or 0)
+
+Whether B<psh>'s internal debugging output should be produced. If this
+variable is set to 1, all available debug output will be shown. If
+this is set to a string to characters, only debug output belonging
+to the classes signified by the characters will be shown. Debug
+classes etc. are in the manpage B<pshdevel>
+
+=item I<$Psh::echo> (0)
+
+Controls whether the processing loop saves and displays the Perl value 
+of executing a line of input. Three cases are distinguished: a false
+value, in which case no results are displayed; a subroutine reference, 
+in which case the subroutine is called with the results (this may be
+multiple arguments if the eval returned an array) and should return
+true to display, false to not; or a true (scalar) value, in which case 
+any non-undef, non-empty value is displayed.
+
+In addition to displaying the value, it is pushed onto the array
+determined by C<$Psh::result_array>.
+Note that scalar values are pushed directly onto this array, but array
+values are pushed by reference. 
+
+=item I<$Psh::eval_preamble> ("package main;")
+
+Every Perl expression that B<psh> evaluates as part of its read-eval loop
+is prepended with this string, intended primarily to set the expected
+package context.
+
+=item I<$Psh::executable_expand_arguments> (0)
+
+If this variable is true, then the following
+procedure is applied to each argument ARG of the command line before
+passing the command line on to "system":
+If ARG starts with a single quote, it is untouched.
+If ARG starts with a double quote, it is passed to "eval", and then double
+quotes are placed around the result.
+Otherwise, double quotes are placed around ARG, it is passed to eval,
+and the result is used directly.
+The intention of these steps is to do variable substitution of perl
+variables that appear in the command line as the user would expect, and
+in a way similar to shells such as bash. For example, if 
+@files = (file1, file2, file3), then
+ 'ls @files' will expand to 'ls file1 file2 file3', whereas
+ 'echo "@files"' will expand to 'echo "file1 file2 file3"'.
+
+=item I<$Psh::handle_segfaults> (0)
+
+If set to true, B<psh> will ignore all segfaults and attempt to
+continue.
+
+=item I<$Psh::ignore_die> (0)
+
+If set to true, B<psh> will attempt to continue after internal
+errors.
+
+=item I<$Psh::history_file> ("F<$ENV{HOME}/.${bin}_history>") [late]
+
+The filename B<psh> will use to save the command history in from one
+invocation to the next, if C<$Psh::save_history> is true.
+
+=item I<$Psh::history_length> (50) [late]
+
+The number of lines of command history to keep.
+
+=item I<$Psh::host> (the output of "C<hostname -s>") [late]
+
+The short host name of the machine B<psh> is currently running on.
+
+=item I<$Psh::login_shell> (0)
+
+Set to true if B<psh> is the user's login shell. On systems where this
+does not apply, set to true unless called from another instance of B<psh>.
+
+=item I<$Psh::longhost> (the output of "C<hostname>") [late]
+
+The fully qualified host name of the machine B<psh> is running on.
+
+=item I<$Psh::prompt> ('\s\$') [late]
+
+Controls the prompt string in interactive use, see below.
+
+=item I<$Psh::prompt_cont> ('> ') [late]
+
+Just like I<$Psh::prompt>, but for continuation lines when multi-line
+input is being read.
+
+=item I<$Psh::window_title> ('\w')
+
+Controls the window title in interactive use. See prompt evaluation
+for escape codes.
+
+=item I<$Psh::result_array> ('Psh::val') 
+
+Controls where the results of Perl evaluations saved via C<$Psh::echo> 
+will go. It may be a reference to an array, or the string name of an
+array.
+
+=item I<$Psh::save_history> (1) [late]
+
+If this is true, the command history is saved in C<$Psh::history_file>
+from one invocation of B<psh> to the next.
+
+=item I<$Psh::which_regexp> ('^[-a-zA-Z0-9_~+]*$')
+
+When C<Psh::Util::which> is asked to locate a filename in the current
+PATH, it will only look for filenames which match this regexp. Names
+that do not match this regexp will automatically come back "not found".
+
+=item I<$Psh::Strategy::Perlfunc::builtins> (0)
+
+If this variable is true, the perlfunc evaluation strategy will
+also match those Perl builtins determined by %Psh::perl_builtins
+
+=item I<$Psh::Strategy::Perlfunc::packages> (1)
+
+If this variable is true, the perlfunc evaluation strategy will
+also match functions with full package specification
+
+=item I<$Psh::Strategy::Perlfunc::expand_arguments> (0)
+
+If this variable is true, then command lines interpreted by the
+perlfunc strategy which contain no parens, or  braces or commas except 
+in bash-like brace-expansion expressions, will not
+be simply evaluated. Rather, they will be interpreted much like
+traditional shells do: the line will be spilt into words, which
+undergo globbing, brace expansion, and variable expansion, and the
+resulting array of words is passed to the specified function as its
+arguments. 
+
+=back
+
+
+=head2 PSH ARRAY VARIABLES
+
+=over 4
+
+=item I<@Psh::Completion::netprograms> ( B<ping>, B<ftp>, B<ncftp>,
+B<ssh>, etc. )
+
+Contains names of a number of net based programs for enabling
+TAB completion of hostnames/bookmarks
+
+=item I<@Psh::Completion::bookmarks> ( from /etc/hosts )
+
+Supposed to contain your most used IP numbers, hostnames or URLs.
+Those will be eligible for TAB completion if you use one of the
+programs in C<@Psh::Completion::netprograms>. C<psh> will
+initialize this list with your /etc/hosts file
+
+=item I<@Psh::executable_noexpand> ( B<whois>, B<^ezmlm->, etc. )
+
+Contains regular expressions. If $Psh::executable_expand_arguments
+is set commands which match one of these REs won't have perl
+variables expanded. This is especially useful for commands which
+expect email adresses, and therefore an at-sign.
+
+=item I<@Psh::history>
+
+An array of lines to write to the history file when B<psh> exits, only
+filled when the ReadLine module doesn't handle the history file.
+
+=item I<@Psh::mon> ( Jan, Feb, etc. )
+
+An array of month names used in printing dates, for example in prompt
+strings.
+
+=item I<@Psh::strategies> ( comment, bang, built_in, executable, eval)
+
+The list of strategies for executing a line, tried in order.
+
+=item I<@Psh::val>
+
+The default array where B<psh> stores away the results of executing
+lines, as described in C<$Psh::echo> above. 
+
+=item I<@Psh::wday> ( Mon, Tue, Wed, Thu, Fri, Sat)
+
+An array of the weekday names used in printing dates, for example in
+prompt strings.
+
+=back
+
+
+=head2 PSH HASH VARIABLES
+
+=over 4
+
+=item I<%Psh::array_exports>
+
+Contains a list of environment variables which should be tied
+to arrays. The key of the hash is the name of the variable, the
+value is the delimiter of the list (e.g. ':' in PATH). The
+default value for array_exports currently contains PATH, CLASSPATH,
+LD_LIBRARY_PATH, FIGNORE and CDPATH.
+
+=item I<%Psh::built_ins>
+
+The keys are command names, the values do not matter. Builtins on this
+list may be autoloaded. This is initialized on startup by &Psh::Builtins::built_autoload_list();
+
+=item I<%Psh::fallback_builtins>
+
+A list of fallback builtins Psh should provide. This currently defaults
+to ls and env.
+
+=item I<%Psh::Strategy::Perlfunc::perl_builtins> (by default, all Perl builtins and keywords)
+
+The perlfunc evaluation strategy uses this hash on the first word of a 
+command line to determine whether it should handle that command
+line. If the first word is present as a key
+in this hash, then the corresponding value determines the treatment: 0 
+means don't handle this line; any positive
+value means do handle the line as long as it has at least that many
+words. (Since the first word counts, a value of '1' will guarantee
+that the perlfunc strategy handles the line.) Useful for example to
+set C<$Psh::perl_builtins{grep} = 0;> if you don't want "grep" to be
+treated as a perl function.
+
+Note that the perlfunc strategy will also handle the line if the first
+word is not present as a key in this hash but a
+Perl subroutine of that name is defined.
+
+=item I<%Psh::Strategy::Perlfunc::perl_builtins_noexpand> (by default, Perl flow-control
+keywords)
+
+The keys of this hash never have their arguments expanded in a
+shell-like fashion, even if $Psh::perlfunc_expand_arguments is true.
+
+=item I<%Psh::prompt_vars>
+
+The keys of this hash are single characters, and the values are
+subroutine references that implement the given escape character in
+prompt strings. (See L<PROMPT STRINGS> below.)
+
+=item I<%Psh::strategy_which>
+
+=item I<%Psh::strategy_eval>
+
+These hashes implement the named strategies used in B<psh>'s
+evaluation of input lines. It is possible to add new strategies, see below.
+
+=item I<%Psh::Completion::custom_completions>
+
+Allows you to add own TAB completions. The keys are names of programs
+to which the TAB completion should apply. The value is either a list
+reference with at least two values, up to three values, or a sub.
+If it's a sub it is called with the text to complete, text in front
+of the text to complete to the last whitespace and the word which
+triggered the completion.
+
+The first element of the rules list is the character which should be appended
+after the completion is successful, the second value is again a list
+reference containing all possible completions. If the optional third
+value is true, the custom completion will replace all results of
+standard completions (like filename or username completion), if the
+value is false, the custom completion just adds additional results.
+
+This is probably complicated but worth the effort.
+
+Example:
+
+%Psh::Completion::custom_completions = (
+      'scp'=>['',['server1:/path1','server1:/path2','server2:/path']],
+	  'foo'=>[' ',['bar','bla','fish'],1],
+	  'hmm'=> sub { return ['/',['1','2','3'],1] }
+     );
+
+
+=back
+
+
+=head2 PSH FUNCTIONS
+
+=over 4
+
+=item C<&Psh::evl>
+
+This function takes a string, evaluates it as if it were a line of
+B<psh> input, and returns the value. Useful in loops like:
+ 
+ C<psh$ for $file (glob $pat) { Psh::evl("ls -ld $file"); }>
+
+=item C<&Psh::is_number>
+
+Returns true if its first argument is a number. Intended for use in
+filter subroutines placed in $Psh::echo. For example,
+C<$Psh::echo = \&Psh::is_number;> will cause only numeric return
+values to be printed.
+
+=item C<&Psh::news>
+
+Returns the current news, as a string.
+
+=item C<&Psh::Util::print_debug, print_error, print_out, print_warning>
+
+These four functions are called whenever B<psh> wants to produce B<-d>-mode 
+output, error messages, normal output, and warnings,
+respectively. They could conceivably be redefined to implement logging 
+or similar facilities.
+
+=item C<&Psh::symbols>
+
+Takes one argument, a package name, and shows all of the symbols in
+that package.
+
+
+There are other functions in the psh:: package, but they are probably
+not useful except internally to B<psh>.
+
+=head2 PROMPT STRINGS
+
+Setting the variable I<$Psh::prompt> to a string will cause that string
+to be used as the prompt-string. Setting it to a subroutine reference
+causes the result of running that subroutine to be used each time.
+For example,
+
+  $Psh::prompt = sub { $i++; "psh [$i]\$ "; }
+
+will cause the prompt to be C<psh [1]$> followed by C<psh [2]$>, and so on.
+
+B<psh> uses some of the same ``prompting variables'' as B<bash>. They are
+accessed by placing a backslash followed by the code in the prompt string,
+either hard coded, or as returned by the prompt string function. The
+variables supported are:
+
+=over 4
+
+=item d The date in ``Weekday Month Day'' format
+
+=item E The escape character
+
+=item h The short hostname
+
+=item H The long hostname
+
+=item n A carriage return and line feed
+
+=item s The name of the shell
+
+=item t The current time in HH:MM:SS format
+
+=item u The username of the current user
+
+=item w The current working directory
+
+=item W The basename of the current working directory
+
+=item # The command number of the current command
+
+=item $ `#' if the effective UID is zero, else `$'
+
+=item [ ] Used for Term::ReadLine::Gnu to ignore control characters while determining the length of the prompt
+
+=back
+
+Custom prompting variables may be added by adding entries to the array
+I<%Psh::prompt_vars> keyed by the single character code. The entries
+should be subroutine references that return the replacement string.
+
+
+=head2 DEFINING EVALUATION STRATEGIES
+
+There are two hashes, I<%Psh::strategy_which> and I<%Psh::strategy_eval>.
+An evaluation strategy called "C<foo>" is implemented by putting a
+subroutine object in each of these hashes keyed by "foo". The first
+subroutine should accept a reference to a string (the exact input
+line) and a reference to an array of strings (the array of "words" in
+the input line produced by C<&Psh::decompose>, provided as a convenience
+so that each individual strategy doesn't have to recompute this). It
+should return a string, which should be empty if the strategy does not
+apply to that input line, and otherwise should be an arbitrary
+non-null string describing how that strategy applies to that line. It
+is guaranteed that the string passed in will contain some
+non-whitespace, and that the first string in the array of words is
+non-empty.
+
+The I<$strategy_eval{foo}> routine accepts the same two first arguments
+and a third argument, which is the string returned by
+I<$strategy_which{foo}>. It should do the evaluation, and return the
+result. Note that the I<$strategy_eval> function will be evaluated in
+an array context. 
+
+
+=head1 LIMITATIONS
+
+Due to limitations of the Win32 type of operating system there's no
+job control available on those systems.
+
+The loop inside B<psh> will clobber I<$1> and other variables (including
+possible I<$_>) because it uses matches to implement some of its special
+functions.
+
+Very little error checking is done. For example, if you evaluate
+C<!blork> by the bang strategy and there is no command "blork" on your
+system, you get no feedback whatsoever.
+
+Right now, job control simply assumes that the POSIX interface is
+fully implemented. There should be a way to turn job control off if
+this is not the case.
+
+The "exit status" of programs invoked in the foreground by the
+"executable" strategy (or even the "bang" strategy) isn't available
+from within B<psh>.
+
+Note that since expressions like 'use foo' return undef when sent to
+eval(), it is not possible to use that return value as indication of
+an error. Instead, we use the heuristic that there was no error unless
+the special Perl variable '$@' is non-empty. Note that the side
+effects of 'use foo' as a B<psh> command line appear to be exactly as
+expected. 
+
+=head1 REQUIREMENTS
+
+psh needs several optional Perl modules to offer full functionality:
+
+=over 4
+
+=item Term::ReadLine::Gnu or Term::ReadLine::Perl for readline support
+(command history, special editing chars etc.).
+
+=item Term::Size or Term::ReadKey to offer the ability to change the
+environment variables LINES and COLUMNS when the terminal window size
+changes while running as standard shell
+
+=back
+
+
+=head1 OTHER PERL SHELLS
+
+
+=head2 Larry Walls' Perl Shell
+
+Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
+page 161 of the Camel Book (2nd Edition).
+
+
+=head2 lpsh
+
+Lee Eakin E<lt>F<leakin@dfw.nostrum.com>E<gt> has written the Fancy Poor Man's Perl SHell
+(called lpsh for Lee's Perl Shell), a simple Perl shell that he has used for a number of
+years now (it is derived from Larry Wall's Perl Shell).  He has added some numeric
+conversion functions because he often uses it as a calculator.
+
+He has placed it on the web at C<http://www.dfw.nostrum.com/~leakin/psh> (for the
+code) and C<http://www.dfw.nostrum.com/~leakin/psh.README> for a short explanation
+of the code and a reference to the main Perl Shell site.
+
+
+=head2 Perl Debugger Shell
+
+Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
+psh-0.001 announcement on C<http://freshmeat.net>, which contained this
+gem that leverages the Perl debugger: C<perl -d -e 1>;
+
+
+=head2 perlsh
+
+Hiroo Hayashi E<lt>F<hiroo.hayashi@computer.org>E<gt> includes B<perlsh>, a 
+``one-line perl evaluator with line editing function and variable name
+completion function'' as an example with his Term::ReadLine::Gnu Perl module.
+
+
+=head2 PSH.pm
+
+In an example of convergent evolution, at C<http://jenda.krynicky.cz/>
+there is a Perl shell module called F<PSH.pm> which is quite similar
+to this B<psh>. It is designed to provide a command line that can be called
+inside some other program via C<PSH::prompt();>, but a small file
+F<psh.pl> is also included that uses PSH to provide a standalone
+shell. Perhaps some merger of these efforts would be beneficial to all?
+
+
+=head2 SoftList
+
+Some versions of the Perl faq mention an interactive Perl shell called
+SoftList, which can still be found at
+C<http://www.mit.edu/afs/sipb/contrib/perl/SoftList/>. It predates
+Term::Readline and was apparently last touched in 1993, so it seems to
+be obsolescent.
+
+
+=head2 timtosh
+
+Tim Newsome, E<lt>F<nuisance@cmu.edu>E<gt>, has developed a shell he calls
+B<timtosh> (There Is More Than One SHell). Per his web site
+(C<http://www.wiw.org/~drz/timtosh>),
+it is a shell written entirely in Perl. The goal is to get a shell which you
+can extend in Perl and can do some other niceties related to
+Perl (like perl re file matching). As of 1999-12-13 (Perl Shell 0.004 release date),
+Tim says B<timtosh> ``is focused quite differently than B<psh> is, but is currently
+still waiting for a rewrite of the command line parsing.
+(It has been for almost a year now)''.
+
+
+=head2 vbsh
+
+Tom Christiansen and Nathan Torkington's book B<Perl Cookbook>, published by
+O'Reilly in 1998 (ISBN 1-56592-243-3) has "Example 15-4. vbsh" on page 531 for
+section 15.11 (Editing Input). It stands for Very Bad SHell.
+
+
+=head2 Comparison of perl shells
+
+As an aid to comparing/contrasting these different shells, here is a
+brief table indicating whether or not each has certain features.
+
+  Key to features:
+    PE : Perl evaluation of Perl expressions
+    SHE: shell-like evaluation of shell-like expressions, including 
+         'exec'ing executables searched for in PATH
+    CLE: command-line editing
+    JC : job control
+    PL : pipelines 
+
+  Key to symbols:
+    * : feature present
+    - : feature absent
+    ? : don't know 
+
+  The shells:
+
+=for table
+ @<<<<<<<<<<<<<<<<<<<  @|||  @|||  @|||  @|||  @|||
+
+=for table-head
+
+    Shell Name         PE    SHE   CLE    JC    PL
+
+=for table-body
+
+ psh (this one)         *     *     *     *     *            
+ Larry Wall shell       *     -     -     -     -
+ lpsh                   *     -     *     -     -
+ Perl debugger shell    *     -     *     -     -
+ perlsh                 *     -     *     -     -
+ Krynicky PSH.pm        *     *     ?     -     ?
+ SoftList               *     ?     *     ?     ?
+ timtosh                -     *     *     *     *
+ vbsh                   ?     ?     ?     ?     -
+
+
+=head1 ENVIRONMENT VARIABLES
+
+B<CDPATH> - A list of paths of directories in which the C<cd> builtin
+should search for its argument. Defaults to ".".
+
+B<FIGNORE> - A list (separated by the path separator) of file endings to
+ignore when performing TAB completion. No default.
+
+B<HISTSIZE> - The maximum number of lines to save in the history file.
+Defaults to 50.
+
+B<IGNOREEOF> - Controls the action of the shell on receipt of an EOF character as the
+sole input.  If set, the value is the number of consecutive EOF  characters typed 
+as the first characters on an input line before bash exits.  If the variable exists
+but does not have a numeric value, the default value is 10.
+If it does not exist, EOF signifies the end of input to the shell.
+
+B<LANG> - Sets the language of the shell.
+
+B<SHLVL> - The number of shells deep that B<psh> is nested. Initially set
+to 1. Many other shells do not increment this variable, so it is not
+authoritative.
+
+B<PS1> - If $Psh::prompt is unset, psh will try to use this
+environment variable as prompt.
+
+B<PS2> - If $Psh::prompt_cont is unset, psh will try to use
+this variable as continuation prompt.
+
+B<PSH_TITLE> - If $Psh::window_title is unset, psh will try to use
+this variable as window title.
+
+B<USER> - The name of the current user
+
+=head1 FILES
+
+F<psh> - The Perl Shell executable script.
+
+F<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
+current directory; if both are present, both will be read in the order
+mentioned.
+
+
+=head1 AUTHOR
+
+Gregor N. Purdy, E<lt>F<gregor@focusresearch.com>E<gt>
+
+
+=head1 CREDITS
+
+The following people have contributed to the development of C<psh>:
+
+=over 4
+
+=item Prodigious Contributors
+
+Markus Peter E<lt>F<warp@spin.de>E<gt> added job and signal handling,
+globbing, redirection, pipelines, completion code, Win32 port, i18n code,
+bash compatibility builtins and environment variables and some more
+minor updates.
+
+Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
+strategies, improved interrupt/job handling, C<&Psh::evl>, C<$Psh::echo>,
+more extensive documentation, and other more minor features.
+
+Omer Shenker E<lt>F<oshenker@iname.com>E<gt> added file locking, Win32
+code, login shell handling, various bits of documentation, and other minor
+features and updates.
+
+=item ReadLine Support
+
+Code examples showing how to apply the Term::ReadLine package were contributed
+by Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> (in his C<pash.pl> program,
+which is his own Perl shell).
+
+=item Symbol Table Dumping
+
+Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> also had an example of a symbol
+table printing function that was used as the starting point for the C<psh>
+function C<psh::symbols()>. The C<psh> version adds the ability to specify a
+package name, and it also filters out some special variables. The implementation
+technique is also different from Billy's.
+
+=item Prompt String Variables
+
+Matthew D. Allen E<lt>F<s2mdalle@titan.vcu.edu>E<gt> contributed an enhanced
+prompt string handling routine that emulates the C<bash> prompt variables. This
+was expanded into the form now present.
+
+=item Typo Spotting
+
+Allan Kelly E<lt>F<akelly@holyrood.ed.ac.uk>E<gt> found some problems with the
+generated documentation.
+
+=back
+
+
+=cut
