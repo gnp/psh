@@ -634,11 +634,11 @@ sub set_internal_variables {
 
 sub expand_dollar {
     my ($psh, $piece)= @_;
-    if (length($piece)>2 and substr($piece,0,2) eq '${') {
+    if (length($piece)>2 and substr($piece,0,2) eq '$(') {
 	return qq['$piece']; # FIX
     }
     else {
-	if (substr($piece,0,2) eq '$(') {
+	if (substr($piece,0,2) eq '${') {
 	    $piece= substr($piece,2,-1);
 	} else {
 	    $piece= substr($piece,1);

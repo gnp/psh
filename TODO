@@ -17,6 +17,10 @@ The frontends have to be improved. We should focus on editline as low-footprint 
 - Variables
 Variables are not yet mapped into the perl namespace. The Psh2::Variable objects could simply imlement the Perl TIE interfaces to do so.
 
+- Builtins
+o The ulimit builtin only supports display (-a) right now
+
+
 Loose-Ideas:
 - >{} and <{} redirects
 - Auto-directory-changing

@@ -12,8 +12,6 @@ psh2 has actually a straightforward, parsable syntax. The grammar is not
 ambigous. The grammar tries to avoid relying on whitespace as much as possible
 (unlike sh-derivates).
 
-psh2 is no POSIX shell. It already broke with POSIX in the important regard of redirection syntax, so we can as well not care about it in other respects. We in fact already do this, so for example $( ) and ${ } have the exactly opposite meaning in the POSIX standard. We exchanged the meanings to have a more consistent syntax.
-
 psh1' evaluation strategies do not exist in psh2 anymore in the same form.
 Pluggable evaluation strategies still exist - to add additional behaviours -
 but strategies like starting an executable or a builtin are hardcoded.
@@ -75,9 +73,7 @@ command := languagename: code | builtin | function | executable |
 "..." means: any number of elements, [] signifies optional components
 | means an alternative
 
-Support missing currently for: << (here-docs used as STDIN) <{ } and >{ }
-
-<{ } and >{ } use named pipes
+Support missing currently for: << (here-docs used as STDIN) <( ) and >( )
 
 
 INFLUENCES AND OTHER SHELL

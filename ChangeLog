@@ -1,5 +1,7 @@
 2004-01-29  Markus Peter  <warp@spin.de>
 
+	* lib/Psh2/Builtins/Ulimit.pm: Simple ulimit builtin 
+
 	* lib/Psh2/Frontend/Editline.pm: Respects "editmode" option
 	
 	* lib/Psh2/Builtins/Sleep.pm: Sleep builtin featuring fractional seconds 

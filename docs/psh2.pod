@@ -214,8 +214,8 @@ Setting certain array elements is done by subscripting:
     variable[index]=value
 
 Reading/interpolating variables is possible through C<$variable> or
-C<$(variable)>. For subscripting you must use the C<$(variable)> notation
-(C<$(variable[index])>).
+C<${variable}>. For subscripting you must use the C<${variable}> notation
+(C<${variable[index]}>).
 
 If no subscript is specified the variable is handled in "flat mode".
 Flat mode means, that all subscripts are set or read. This is done
@@ -238,7 +238,7 @@ Copyright (C) 1999-2004 psh2 Core Team. All rights reserved.
 This script is free software. It may be copied or modified according
 to the same terms as Perl itself.
 
- E<lt>F<warp-psh@spin.de>E<gt>
+ E<lt>F<warp@spin.de>E<gt>
  E<lt>F<gregor@focusresearch.com>E<gt>
 
 =cut
