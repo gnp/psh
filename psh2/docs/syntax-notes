@@ -1,0 +1,9 @@
+
+line: complex [ newline | ; | & ] complex
+
+complex: basic redirections PIPE basic redirections
+
+redirections: > >> < << <{ complex } >{ complex }
+
+pipes: |  |[fds]
+

@@ -1,0 +1,64 @@
+REQUIREMENTS
+------------
+
+Currently, psh works on any modern Unix system with perl5. It has been
+most extensively tested on GNU/Linux systems with perl 5.005, and also
+works with perl 5.004. Earlier versions of perl will probably cause psh to
+fail.
+
+
+INSTALLING psh
+--------------
+
+Follow the standard procedure (from the source directory):
+	perl Makefile.PL
+	make
+
+As superuser (if required):
+	make install
+
+Copy pshrc to ~/.pshrc.
+
+Optional:
+Copy share to /usr/share/psh (or /usr/local/share/psh ).
+
+Alternatively, you can copy share to ~/.psh/ or to /psh/ on Windows.
+
+
+WITHOUT root ACCESS
+-------------------
+
+If you don't have root access you'll have to move the files manually. You
+can make your own modules directory and put something like alias
+perl="perl -I~/.pm" in your shell's startup dotfile, and copy the modules
+there. Then copy psh wherever you want it, such as ~/bin.
+
+
+MAKING psh YOUR LOGIN SHELL
+---------------------------
+
+If you'd like to make psh your login shell, you'll need to change your
+entry in /etc/passwd. Here's an example for a Linux distribution with
+bash:
+	chsh -s `which psh`
+Depending on your setup, you may need to add the full path to psh to
+another file, such as /etc/shells.
+
+It's possible that if you don't have root access, your Unix flavor won't
+allow you to change your login shell. You can try to work around this by
+putting something like
+	exec psh
+in your shell's startup dotfile. Be careful that this file isn't executed
+by a shebang (#!) invocation of the shell, or shell scripts written for
+that shell may mysteriously fail.
+
+SETTING UP A .pshrc FILE
+------------------------
+
+After starting psh, you can enter the command
+
+   firsttime
+
+to have some help with setting up your first .pshrc file. The firsttime
+command will try to parse your bash and tcsh rc files to gather aliases,
+environment variables and bring them into psh format.
