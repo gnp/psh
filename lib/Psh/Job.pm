@@ -31,7 +31,7 @@ sub continue {
 	my $self= shift;
 
 	# minus sign to wake up the whole group of the child:
-	kill 'CONT', -$self->{pid} if $Psh::OS::has_job_control();
+	kill 'CONT', -$self->{pid} if Psh::OS::has_job_control();
 	$self->{running}=1;
 }
 
