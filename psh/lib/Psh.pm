@@ -594,10 +594,10 @@ sub iget
 	exit unless defined $line;
 	chomp $line;
 
-	if ($term and $line !~ m/^\s*$/) {
-		$term->addhistory($line);
-
-		if ($save_history && !$readline_saves_history) {
+	if ($line !~ m/^\s*$/) {
+		if ($history[$#history] ne $line) {
+			$term->addhistory($line) if $term;
+		
 			push(@history, $line);
 			if( @Psh::history>$Psh::history_length) {
 				splice(@Psh::history,0,-$Psh::history_length);

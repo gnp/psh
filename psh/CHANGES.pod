@@ -34,6 +34,12 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * Accepts the -i command line switch and ignores it (bash compatibility) - warp [2000-03-11]
 
+=item * New builtin 'history' -  warp [2000-03-11]
+
+=item * If the line you entered matches the last line it won't be added to the history (maybe make this configurable?) - warp [2000-03-11]
+
+=item * Start of a new package "Psh::Completion::Defaults", which, when used, adds a couple of useful pre-made custom completions - warp [2000-03-11]
+
 =back
 
 =head2 Bugfixes
@@ -45,6 +51,8 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 =item * Fixed problem with pod2man and CHANGES.pod reported on Sourceforge - warp [2000-03-11]
 
 =item * SIGTERM and HUP is now not ignored anymore and exits the Perl Shell instead  - warp [2000-03-11]
+
+=item * switch -r now reserved for restricted mode, new switch -f for alternative resource file
 
 =back
 

@@ -18,6 +18,7 @@ lib/Psh.pm
 lib/Psh/Job.pm
 lib/Psh/Joblist.pm
 lib/Psh/Completion.pm
+lib/Psh/Completion/Defaults.pm
 lib/Psh/Locale/Base.pm
 lib/Psh/Locale/Default.pm
 lib/Psh/Locale/French.pm
@@ -42,6 +43,7 @@ lib/Psh/Builtins/Builtin.pm
 lib/Psh/Builtins/Exit.pm
 lib/Psh/Builtins/Fg.pm
 lib/Psh/Builtins/Help.pm
+lib/Psh/Builtins/History.pm
 lib/Psh/Builtins/Jobs.pm
 lib/Psh/Builtins/Kill.pm
 lib/Psh/Builtins/Readline.pm
