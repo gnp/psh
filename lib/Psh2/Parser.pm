@@ -211,8 +211,7 @@ sub decompose {
 	}
 
         my $char= substr($piece,0,1);
-        if ( $char eq '{' or $char eq '(' or $char eq '[' or
-             $piece eq '=') {
+        if ( $char eq '{' or $char eq '(' or $char eq '[') {
             push @pieces3, $piece;
             $space= 1;
         } elsif ( $char eq '"' or $char eq "'" or
