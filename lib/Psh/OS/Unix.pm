@@ -3,7 +3,7 @@ package Psh::OS::Unix;
 use strict;
 use vars qw($VERSION);
 use POSIX qw(:sys_wait_h tcsetpgrp getpid setpgid);
-
+use Config;
 use Psh::Util ':all';
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
@@ -333,9 +333,22 @@ sub system {
 # compatible with Perl 5.004 and later.
 #
 
+my %special_handlers= (
+					   'CHLD' => \&_ignore_handler,
+					   'CLD'  => \&_ignore_handler,
+					   'SEGV' => 0,
+					   'WINCH'=> 0,
+					   );
+
+# Fetching the signal names from Config instead of from %SIG
+# has the advantage of avoiding Perl internal signals
+
+my @signals= split(' ', $Config{sig_name});
+
 sub remove_signal_handlers
 {
-	foreach my $sig (keys %SIG) {
+	foreach my $sig (@signals) {
+		next if ! ref($special_handlers{$sig});
 		$SIG{$sig} = 'DEFAULT';
 	}
 }
@@ -351,7 +364,13 @@ sub remove_signal_handlers
 
 sub setup_signal_handlers
 {
-	foreach my $sig (keys %SIG) {
+	foreach my $sig (@signals) {
+		if( $special_handlers{$sig}) {
+			if( ref($special_handlers{$sig})) {
+				$SIG{$sig}= $special_handlers{$sig};
+			}
+			next;
+		}
 		$SIG{$sig} = \&_signal_handler;
 	}
 
