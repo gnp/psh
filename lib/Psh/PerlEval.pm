@@ -58,7 +58,9 @@ sub protected_eval
 			return undef;
 		}
 		else {
-			Psh::handle_message($@, $Psh::PerlEval::from);
+			if ($@) {
+				Psh::handle_message($@, $Psh::PerlEval::from);
+			}
 		}
 		return @Psh::PerlEval::result;
 	}
