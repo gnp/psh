@@ -14,6 +14,9 @@ We need prompt support. Later on we can add the psh1 "theme" system.
 - Frontends
 The frontends have to be improved. We should focus on editline as low-footprint frontend and a new pure perl frontend. The readline frontend is mainly considered a fallback due to wide availibility and for users who insist on readline. Term::ReadLine::Perl will not be supported this time (nightmare).
 
+- Variables
+Variables are not yet mapped into the perl namespace. The Psh2::Variable objects could simply imlement the Perl TIE interfaces to do so.
+
 Loose-Ideas:
 - >{} and <{} redirects
 - Auto-directory-changing

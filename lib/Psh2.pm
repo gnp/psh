@@ -952,10 +952,10 @@ sub get_variable {
 package Psh2::Variable;
 
 {
- my %defaultjoinby= ( path => Psh2::path_separator(),
-                      classpath => Psh2::path_separator(),
-                      ld_library_path => Psh2::path_separator(),
-                      ls_colors => ':',
+ my %defaultjoinby= ( PATH => Psh2::path_separator(),
+                      CLASSPATH => Psh2::path_separator(),
+                      LD_LIBRARY_PATH => Psh2::path_separator(),
+                      LS_COLORS => ':',
                     );
 
  sub new {
@@ -1006,6 +1006,13 @@ sub value {
         } else {
             return $self->{value}[$subscript] || '';
         }
+    }
+}
+
+sub value_changed {
+    my $self= shift;
+    if ($self->{exported}) {
+        $ENV{$self->{simple_name}}= $self->value(-1);
     }
 }
 
