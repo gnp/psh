@@ -325,37 +325,39 @@ sub system {
 #
 # void remove_signal_handlers()
 #
-# TODO: Is there a way to do this in a loop over something from the
-# Config module?
-# Answer: no
+# This used to manually set INT, QUIT, CONT, STOP, TSTP, TTIN,
+# TTOU, and CHLD.
+#
+# The new technique changes the settings of *all* signals. It is
+# from Recipe 16.13 of The Perl Cookbook (Page 582). It should be
+# compatible with Perl 5.004 and later.
+#
 
 sub remove_signal_handlers
 {
-	$SIG{INT}   = 'DEFAULT';
-	$SIG{QUIT}  = 'DEFAULT';
-	$SIG{CONT}  = 'DEFAULT';
-	$SIG{STOP}  = 'DEFAULT';
-	$SIG{TSTP}  = 'DEFAULT';
-	$SIG{TTIN}  = 'DEFAULT';
-	$SIG{TTOU}  = 'DEFAULT';
-	$SIG{CHLD}  = 'DEFAULT';
+	foreach my $sig (keys %SIG) {
+		$SIG{$sig} = 'DEFAULT';
+	}
 }
 
 #
 # void setup_signal_handlers
 #
+# This used to manually set INT, QUIT, CONT, STOP, TSTP, TTIN,
+# TTOU, and CHLD.
+#
+# See comment for remove_signal_handlers() for more information.
+#
+
 sub setup_signal_handlers
 {
-	$SIG{'INT'}   = \&_signal_handler;
-	$SIG{'QUIT'}  = \&_signal_handler;
-	$SIG{'CONT'}  = \&_signal_handler;
-	$SIG{'STOP'}  = \&_signal_handler;
-	$SIG{'TSTP'}  = \&_signal_handler;
-	$SIG{'TTIN'}  = \&_signal_handler;
-	$SIG{'TTOU'}  = \&_signal_handler;
-	$SIG{'CHLD'}  = \&_ignore_handler;
+	foreach my $sig (keys %SIG) {
+		$SIG{$sig} = \&_signal_handler;
+	}
+
 	reinstall_resize_handler();
 }
+
 
 #
 # Setup the SIGSEGV handler
