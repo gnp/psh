@@ -73,26 +73,6 @@ if (@ARGV) {
     }
 }
 
-END {	# try and write the history no matter how we exit
-	Psh::Util::print_debug_class('o',"[Saving history]\n");
-	if( $Psh::save_history) {
-		if ($Psh::readline_saves_history) {
-			$Psh::term->WriteHistory($Psh::history_file);
-		} else {
-			my $fhist = new FileHandle($Psh::history_file, 'a');
-			if (defined($fhist)) {
-				eval { flock($fhist, LOCK_EX); };
-				foreach (@Psh::history) {
-					$fhist->print("$_\n");
-				}
-				eval { flock($fhist, LOCK_UN); };
-				$fhist->close();
-			}
-		}
-	}
-	$ENV{SHELL} = $Psh::old_shell if $Psh::old_shell;
-}
-
 exit 0;
 
 

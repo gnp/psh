@@ -45,6 +45,8 @@ sub get_known_hosts {
 }
 
 sub exit {
+	Psh::save_history();
+	$ENV{SHELL} = $Psh::old_shell if $Psh::old_shell;
 	CORE::exit(@_[0]) if $_[0];
 	CORE::exit(0);
 }

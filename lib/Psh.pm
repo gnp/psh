@@ -630,6 +630,26 @@ sub iget
 	return $line . "\n";         # This is expected by other code.
 }
 
+sub save_history
+{
+	Psh::Util::print_debug_class('o',"[Saving history]\n");
+	if( $Psh::save_history) {
+		if ($Psh::readline_saves_history) {
+			$Psh::term->WriteHistory($Psh::history_file);
+		} else {
+			my $fhist = new FileHandle($Psh::history_file, 'a');
+			if (defined($fhist)) {
+				eval { flock($fhist, LOCK_EX); };
+				foreach (@Psh::history) {
+					$fhist->print("$_\n");
+				}
+				eval { flock($fhist, LOCK_UN); };
+				$fhist->close();
+			}
+		}
+	}
+}
+
 #
 # void minimal_initialize()
 #
