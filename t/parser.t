@@ -57,9 +57,14 @@ test_decompose 'echo "foo bar"', [ 'echo', ' ', '"foo bar"'];
 test_decompose 'echo foo\'bar',  [ 'echo', ' ', "foo'bar"];
 test_decompose q[echo 'foo\\nbar'], [ 'echo', ' ', "'foo\\nbar'"];
 test_decompose q[echo 'foo{bar'], [ 'echo', ' ', "'foo{bar'"];
+test_decompose 'echo foo\\ bar', [ 'echo', ' ', 'foo bar'];
+test_decompose 'echo foo\\.bar', [ 'echo', ' ', 'foo.bar'];
+test_decompose 'echo foo\\\\bar', [ 'echo', ' ', 'foo\\bar'];
 
 test_recombine '( foo { bar })', [ '( foo { bar })'];
 test_recombine 'abc ( def [])', [ 'abc', ' ', '( def [])'];
+test_recombine 'a >[1=3] b', ['a', ' ', '>', '[1=3]', ' ', 'b'];
+test_recombine 'a > [1=3] b', ['a', ' ', '>', ' ','[1=3]', ' ', 'b'];
 test_recombine_fail 'abc ( foo', 'parse: nest: open (';
 test_recombine_fail '( { )', "parse: nest: wrong { )";
 

@@ -25,7 +25,7 @@ foreach my $opener (keys %quotehash) {
     $quotedquotes{$opener}= quotemeta($quotehash{$opener});
 }
 
-my $part1= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|\\&|>>|>|<<|<|\\(|\\)|\\{|\\}|\\[|\\])';
+my $part1= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|:|\&>|\\&|>>|>|<<|<|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\\\]|\\\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 ############################################################################
@@ -94,6 +94,7 @@ sub decompose {
 sub remove_backslash {
     my $text= shift;
 
+    $text=~ s/\\\\/\001/g;
     $text=~ s/\\t/\t/g;
     $text=~ s/\\n/\n/g;
     $text=~ s/\\r/\r/g;
@@ -104,8 +105,23 @@ sub remove_backslash {
     $text=~ s/\\(0[0-7][0-7])/chr(oct($1))/ge;
     $text=~ s/\\(x[0-9a-fA-F][0-9a-fA-F])/chr(oct($1))/ge;
     $text=~ s/\\(.)/$1/g;
+    $text=~ s/\001/\\/g;
     return $text;
 }
+
+sub unquote {
+    my $text= shift;
+
+    if (substr($text,0,1) eq '\'' and
+	substr($text,-1,1) eq '\'') {
+	$text= substr($text,1,-1);
+    } elsif ( substr($text,0,1) eq "\"" and
+	      substr($text,-1,1) eq "\"") {
+	$text= substr($text,1,-1);
+    }
+    return $text;
+}
+
 
 # Combine parenthesized parts
 sub recombine_parts {
@@ -146,13 +162,125 @@ sub recombine_parts {
 ##
 ############################################################################
 
+sub _parse_fileno {
+    my ($parts, $fileno)= @_;
+    while (@$parts>0) {
+	my $tmp= shift @$parts;
+	next if $tmp=~ /^\s+$/;
+	if ($tmp=~ /^\[(.+?)\]$/) {
+	    $tmp= $1;
+	    my @tmp= split('=', $tmp);
+	    if (@tmp>2) {
+		die "parse: fileno: more than one = sign";
+	    }
+	    if (@tmp<2) {
+		push @tmp, $fileno->[1];
+	    }
+	    if (@tmp==2 and !$tmp[0]) {
+		$tmp[0]= $fileno->[0];
+	    }
+	    my @result=();
+	    foreach (@tmp) {
+		no strict 'refs';
+		if (lc($_) eq 'all') {
+		    $_= 1;
+		}
+		if (/^\d+$/) {
+		    push @result, $_+0;
+		} else {
+		    # TODO: Add Perl Filehandle access
+		}
+	    }
+	    @$fileno= @result;
+	} else {
+	    unshift @$parts, $tmp;
+	}
+	last;
+    }
+}
+
 sub make_tokens {
     my $line= shift;
-    my (@parts, $openquotes)= decompose($line);
+    my ($partstmp, $openquotes)= decompose($line);
     die "parse: openquotes: $openquotes" if $openquotes;
 
-    @parts= @{recombine_parts(\@parts)};
+    my @parts= @{recombine_parts($partstmp)};
 
+    my @tmp= ();
+    my @tokens= ();
+    my $tmp;
+    while (defined ($tmp= shift @parts)) {
+	if ($tmp eq '||' or $tmp eq '&&') {
+	    push @tokens, @tmp;
+	    push @tokens, [T_END], [ $tmp eq '||'? T_OR: T_AND ];
+	    @tmp= ();
+	} elsif ($tmp eq ';;') {
+	    push @tmp, [T_WORD, ';'];
+	} elsif ($tmp eq '|') {
+	    my @fileno= (1,0);
+	    _parse_fileno(\@parts, \@fileno);
+	    push @tokens, [ T_REDIRECT, '>&', $fileno[0], 'chainout'];
+	    push @tokens, @tmp;
+	    push @tokens, [ T_PIPE ];
+	    @tmp= ( [T_REDIRECT, '<&', $fileno[1], 'chainin']);
+	} elsif ($tmp=~ /^>>?$/ or
+		 $tmp eq '&>') {
+	    my $bothflag= 0;
+	    if ($tmp eq '&>') {
+		$bothflag= 1;
+		$tmp= '>';
+	    }
+	    my @fileno= (1,0);
+	    my $file;
+
+	    _parse_fileno(\@parts, \@fileno);
+	    if ($fileno[1]==0) {
+		use Data::Dumper;
+		print STDERR Dumper(\@parts);
+		while (@parts>0) {
+		    print STDERR Dumper(\@parts);
+		    $file= shift @parts;
+		    last if $file !~ /^\s+$/;
+		    $file= '';
+		}
+		die "parse: redirection >: file missing" unless $file;
+		push @tmp, [T_REDIRECT, $tmp, $fileno[0], unquote($file)];
+	    } else {
+		push @tmp, [T_REDIRECT, '>&', @fileno];
+	    }
+	    if ($bothflag) {
+		push @tmp, [T_REDIRECT, '>&', 2, $fileno[0]];
+	    }
+	} elsif ($tmp eq '<') {
+	    my $file;
+	    my @fileno= (0,0);
+	    _parse_fileno(\@parts, \@fileno);
+	    if ($fileno[0]==0) {
+		while (@parts>0) {
+		    $file= shift @parts;
+		    last if $file !~ /^\s+$/;
+		    $file= '';
+		}
+		die "parse: redirection <: file missing" unless $file;
+		push @tmp, [T_REDIRECT, '<', $fileno[1], unquote($file)];
+	    } else {
+		push @tmp, [T_REDIRECT, '<&', $fileno[1], $fileno[0]];
+	    }
+	} elsif ($tmp eq '&') {
+	    push @tokens, @tmp;
+	    push @tokens, [T_BACKGROUND], [T_END];
+	    @tmp= ();
+	} elsif ($tmp eq ';') {
+	    push @tokens, @tmp;
+	    push @tokens, [T_END];
+	    @tmp= ();
+	} elsif ($tmp=~ /^\s+$/) {
+	} else {
+	    push @tmp, [ T_WORD, $tmp];
+	}
+    }
+    push @tokens, @tmp;
+    return \@tokens;
 }
 
 sub parse_line {
@@ -161,9 +289,58 @@ sub parse_line {
     return () if substr( $line, 0, 1) eq '#';
 
     my @tokens= make_tokens( $line );
+    my @elements= ();
+    my $element;
     while ( @tokens > 0 ) {
-
+	$element= _parse_complex( \@tokens);
+	return undef unless defined $element; # TODO: Error handling
+	push @elements, $element;
+	if (@tokens > 0) {
+	    if ($tokens[0][0] == T_END) {
+		shift @tokens;
+	    }
+	    if (@tokens > 0) {
+		if ($tokens[0][0] == T_AND) {
+		    shift @tokens;
+		    push @elements, [ T_AND ];
+		} elsif ($tokens[0][0] == T_OR) {
+		    shift @tokens;
+		    push @elements, [ T_OR ];
+		}
+	    }
+	}
     }
+    return \@elements;
 }
+
+sub _parse_complex {
+    my $tokens= shift;
+    my $piped= 0;
+    my $fg= 1;
+    return [ T_EXECUTE, $fg, _sub_parse_complex($tokens, \$piped, \$fg, {} )];
+}
+
+sub _sub_parse_complex {
+    my ($tokens, $piped, $fg, $alias_disabled)= @_;
+    my @simple= _parse_simple( $tokens, $piped, $fg, $alias_disabled);
+
+    while (@$tokens > 0 and $tokens->[0][0] == T_PIPE ) {
+	shift @$tokens;
+	$$piped= 1;
+	push @simple, _parse_simple( $tokens, $piped, $fg, $alias_disabled);
+    }
+
+    if (@$tokens > 0 and $tokens->[0][0] == T_BACKGROUND ) {
+	shift @$tokens;
+	$$foreground= 0;
+    }
+    return \@simple;
+}
+
+sub _parse_simple {
+    my ($tokens, $piped, $fg, $alias_disabled)= @_;
+    
+}
+
 
 1;
