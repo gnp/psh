@@ -29,28 +29,26 @@ matching strategy evaluates the line. There is a psh configuration
 variable (see below) which controls whether the perl value of the
 evaluation is saved and printed after each command.
 
-Multiline input may be entered in one of two ways: If an input line
-contains the Perl "here document" construct as in C<E<lt>E<lt>XXX>,
-(anywhere on the line), then input is read and accumulated until
-C<XXX> occurs on a line by itself. Then the accumulated input is
-processed as if it were a single line. This makes processing of code
-containing Perl "here documents" behave as one would expect from Perl
-itself. Alternatively, if an input line ends with a '{' character,
-then input is read up to a line that contains only a '}', without any
-leading whitespace. This makes it easy to define subroutines, as in
+B<psh> automatically collects several lines of input into a unit
+processed as a single line if there are unfinished Perl constructs on
+the line. In particular, if there is an unmatched quote, paren, brace,
+or square bracket, input is read until these characters match. If an
+input line contains the Perl "here document" construct as in
+C<E<lt>E<lt>XXX>, (anywhere on the line), then input is read and
+accumulated until C<XXX> occurs on a line by itself. Then the
+accumulated input is processed as if it were a single line.
 
-  sub foo {
-    while (1) {
-      print "in the loop";
-    } # indentation here is important
-  # the next line has no indentation, and so will terminate this
-  # block of input
-  } 
+=head2 TOKENIZATION
 
-This brace mechanism for accumulating input is admittedly a hack; a
-better mechanism that could be implemented would be to recognize when
-the input has an unmatched open brace, and then continue to read input
-until braces match.
+Some evaluation strategies examine the "words" of the input. These are
+produced by a tokenizer which behaves very similarly to traditional
+shells: words are broken at whitespace, '&' is a metacharacter which
+means that it always forms its own word, and backslash and double and
+single quotes act as quoting characters, preventing word breaks at
+whitespace and the "meta-ness" of &.
+
+If the description of the strategy does not mention the "words", then
+the tokenization is irrelevant to that strategy.
 
 =head2 STANDARD EVALUATION STRATEGIES
 
@@ -60,17 +58,19 @@ B<psh> includes the following evaluation strategies:
 
 =item * C<comment>
 
-If the input line begins with a '#' character, ignore it.
+If the first word of the input line begins with a '#' character, ignore it.
 
 =item * C<bang>
 
-If the input line begins with a '!' character, strip the '!' and send
-the remainder to system.
+If the first word of the input line begins with a '!' character, send
+everything after the '!' to system().
 
 =item * C<built_in>
 
 If the first word of the input line matches a B<psh> "built-in"
-function, call the subroutine associated with that built-in.
+function, call the subroutine associated with that built-in; the
+subroutine receives a single argument, which is the remainder of the
+input line exactly as entered.
 
 =item * C<perlfunc>
 
