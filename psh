@@ -239,8 +239,8 @@ if ($@) {
 			\&Psh::Completion::custom_completion_gnu;
 	} elsif( $term->ReadLine() eq "Term::ReadLine::Perl") {
 		&Psh::Completion::init($term, \@absed_path);
-		$term->Attribs->{completion_function} =
-			\&Psh::Completion::custom_completion_perl;
+#		$term->Attribs->{completion_function} =
+#			\&Psh::Completion::custom_completion_perl;
 	}
 }
 
@@ -2012,6 +2012,28 @@ sub resize_handler
 	eval {
 		($cols,$rows)= &Term::Size::chars();
 	};
+
+# I do not really want to active this before I know more about
+# where this will work
+#
+#  	if( $@) {
+#  		#
+#  		# Portability alarm!! :-)
+#  		#
+#  		eval 'use "ioctl.ph';
+#  		eval 'use "sys/ioctl.ph';
+#  		eval 'use "sgtty.ph';
+#		
+#  		eval {
+#  			my $TIOCGWINSZ = &TIOCGWINSZ if defined(&TIOCGWINSZ);
+#  			my $TIOCGWINSZ = 0x40087468 if !defined($TIOCGWINSZ);
+#  			my $winsz_t="S S S S";
+#  			my $winsize= pack($winsz_t,0,0,0,0);
+#  			if( ioctl(STDIN,$TIOCGWINSZ,$winsize)) {
+#  				($rows,$cols)= unpack("S S S S",$winsize);
+#  			}
+#  		}
+#  	}
 
 	if(($cols > 0) && ($rows > 0)) {
 		$ENV{COLUMNS} = $cols;
