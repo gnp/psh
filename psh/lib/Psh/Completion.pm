@@ -75,7 +75,16 @@ sub cmpl_custom
 sub cmpl_filenames
 {
 	my $text= shift;
-	my @result= Psh::OS::glob("$text*");
+	my $globtext= $text;
+	my $prepend= '';
+
+	if( substr($text,0,1) eq '"') {
+		$prepend='"';
+		$globtext= substr($text,1);
+	}
+
+	my @result= Psh::OS::glob("$globtext*");
+
 	if( $ENV{FIGNORE}) {
 		my @ignore= split(':',$ENV{FIGNORE});
 		@result= grep {
@@ -85,7 +94,13 @@ sub cmpl_filenames
 		} @result;
 	}
 
-	$ac='/' if(@result==1 && -d $result[0]);
+	if(@result==1) {
+		if( -d $result[0]) {
+			$ac='/'.$prepend;
+		} elsif( $prepend eq '"') {
+			$ac=$prepend;
+		}
+	}
 
 	foreach (@result) {
 		if( m|/([^/]+$)| ) {
