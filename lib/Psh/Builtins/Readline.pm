@@ -15,6 +15,14 @@ be extended to allow rebinding, etc.
 # ReadLine-implementation-independent way? We should allow rebinding
 # of keys if Readline interface allows it, etc.
 #
+# Info:
+# Bind a key: GNU: bind_key Perl: bind
+#
+# Other interesting stuff
+# Perl: set(EditingMode) - vi or emacs keybindings
+# Perl: set(TcshCompleteMode) - tcsh menu completion mode
+# GNU: lots and lots...
+#
 
 sub bi_readline
 {
