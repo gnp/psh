@@ -22,20 +22,15 @@ o The ulimit builtin only supports display (-a) right now
 
 
 Loose-Ideas:
-- >{} and <{} redirects
+- >() and <() redirects
 - Auto-directory-changing
 - Error Correction - see aibash project for ideas
 - we have "sub" already for re-definable Perl subs. We should also have "function" for shell functions and maybe something for C functions.
 - A redirection target pseudodevice which copies stuff into the system clipboard
 
 Syntax/Parser additions:
-- We so far only do $var and $(var) expansion. ${...} is intended to do
+- We so far only do $var and ${var} expansion. $(...) is intended to do
 code expansion, unimplemented at the moment.
-
-$(var) is actually POSIXly incorrect (again) - should be ${var}, but that
-one is incompatible with psh2 conventions. Do we want a partly-POSIX shell
-(it can never be compliant anyway) or should psh2 be consistent? I tend to
-the later.
 
 - Syntax extensions for manipulating env vars (substrings, arithmetics)?
 Should maybe better be done in Perl I think.
