@@ -68,11 +68,21 @@ if ($@) {
 
 if ($^O =~ /win/) {
 	print <<TEXT;
-Please copy the 'share' directory to c:/psh after building and installing
-psh!!!
+#########################################################################
+
+Please copy the 'share' directory to c:/psh after building and
+installing psh!!!
+
+#########################################################################
+TEXT
 }
+
 print <<TEXT;
+#########################################################################
+
 Do not forget to copy the 'share' directory to
 /usr/share/psh or /usr/local/share/psh or ~/.psh after building and
 installing !!!
+
+#########################################################################
 TEXT
