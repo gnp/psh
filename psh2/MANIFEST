@@ -19,6 +19,8 @@ lib/Psh2/Builtins/Exec.pm
 lib/Psh2/Builtins/Exit.pm
 lib/Psh2/Builtins/False.pm
 lib/Psh2/Builtins/Fg.pm
+lib/Psh2/Builtins/Hash.pm
+lib/Psh2/Builtins/Help.pm
 lib/Psh2/Builtins/Jobs.pm
 lib/Psh2/Builtins/Modules.pm
 lib/Psh2/Builtins/Option.pm

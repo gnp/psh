@@ -10,11 +10,8 @@ if ($^O eq 'MSWin32') {
 
 *gt= *gt_dummy;
 
-build_builtin_list();
-
 require POSIX;
 require Psh2::Parser;
-
 
 sub AUTOLOAD {
     no strict;
@@ -47,6 +44,10 @@ sub new {
 	     },
 		frontend => 'readline',
 	    },
+	       cache => {
+			 path => {},
+			 command => {},
+		     },
 	       strategy => [],
 	       language => { 'perl' => 1, 'c' => 1},
 	       aliases  => {},
@@ -165,6 +166,7 @@ sub main_loop {
 
 sub init_minimal {
     my $self= shift;
+    build_builtin_list($self);
     $| = 1;
     if (!$ENV{HOME}) {
 	$ENV{HOME}= $self->get_home_dir();
@@ -256,6 +258,12 @@ sub printferr {
     $self->printerr(sprintf($format,@_));
 }
 
+sub printferrln {
+    my $self= shift;
+    my $format= shift;
+    $self->printerrln(sprintf($format,@_));
+}
+
 sub printdebug {
     my $self= shift;
     my $debugclass= shift;
@@ -277,13 +285,11 @@ sub printdebug {
 ############################################################################
 
 {
-    my %path_hash=();
-
     sub abs_path {
-	my $self= shift;
-	my $path= shift;
+	my ($self, $path)= @_;
 	return undef unless $path;
-	return $path_hash{$path} if $path_hash{$path};
+	return $self->{cache}{path}{$path} if $self->{cache}{path}{$path};
+
 	my $result;
 	if ($^O eq 'MSWin32' and defined &Win32::GetFullPathName) {
 	    $result= Win32::GetFullPathName($path);
@@ -321,17 +327,19 @@ sub printdebug {
 	    }
 	}
 	if ($result) {
-	    $result.='/' unless $result =~ m:[/\\]:;
+	    $result.='/' if index($result,'/')==-1 and
+	      index($result,'\\')==-1;
 	}
-	$path_hash{$path}= $result if file_name_is_absolute($self, $path);
+	$self->{cache}{path}{$path}= $result if
+	  file_name_is_absolute($self, $path);
 	return $result;
     }
 
 
     my $tmp= quotemeta(file_separator());
     my $re= qr/^(.*)$tmp([^$tmp]+)$/;
-    my %command_hash= ();
     my $last_path_cwd;
+    my $needs_path_recalc= 1;
     my @absed_path;
 
     sub which {
@@ -351,12 +359,12 @@ sub printdebug {
 	    }
 	    return undef;
 	}
-	return $command_hash{$command} if exists $command_hash{$command}
-	  and !$all_flag;
+	return $self->{cache}{command}{$command} if !$all_flag and exists $self->{cache}{command}{$command};
 
 	return undef if $command !~ /^[\-a-zA-Z0-9_.~+]+$/;
 
-	if (!@absed_path or $last_path_cwd ne ($ENV{PATH}.$ENV{PWD})) {
+	if ($needs_path_recalc and
+	    (!@absed_path or $last_path_cwd ne ($ENV{PATH}.$ENV{PWD}))) {
 	    $last_path_cwd= $ENV{PATH}.$ENV{PWD};
 	    _recalc_absed_path($self);
 	}
@@ -368,7 +376,7 @@ sub printdebug {
 	    foreach my $ext (@$path_ext) {
 		my $tmp= $try.$ext;
 		if (-x $tmp and !-d _) {
-		    $command_hash{$command}= $tmp;
+		    $self->{cache}{command}{$command}= $tmp;
 		    return $tmp unless $all_flag;
 		    push @all, $tmp;
 		}
@@ -377,7 +385,8 @@ sub printdebug {
 	if ($all_flag and @all) {
 	    return @all;
 	}
-	$command_hash{$command}= undef; # speeds up locating non-commands
+	$self->{cache}{command}{$command}= undef;
+	# speeds up locating non-commands
 	return undef;
     }
 
@@ -385,11 +394,14 @@ sub printdebug {
 	my $self= shift;
 
 	@absed_path= ();
-	%command_hash= ();
 	my @path= split path_separator(), $ENV{PATH};
+	$needs_path_recalc=0;
 	eval {
 	    foreach my $dir (@path) {
 		next unless $dir;
+		if (!file_name_is_absolute($self,$dir)) {
+		    $needs_path_recalc=1;
+		}
 		$dir= abs_path($self, $dir);
 		next unless $dir and -r $dir and -x _;
 		push @absed_path, $dir;
@@ -399,12 +411,6 @@ sub printdebug {
 	# TODO: Error handling
     }
 }
-
-#
-# The following code is here because it is most probably
-# portable across at least a large number of platforms
-# If you need to override them, then modify the symbol
-# table :-)
 
 # recursive glob function used for **/anything glob
 sub _recursive_glob {
@@ -426,7 +432,7 @@ sub _recursive_glob {
 
 sub _escape {
     my $text= shift;
-    $text=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
+    $text=~s/(?<!\\)([^a-zA-Z0-9\*\?\/])/\\$1/g;
     return $text;
 }
 
@@ -435,65 +441,168 @@ sub _escape {
 # not possible to supply a base directory... so I guess this
 # is faster
 #
+
+sub _glob {
+    my ($level, $dir, $auto_recurse, $opts, @re)= @_;
+    $level++;
+    if ($level>20) {
+	die "glob: too deep recursion!";
+    }
+
+    opendir(DIR, $dir) or return ();
+    my @files= grep { $_ ne '.' and $_ ne '..' } readdir(DIR);
+    closedir(DIR);
+
+    my @results=();
+    my $regexp= $re[0];
+    if ($regexp eq '.*.*' or $regexp eq '**') {
+	if ($auto_recurse) {
+	    die "No double auto-recurse possible!";
+	}
+	shift @re;
+	if (!@re) {
+	    @re= ('.*');
+	}
+	@files= map { catdir_fast($dir,$_)} @files;
+	foreach my $tmp (@files, $dir) {
+	    if (-d $tmp) {
+		push @results, _glob($level, $tmp, 1, $opts, @re);
+	    }
+	}
+	return @results;
+    }
+    my $cpat;
+    if ($opts->{i}) {
+	$cpat= qr/^$regexp$/i;
+    } else {
+	$cpat= qr/^$regexp$/;
+    }
+    if (substr($regexp,0,2) ne "\\.") {
+	@files= grep { substr($_,0,1) ne '.' } @files;
+    }
+    if ($auto_recurse) {
+	foreach (@files) {
+	    my $tmp= catdir_fast($dir,$_);
+	    if (-d $tmp) {
+		push @results, _glob($level, $tmp, 1, $opts, @re);
+	    }
+	}
+    }
+    @files= map { catdir_fast($dir,$_) } grep { $_ =~ $cpat } @files;
+    if (%$opts) {
+	foreach my $opt (split //, 'rwxoRWXOzsfdlpSugkTB') {
+	    if ($opts->{$opt}) {
+		eval '@files= grep { -'.$opt.' $_ } @files';
+	    }
+	}
+    }
+    shift @re;
+    if (@re) {
+	foreach (@files) {
+	    if (-d $_) {
+		push @results, _glob($level, $_, 0, $opts, @re);
+	    }
+	}
+	return @results;
+    } else {
+	push @results, @files;
+	return @results;
+    }
+}
+
 sub glob {
-    my( $self, $pattern, $dir, $already_absed) = @_;
+    my( $self, $pattern, $dir) = @_;
 
     return () unless $pattern;
-    return $pattern if $pattern !~ /[~*?]/;
+    return $pattern if index($pattern,'*')==-1 and
+      index($pattern,'?')==-1 and
+	index($pattern,'~')==-1 and
+	  substr($pattern,0,1) ne '[';
 
     my @result;
     if( !$dir) {
 	$dir=$ENV{PWD};
     } else {
-	$dir=abs_path($self, $dir) unless $already_absed;
+	$dir=abs_path($self, $dir) unless file_name_is_absolute($dir);
     }
     return unless $dir;
 
     # Expand ~
-    my $home= $ENV{HOME};
     if ($pattern eq '~') {
-	$pattern=$home;
-    } else {
-	$pattern=~ s|^\~/|$home/|;
+	return $ENV{HOME};
+    } elsif (substr($pattern,0,1) eq '~') {
+	$pattern=~ s|^\~/|$ENV{HOME}/|;
 	$pattern=~ s|^\~([^/]+)|&get_home_dir($self, $1)|e;
     }
 
-    # Special recursion handling for **/anything globs
-    if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
-	my $tlen= length($dir)+1;
-	my $prefix= $1||'';
-	$pattern= $2;
-	$prefix=~ s:/$::;
-	$dir= catdir_fast($dir, $prefix);
-	$pattern=_escape($pattern);
-	$pattern=~s/\*/[^\/]*/g;
-	$pattern=~s/\?/./g;
-	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
-	@result= map { substr($_,$tlen) } _recursive_glob($pattern,$dir);
-    } elsif( index($pattern,'/')>-1 or 
-	     index($pattern,'[')>-1) {
-	require File::Glob;
-	my $old=$ENV{PWD};
-	if ($old ne $dir) {
-	    CORE::chdir $dir;
-	}
-	$pattern=_escape($pattern);
-	@result= eval { File::Glob::glob($pattern, File::Glob::GLOB_QUOTE()); };
-	if ($old ne $dir) {
-	    CORE::chdir $old;
-	}
-    } else {
-	# The fast variant for simple matches
-	$pattern=_escape($pattern);
-	$pattern=~s/\*/.*/g;
-	$pattern=~s/\?/./g;
-	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
-	$pattern= qr{^$pattern$};
+    return $pattern if index($pattern,'*')==-1 and
+      index($pattern,'?')==-1 and
+	substr($pattern,0,1) ne '[';
 
-	opendir( DIR, $dir) || return ();
-	@result= grep { $_ =~ $pattern } readdir(DIR);
-	closedir( DIR);
+    my $opts={};
+    my @re= ();
+    if (substr($pattern,0,1) eq '[') {
+	if ($pattern=~ /^\[(.+)\(([a-zA-Z]*)\)\]$/) {
+	    $pattern=$1;
+	    my $optstring=$2;
+	    foreach (split //, $optstring) {
+		$opts->{$_}= 1;
+	    }
+	} else {
+	    $pattern= substr($pattern,1,-1);
+	}
+	@re= split /\//, $pattern;
+    } else {
+	$pattern= _escape($pattern);
+	$pattern=~ s/\*/.*/g;
+	$pattern=~ s/\?/./g;
+	@re= split /\//, $pattern;
     }
+    return _glob( 0, $dir, 0, $opts, @re );
+    # Special recursion handling for **/anything globs
+#     if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
+# 	my $tlen= length($dir)+1;
+# 	my $prefix= $1||'';
+# 	$pattern= $2;
+# 	$prefix=~ s:/$::;
+# 	$dir= catdir_fast($dir, $prefix);
+# 	$pattern=_escape($pattern);
+# 	$pattern=~s/\*/[^\/]*/g;
+# 	$pattern=~s/\?/./g;
+# 	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
+# 	@result= map { substr($_,$tlen) } _recursive_glob($pattern,$dir);
+#     } elsif( index($pattern,'/')>-1 or
+# 	     index($pattern,'[')>-1) {
+# 	require File::Glob;
+# 	my $old=$ENV{PWD};
+# 	if ($old ne $dir) {
+# 	    CORE::chdir $dir;
+# 	}
+# 	$pattern=_escape($pattern);
+# 	@result= eval { File::Glob::glob($pattern, File::Glob::GLOB_QUOTE()); };
+# 	if ($old ne $dir) {
+# 	    CORE::chdir $old;
+# 	}
+#     } else {
+# 	# The fast variant for simple matches
+# 	$pattern=_escape($pattern);
+# 	$pattern=~s/\*/.*/g;
+# 	$pattern=~s/\?/./g;
+# 	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
+# 	$pattern= qr{^$pattern$};
+
+# 	opendir( DIR, $dir) || return ();
+# 	@result= grep { $_ =~ $pattern } readdir(DIR);
+# 	closedir( DIR);
+#     }
+#    return @result;
+}
+
+sub files_ending_with {
+    my ($psh, $base, $suffix)= @_;
+    opendir( DIR, $base) || return ();
+    my @result= grep { substr($_,-length($suffix)) eq $suffix } readdir(DIR);
+    closedir( DIR);
     return @result;
 }
 
@@ -602,7 +711,6 @@ sub del_option {
 ############################################################################
 
 {
-    my %builtin;
     my %builtin_aliases= (
 			  '.' => 'source',
 			  'options' => 'option',
@@ -610,21 +718,23 @@ sub del_option {
     sub is_builtin {
 	my ($self, $com)= @_;
 	$com= $builtin_aliases{$com} if $builtin_aliases{$com};
-	return $com if exists $builtin{$com};
+	return $com if $self->{builtin}{$com};
 	return 0;
     }
 
     sub build_builtin_list {
-	%builtin= ();
+	my $self= shift;
+	$self->{builtin}= {};
 	my $unshift= '';
 	foreach my $tmp (@INC) {
 	    my $tmpdir= catdir_fast( $tmp, 'Psh2', 'Builtins');
 	    if (-r $tmpdir) {
-		my @files= Psh2->glob('*.pm', $tmpdir, 1);
+		my @files= $self->files_ending_with($tmpdir,'.pm');
 		foreach (@files) {
+		    my $fname= catfile_fast($tmpdir,$_);
 		    s/\.pm$//;
 		    $_= lc($_);
-		    $builtin{$_}= 1;
+		    $self->{builtin}{$_}= $fname;
 		}
 		$unshift= $tmp;
 	    }

@@ -33,7 +33,9 @@ test_decompose 'ls foo', [ 'ls', 'foo'];
 test_decompose 'ls|cat', [ 'ls', '|', 'cat'];
 test_decompose 'ls |cat', [ 'ls', '|', 'cat' ];
 test_decompose 'cat < file | echo', [ 'cat', '<', 'file', '|', 'echo'];
-
+test_decompose 'a [abc]', ['a','[abc]'];
+test_decompose 'a [a\\b]', ['a', '[a\\b]'];
+test_decompose 'a [a\\bc]', ['a', '[a\\bc]'];
 test_decompose 'echo foo\\nbar', [ 'echo', "foo\\nbar"];
 test_decompose 'echo "foo bar"', [ 'echo', '"foo bar"'];
 test_decompose q[echo 'foo\\nbar'], [ 'echo', "'foo\\nbar'"];

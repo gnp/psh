@@ -105,12 +105,12 @@ sub fork {
 	}
 	remove_signal_handlers();
 	_setup_redirects($options);
-	POSIX::setpgid( 0, $pgrp_leader || $$ );
+	POSIX::setpgid( 0, $pgrp_leader || $$);
 	give_terminal_to( $self, $pgrp_leader || $$ ) if $fgflag and $giveterm;
 	my @tmp= execute($self, $tmp);
 	CORE::exit($tmp[0]);
     }
-    POSIX::setpgid( $pid, $pgrp_leader || $pid);
+#    POSIX::setpgid( $pid, $pgrp_leader || $pid);
 #    give_terminal_to( $self, $pgrp_leader || $pid) if $fgflag and $giveterm;
     return $pid;
 }
@@ -131,7 +131,6 @@ sub _setup_redirects {
 
     return [] if ref $options ne 'ARRAY';
 
-    my @cache=();
     foreach my $option (@$options) {
 	if( $option->[0] == Psh2::Parser::T_REDIRECT()) {
 	    my $type= $option->[2];
@@ -162,7 +161,6 @@ sub _setup_redirects {
 	    }
 	}
     }
-    return \@cache;
 }
 
 ############################################################################

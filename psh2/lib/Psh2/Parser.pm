@@ -16,7 +16,7 @@ my %nesthash=  qw|( ) { } [ ]|;
 
 my $part2= '\\\'|\\"|q\\[|qq\\[';
 my $part1= '(\\n|\\s+|\\|\\||\\&\\&|\\||;;|;|\&>|\\&|>>|>|<|=|\\(|\\)|\\{|\\}|\\[|\\])';
-my $regexp= qr[^((?:[^\\\\]|\\\\.)*?)(?:$part1|($part2))(.*)$]s;
+my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 ############################################################################
 ##
@@ -25,7 +25,7 @@ my $regexp= qr[^((?:[^\\\\]|\\\\.)*?)(?:$part1|($part2))(.*)$]s;
 ############################################################################
 
 sub decompose {
-    my ($psh, $line, $alias_disabled)= @_;
+    my ($psh, $line, $alias_disabled, $trackloc)= @_;
 
     if ($line=~/^[a-zA-Z0-9]*$/ and index($line,"\n")==-1) { # perl 5.6 bug
 	if ($psh->{aliases} and $psh->{aliases}{$line} and
@@ -88,6 +88,9 @@ sub decompose {
     my @open= ();
     my @tmp= ();
     my $firstword= 1;
+    my $pos=0;
+    my $offset=0;
+    my $index= -1;
 
     foreach my $piece (@pieces) {
 	if (length($piece)==1) {
@@ -105,14 +108,17 @@ sub decompose {
         }
         if (@open) {
             push @tmp, $piece;
+	    $pos+= length($piece)
         } elsif (@tmp) {
-	    push @realpieces, join('', @tmp, $piece);
+	    my $tmp= join('', @tmp, $piece);
+	    push @realpieces, $tmp;
+	    $pos+= length($tmp);
 	    @tmp= ();
 	} else {
-	    if ($piece=~/^\s+$/ and $piece ne "\n") {
+	    if (!$trackloc and $piece=~/^\s+$/ and $piece ne "\n") {
 		next;
 	    }
-	    if ($firstword and $psh->{aliases} and
+	    if ($firstword and !$trackloc and $psh->{aliases} and
 	        $psh->{aliases}{$piece} and
 	       !$alias_disabled->{$piece}) {
 		local $alias_disabled->{$piece}= 1;
@@ -123,16 +129,26 @@ sub decompose {
 	    }
 
             push @realpieces, $piece;
-	    if ($piece eq ';' or $piece eq '|' or $piece eq '&' or
+	    $pos+= length($piece);
+
+	    if (!$trackloc and
+		$piece eq ';' or $piece eq '|' or $piece eq '&' or
 	        $piece eq "\n" or $piece eq '&&' or $piece eq '||') {
 		$firstword= 1;
 		next;
 	    }
         }
+	if ($trackloc and $trackloc<=$pos) {
+	    $index= $#realpieces;
+	    $offset= $pos-$trackloc;
+	}
 	$firstword= 0;
     }
     if (@open) {
 	die "parse: needmore: nest: missing @open";
+    }
+    if ($trackloc) {
+	return ($index,$offset,\@realpieces);
     }
     return \@realpieces;
 }
@@ -443,7 +459,8 @@ sub glob_expansion {
 
     for my $word (@{$words}) {
 	if (
-	    (index($word,'*')==-1 and
+	    (substr($word,0,1) ne '[' and
+	     index($word,'*')==-1 and
 	     index($word,'?')==-1 and
 	     index($word,'~')==-1) or
 	     (substr($word,0,1) eq '"' and substr($word,-1) eq '"') or
