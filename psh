@@ -432,7 +432,7 @@ sub builtin_which
 		return 1;
 	}
   
-	my @words = Psh::Parser::decompose($cmd);
+	my @words = Psh::Parser::decompose(' ',$cmd,undef,1,undef,'\&');
 
 	for my $strat (@psh::strategies) {
 		if (!defined($psh::strategy_which{$strat})) {
@@ -457,13 +457,11 @@ sub builtin_which
 #
 # int builtin_alias(string COMMAND)
 #
-# TODO: Handles alias ls=ls -F fine, but doesn't do well with alias ls='ls -F'.
-# Generally, we need work on quoting issues.
-#
 
 sub builtin_alias
 {
-	my ($command, $text) = split('[ =]', "@_", 2);
+    my $line = shift;
+	my ($command, $text) = Psh::Parser::decompose('\s+|=', $line, 2, 0);
 
 	if (($command eq "") && ($text eq "")) {
 		print_out("Alias List currently not implemented anymore.\n");
@@ -475,8 +473,7 @@ sub builtin_alias
 		print_debug("[[ Aliasing '$command' to '$text']]\n");
 		# my apologies for the gobbledygook
 		my $string_to_eval = "\$psh::built_ins{$command} = "
-			. " sub { local \$psh::built_ins{$command} = undef; psh::evl(\"$text" 
-			. ' @_"); }';
+			. " sub { local \$psh::built_ins{$command} = undef; psh::evl(q($text) . shift); }";
 		print_debug("[[ alias evaluating: $string_to_eval ]]\n");
 		eval($string_to_eval);
 		if ($@) { print_error($@); return 1; }
@@ -1096,9 +1093,12 @@ sub give_terminal_to
 	},
 
 	'built_in' => sub {
-		my $command = shift @{$_[1]};
-
-		return &{$psh::built_ins{$command}}("@{$_[1]}");
+		my ($command,$rest) = Psh::Parser::std_tokenize(${$_[0]},2);
+        if ($command ne ${$_[1]}[0]) {
+                print_error("Parsing error: $command ne ${$_[1]}[0]\n");
+				return undef;
+		}
+		return &{$psh::built_ins{$command}}($rest);
 	},
 
 	'perlscript' => sub {
@@ -1214,7 +1214,7 @@ sub handle_message
 #
 # evaluate a single logical "line" of input (which may have been built
 # up from several actual lines by the process loop). This function
-# simply calls decompose on LINE, and then tries the evaluation
+# simply calls std_tokenize on LINE, and then tries the evaluation
 # strategies in @psh::strategies in order. If no strategy matches, it
 # prints an error message. If some strategy does match, it calls the
 # evaluation function for that strategy and returns its value. If the
@@ -1224,7 +1224,7 @@ sub handle_message
 sub evl 
 {
 	my ($line, @use_strats) = @_;
-	my @words = Psh::Parser::decompose($line);
+	my @words = Psh::Parser::std_tokenize($line);
 
 	if (!defined(@use_strats) or scalar(@use_strats) == 0) {
 		@use_strats = @strategies;
@@ -1291,6 +1291,33 @@ sub read_until
 	return $input;
 }
 
+# string read_until_complete(string SO_FAR, subr GET)
+#
+# Get successive lines via calls to GET until the cumulative input so
+# far is not an incomplete expression according to
+# incomplete_expr. 
+#
+# TODO: Undo any side effects of, e.g., m//.
+#
+
+sub read_until_complete
+{
+	my ($sofar, $get) = @_;
+	my $temp;
+
+	while (1) {
+		$temp = &$get();
+		if (!defined($temp)) {
+		       print_error("End of input during incomplete expression $sofar");
+			   last;
+		}
+		$sofar .= $temp;
+		last if Psh::Parser::incomplete_expr($sofar) <= 0;
+	}
+
+	return $sofar;
+}
+
 
 #
 # void process(bool PROMPT, subr GET)
@@ -1327,24 +1354,17 @@ sub process
 
 		last unless defined($input);
 
-		chomp $input;
-		
 		if ($input =~ m/^\s*$/) { next; }
 		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
 			my $terminator = $1;
-			$input .= "\n";
 			$input .= read_until($terminator, $get);
-			$input .= "$terminator";
-		} elsif ($input =~ m/\{\s*$/) {
-			#
-			# TODO: A better version of this would detect
-			# unbalanced braces, and read until they balanced.
-			#
-			$input .= "\n";
-			$input .= read_until('}', $get);
-			$input .= '}';
+			$input .= "$terminator\n";
+		} elsif (Psh::Parser::incomplete_expr($input) > 0) {
+			$input = read_until_complete($input, $get);
 		}
 
+		chomp $input;
+		
 		my @result = evl($input);
 
 		my $qEcho = 0;
@@ -1361,7 +1381,7 @@ sub process
 			if (scalar(@result) > 1) {
 				my $n = scalar(@val);
 				push @val, \@result;
-				print_out("\$psh::val[$n] <- [@result]\n");
+				print_out("\$psh::val[$n] <- [", join(',',@result), "]\n");
 			} else {
 				my $n = scalar(@val);
 				my $res = $result[0];
