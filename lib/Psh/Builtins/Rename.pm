@@ -28,24 +28,26 @@ sub bi_rename
 	@words = Psh::Parser::glob_expansion(\@words);
 	@words = map { Psh::Parser::unquote($_)} @words;
 	my $count=0;
-	for (@words) {
-		unless (-e) {
-			print STDERR "$Psh::bin: $_: $!\n";
+	foreach my $file (@words) {
+		unless (-e $file) {
+			print STDERR "$Psh::bin: $file: $!\n";
 			next;
 		}
-		my $was= $_;
+		my $was= $file;
+		$Psh::PerlEval::lastscalar=$was;
 		Psh::PerlEval::protected_eval($op);
-		if ($was ne $_) {
-			if ($inspect && -e) {
-				next unless Psh::Util::prompt("yn","remove $_?") eq 'y';
-			} elsif (-e $_) {
+		my $now= $Psh::PerlEval::lastscalar;
+		if ($was ne $now) {
+			if ($inspect && -e $now) {
+				next unless Psh::Util::prompt("yn","remove $now?") eq 'y';
+			} elsif (-e $now) {
 				print STDERR "$_ exists. $was not renamed\n";
 				next
 			}
-			if (CORE::rename($was,$_)) {
+			if (CORE::rename($was,$now)) {
 				$count++;
 			} else {
-				print STDERR "$Psh::bin: can't rename $was to $_: $!\n";
+				print STDERR "$Psh::bin: can't rename $was to $now: $!\n";
 			}
 		}
 	}
