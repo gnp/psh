@@ -289,7 +289,8 @@ sub parse_hosts_file {
 	my @lines= split( /\n|\r|\r\n/, $text);
 	my @result= ();
 	foreach my $line (@lines) {
-		next if $line=~/^\s*\#/;
+		next if $line=~/^\s*$/;   # Skip blank lines
+		next if $line=~/^\s*\#/;  # Skip comment lines
 		$line=~/^\s*\S+\s(.*)$/;
 		my $rest= $1;
 		push @result, grep { length($_)>0 } split( /\s/, $rest);
