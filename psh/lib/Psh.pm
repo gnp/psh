@@ -46,7 +46,7 @@ use vars qw($bin $news_file $cmd $echo $host $debugging
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
-			$rc_file $login_shell
+			$rc_file $login_shell $change_title
 			@val @wday @mon @strategies @unparsed_strategies @history
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval);
@@ -529,7 +529,9 @@ sub matches_perl_binary
 		}, undef);
 	},
 
-	'executable' => sub { return ("$_[2]",undef); },
+	'executable' => sub {
+		return ("$_[2]",undef);
+	},
 );
 
 $strategy_eval{brace}= $strategy_eval{eval}= sub {
@@ -637,7 +639,8 @@ sub read_until
 	$input = '';
 
 	while (1) {
-		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ));
+		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),
+					  0,\&Psh::Prompt::pre_prompt_hook);
 		last unless defined($temp);
 		last if $temp =~ m/^$terminator$/;
 		$input .= $temp;
@@ -661,7 +664,8 @@ sub read_until_complete
 	my $temp;
 
 	while (1) {
-		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),1);
+		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),1,
+					  \&Psh::Prompt::pre_prompt_hook);
 		if (!defined($temp)) {
 			print_error_i18n('input_incomplete',$sofar,$bin);
 			return '';
@@ -702,7 +706,7 @@ sub process
 
 	while (1) {
 		if ($q_prompt) {
-			$input = &$get(Psh::Prompt::prompt_string(Psh::Prompt::normal_prompt()));
+			$input = &$get(Psh::Prompt::prompt_string(Psh::Prompt::normal_prompt()), 0, \&Psh::Prompt::pre_prompt_hook);
 		} else {
 			$input = &$get();
 		}
@@ -853,7 +857,7 @@ sub process_file
 }
 
 #
-# string iget(string PROMPT [, boolean returnflag])
+# string iget(string PROMPT [, boolean returnflag [, code prompt_hook]])
 #
 # Interactive line getting routine. If we have a
 # Term::ReadLine instance, use it and record the
@@ -881,6 +885,8 @@ sub iget
 {
 	my $prompt = shift;
 	my $returnflag= shift;
+	my $prompt_hook= shift;
+
 	my $prompt_pre= '';
 	my $line;
 	my $sigint = 0;
@@ -900,10 +906,12 @@ sub iget
 		# Trap ^C in an eval.  The sighandler will die which will be
 		# trapped.  Then we reprompt
 		if ($term) {
+			&$prompt_hook if $prompt_hook;
 			print $prompt_pre if $prompt_pre;
 			eval { $line = $term->readline($prompt); };
 		} else {
 			eval {
+				&$prompt_hook if $prompt_hook;
 				print $prompt_pre if $prompt_pre;
 				print $prompt if $prompt;
 				$line = <STDIN>;
@@ -1000,6 +1008,7 @@ sub minimal_initialize
 	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
 	$ENV{PWD} = cwd;
+	$ENV{PSH_TITLE} = $bin;
 
 	Psh::OS::inc_shlvl();
 
@@ -1035,6 +1044,11 @@ sub finish_initialize
 
 	$save_history    = 1               if !defined($save_history);
 	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);
+	$change_title    = 1               if !defined($change_title);
+
+	if( $change_title) {
+		$ENV{PSH_TITLE}= cwd;
+	}
 
 	if (!defined($longhost)) {
 		$longhost                    = Psh::OS::get_hostname();

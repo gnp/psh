@@ -599,8 +599,6 @@ sub _signal_handler
 
 sub _ignore_handler
 {
-	my ($sig) = @_;
-	$SIG{$sig} = \&_ignore_handler;
 }
 
 
@@ -608,7 +606,6 @@ sub _error_handler
 {
 	my ($sig) = @_;
 	Psh::Util::print_error_i18n('unix_received_strange_sig',$sig);
-	$SIG{$sig} = \&_error_handler;
 	kill 'INT', $$; # HACK to stop a possible endless loop!
 }
 
