@@ -310,14 +310,9 @@ Removes the alias with name <C<I<NAME>> or all aliases if either <C<I<-a>>
 sub bi_unalias {
 	my $name= shift;
 	if( ($name eq '-a' || $name eq 'all') and !_is_aliased($name) ) {
-		$Psh::built_ins= ();
-		for my $command (keys %aliases) {
-		  delete($Psh::built_ins{$command});
-		}
 		%aliases= ();
 	} elsif( _is_aliased($name)) {
 		delete($aliases{$name});
-		delete($Psh::built_ins{$name});
 	} else {
 		print_error_i18n('unalias_noalias', $name);
 		return 1;
