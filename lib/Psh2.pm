@@ -51,6 +51,7 @@ sub new {
 	       strategy => [],
 	       language => { 'perl' => 1, 'c' => 1},
 	       aliases  => {},
+	       function => {},
 	       dirstack => [],
 	       dirstack_pos => 0,
 	       tmp => {},
@@ -884,6 +885,22 @@ sub del_option {
 	}
 	return -1;
     }
+}
+
+############################################################################
+##
+## Functions
+##
+############################################################################
+
+sub add_function {
+    my ($self, $name, $coderef, $data)= @_;
+    $self->{function}{$name}= [ $name, $coderef];
+}
+
+sub delete_function {
+    my ($self, $name)= @_;
+    delete $self->{function}{$name};
 }
 
 1;

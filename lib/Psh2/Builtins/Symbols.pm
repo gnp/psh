@@ -36,7 +36,6 @@ sub execute {
 	    push @array,  "\@$sym" if ref *{"${pack}::$sym"}{ARRAY}  eq 'ARRAY';
 	    push @hash,   "\%$sym" if ref *{"${pack}::$sym"}{HASH}   eq 'HASH';
 	    push @code,   "\&$sym" if ref *{"${pack}::$sym"}{CODE}   eq 'CODE';
-	    push @handle, "$sym"   if ref *{"${pack}::$sym"}{FILEHANDLE};
 	}
     }
 
@@ -46,7 +45,6 @@ sub execute {
     $psh->println("Array:     ", join(' ', @array));
     $psh->println("Hash:      ", join(' ', @hash));
     $psh->println("Code:      ", join(' ', @code));
-    $psh->println("Handle:    ", join(' ', @handle));
     return 1;
 }
 

@@ -9,13 +9,15 @@ sub T_AND() { 6; }
 sub T_EXECUTE() { 1; }
 
 # generate and cache regexpes
-my %quotehash= qw|' ' " " q[ ] qq[ ]|;
+my %quotehash= qw|' ' " " q[ ] qq[ ] $( ) ${ }|;
 my %quotedquotes= ("'" => "\'", "\"" => "\\\"", 'q[' => "\\]",
 		   'qq[' => "\\]");
-my %nesthash=  qw|( ) { } [ ]|;
+my %nesthash=  ('('=> ')',
+		'{'=> '}',
+		'['=> ']');
 
 my $part2= '\\\'|\\"|q\\[|qq\\[';
-my $part1= '(\\n|\\s+|\\|\\||\\&\\&|\\||;;|;|\&>|\\&|>>|>|<|=|\\(|\\)|\\{|\\}|\\[|\\])';
+my $part1= '(\\s+|\\n|\\|\\||\\&\\&|\\||;;|;|\&>|\\&|>>|>|<|=|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 ############################################################################
@@ -87,14 +89,15 @@ sub decompose {
     my @realpieces= ();
     my @open= ();
     my @tmp= ();
-    my $firstword= 1;
+    my $expand_aliases= 1;
     my $pos=0;
     my $offset=0;
     my $index= -1;
 
-    foreach my $piece (@pieces) {
-	if (length($piece)==1) {
-            if ($piece eq '[' or $piece eq '(' or $piece eq '{') {
+    while (my $piece= shift @pieces) {
+	if (length($piece)<3) {
+            if ($piece eq '[' or $piece eq '(' or $piece eq '{' or
+	        $piece eq '${'or $piece eq '$(') {
                 push @open, $piece;
             } elsif ($piece eq '}' or $piece eq ')' or $piece eq ']') {
                 my $tmp= pop @open;
@@ -111,43 +114,37 @@ sub decompose {
 	    $pos+= length($piece)
         } elsif (@tmp) {
 	    my $tmp= join('', @tmp, $piece);
-	    push @realpieces, $tmp;
-	    $pos+= length($tmp);
 	    @tmp= ();
-	    if ($firstword and $piece eq '}') {
-		push @realpieces, "\n";
-		$firstword= 1;
-		next;
-	    }
+	    $pos+= length($tmp);
+	    push @realpieces, $tmp;
 	} else {
-	    if (!$trackloc and $piece=~/^\s+$/ and $piece ne "\n") {
-		next;
+	    if ($piece=~/^\s+$/ and $piece ne "\n") {
+		next unless $trackloc;
 	    }
-	    if ($firstword and !$trackloc and $psh->{aliases} and
+	    if ($expand_aliases and !$trackloc and $psh->{aliases} and
 	        $psh->{aliases}{$piece} and
 	       !$alias_disabled->{$piece}) {
 		local $alias_disabled->{$piece}= 1;
 		push @realpieces, @{decompose($psh,$psh->{aliases}{$piece},
 					     $alias_disabled)};
-		$firstword= 0;
+		$expand_aliases= 0;
 		next;
 	    }
-
             push @realpieces, $piece;
 	    $pos+= length($piece);
 
 	    if (!$trackloc and
 		$piece eq ';' or $piece eq '|' or $piece eq '&' or
 	        $piece eq "\n" or $piece eq '&&' or $piece eq '||') {
-		$firstword= 1;
+		$expand_aliases= 1;
 		next;
 	    }
         }
-	if ($trackloc and $trackloc<=$pos) {
+	if ($trackloc and $index<0 and $trackloc<=$pos) {
 	    $index= $#realpieces;
 	    $offset= $pos-$trackloc;
 	}
-	$firstword= 0;
+	$expand_aliases= 0;
     }
     if (@open) {
 	die "parse: needmore: nest: missing @open";
@@ -156,6 +153,11 @@ sub decompose {
 	return ($index,$offset,\@realpieces);
     }
     return \@realpieces;
+}
+
+sub expand_dollar {
+    my ($psh, $piece)= @_;
+    return qq['$piece'];
 }
 
 sub _remove_backslash {
@@ -252,10 +254,12 @@ sub _clean_word {
 	    $$tmp= substr($$tmp,1,-1);
 	    $$tmp=~ s/\'\'/\'/g;
 	} elsif (substr($$tmp,0,1) eq '"') {
-	    $$tmp= substr($$tmp,-1,1);
+	    $$tmp= substr($$tmp,1,-1);
 	    _remove_backslash($tmp);
 	} elsif (substr($$tmp,0,2) eq 'q[') {
 	    $$tmp= substr($$tmp,2,-1);
+	} else {
+	    $$tmp=~ s/\\//g;
 	}
     }
 }
@@ -345,18 +349,7 @@ sub make_tokens {
 	    }
 	}
 	if (length($tmp)>1) {
-	    if (length($tmp)> 3 and substr($tmp,0,2) eq 'qq[') {
-		$tmp= substr($tmp,3,-1);
-		_remove_backslash(\$tmp);
-	    } elsif (substr($tmp,0,1) eq "'") {
-		$tmp= substr($tmp,1,-1);
-		$tmp=~ s/\'\'/\'/g;
-	    } elsif (substr($tmp,0,1) eq '"') {
-		$tmp= substr($tmp,1,-1);
-		_remove_backslash(\$tmp);
-	    } elsif (substr($tmp,0,2) eq 'q[') {
-		$tmp= substr($tmp,2,-1);
-	    }
+	    _clean_word(\$tmp);
 	}
 	push @$words, $tmp;
     }
