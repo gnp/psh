@@ -4,16 +4,16 @@ if ($^O eq 'MSWin32') {
 	system("xcopy share\\themes \\psh /Y");
 	system("xcopy share\\complete \\psh /Y");
 } else {
+	my $where;
+
 	if( -w '/') {
-		print "Installing share files to $ARGV[0]/share/psh\n";
-		system("mkdir -p $ARGV[0]/share/psh");
-		system("cp -r share/themes $ARGV[0]/share/psh");
-		system("cp -r share/complete $ARGV[0]/share/psh");
+		$where= $ARGV[0]||$ARGV[1]||'/usr/local';
 	} else {
-		print "Installing share files to ~/.psh/share/psh\n";
-		system("mkdir -p ~/.psh/share");
-		system("cp -r share/themes ~/.psh/share");
-		system("cp -r share/complete ~/.psh/complete");
+		$where ='~/.psh';
 	}
+	print "Installing share files to $where/share/psh\n";
+	system("mkdir -p $where/share/psh");
+	system("cp -r share/themes $where/share/psh");
+	system("cp -r share/complete $where/share/psh");
 }
 
