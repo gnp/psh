@@ -44,7 +44,7 @@ package Psh::Builtins;
 ###############################################################
 
 use strict;
-use vars qw($VERSION %aliases);
+use vars qw($VERSION %aliases @dir_stack $dir_stack_pos);
 
 use Cwd qw(:DEFAULT chdir);
 use Config;
@@ -58,6 +58,10 @@ my $PS=$Psh::OS::PATH_SEPARATOR;
 
 %Psh::array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
 					 'FIGNORE'=>$PS,'CDPATH'=>$PS,'LS_COLORS'=>':');
+
+@dir_stack= (cwd);
+$dir_stack_pos=0;
+
 
 #
 # string _do_setenv(string command)
@@ -176,46 +180,79 @@ directory".
 
 =cut
 
+$ENV{OLDPWD}= $dir_stack[0];
 
+sub bi_cd
 {
-	my $last_dir= '.'; # By default 'cd -' won't change directory at all.
-	$ENV{OLDPWD}= $last_dir;
+	my $in_dir = shift || Psh::OS::get_home_dir();
+	my $explicit=0;
 
-	sub bi_cd
-	{
-		my $in_dir = shift || Psh::OS::get_home_dir();
-		my $dirpath= $ENV{CDPATH} || '.';
-
-		foreach my $cdbase (split $PS,$dirpath) {
-			my $dir= $in_dir;
-			$dir = $last_dir if $dir eq '-';
-			if( $cdbase eq '.' ||
-				File::Spec->file_name_is_absolute($dir)) {
-				$dir = Psh::Util::abs_path($dir);
+	if ($in_dir=~/^[+-](\d+)$/) {
+		my $tmp_pos=$dir_stack_pos-int($in_dir);
+		if ($tmp_pos<0) {
+			# TODO: Error handling
+		} elsif ($tmp_pos>$#dir_stack) {
+			# TODO: Error handling
+		} else {
+			$in_dir=$dir_stack[$tmp_pos];
+			$dir_stack_pos=$tmp_pos;
+		}
+	} elsif ($in_dir eq '-') {
+		if (@dir_stack>1) {
+			if ($dir_stack_pos==0) {
+				$in_dir=$dir_stack[1];
+				$dir_stack_pos=1;
 			} else {
-				$dir = Psh::Util::abs_path(File::Spec->catdir($cdbase,$dir));
-			}
-		
-			if ((-e $dir) and (-d _)) {
-				if (-x _) {
-					$last_dir = cwd;
-					$ENV{OLDPWD}= $last_dir;
-					chdir $dir;
-					return 0;
-				} else {
-					print_error_i18n('perm_denied',$in_dir,$Psh::bin);
-					return 1;
-				}
+				$in_dir=$dir_stack[0];
+				$dir_stack_pos=0;
 			}
 		}
-		print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
-		return 1;
+	} elsif ($in_dir=~ /^\%(\d+)$/) {
+		my $tmp_pos=$1;
+		if ($tmp_pos>$#dir_stack) {
+			# TODO: Error handling
+		} else {
+			$in_dir=$dir_stack[$tmp_pos];
+			$dir_stack_pos=$tmp_pos;
+		}
+	} else {
+		$explicit=1 unless $in_dir eq $dir_stack[0];
+		# Don't push the same value again
+		$dir_stack_pos=0;
+	}
+	my $dirpath='.';
+
+	if ($ENV{CDPATH} && !File::Spec->file_name_is_absolute($in_dir)) {
+		$dirpath=$ENV{CDPATH};
 	}
 
-    sub cmpl_cd {
-		my( $text, $pre) = @_;
-		return 1,Psh::Completion::cmpl_directories($pre.$text);
+	foreach my $cdbase (split $PS,$dirpath) {
+		my $dir= $in_dir;
+		if( $cdbase eq '.') {
+			$dir = Psh::Util::abs_path($dir);
+		} else {
+			$dir = Psh::Util::abs_path(File::Spec->catdir($cdbase,$dir));
+		}
+
+		if ((-e $dir) and (-d _)) {
+			if (-x _) {
+				$ENV{OLDPWD}= cwd;
+				unshift @dir_stack, $dir if $explicit;
+				chdir $dir;
+				return 0;
+			} else {
+				print_error_i18n('perm_denied',$in_dir,$Psh::bin);
+				return 1;
+			}
+		}
 	}
+	print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
+	return 1;
+}
+
+sub cmpl_cd {
+	my( $text, $pre) = @_;
+	return 1,Psh::Completion::cmpl_directories($pre.$text);
 }
 
 =item * C<alias [NAME [=] REPLACEMENT]> 

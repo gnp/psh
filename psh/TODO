@@ -24,18 +24,6 @@
     and ?? ... could be long form.
     [GNP]
 
-  * How about this:
-      * 'cd dir' means go to dir (called explicit)
-      * 'cd'     means 'cd ~' (counts as explicit)
-      * 'cd -1'  means back one in list of explicit cd's (like on a web browser)
-      * 'cd %0'  means go to last explicit cd
-      * 'cd +1'  means forward one directory (like on a web browser)
-      * 'cd -'   means 'cd +0' unless at head, in which case it means 'cd -1'
-    And/or, maybe borrow the %N notation for jobs for absolute references.
-    The idea here is that maybe pushd/popd/dirs can be unified with cd so
-    that pushd and popd are just aliases for cd variants...
-    [GNP]
-
   * What is the effect of bash's ':', and should we do the same thing?
     The manpage makes it sound uninteresting, and unnecessary, and
     trying it doesn't make it appear to do anything useful. Have I
