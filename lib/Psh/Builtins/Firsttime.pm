@@ -3,7 +3,7 @@ use strict;
 
 use Psh::Util ':all';
 
-=item * C<firsttime> [n]
+=item * C<firsttime>
 
 firsttime is a setup utility which should be used by first-time
 psh users. It will parse existing shell rc files and try to
