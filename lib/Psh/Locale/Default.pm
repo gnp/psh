@@ -30,6 +30,8 @@ BEGIN {
 	$psh::text{perm_denied}="%2: %1: Permission denied.\n";
 	$psh::text{no_such_dir}="%2: %1: No such directory.\n";
 	$psh::text{readline_interrupted}="\nInterrupted!\n";
+	$psh::text{no_readline}="No Readline module available. Please install Term::ReadLine::Perl\n";
+
 }
 
 
