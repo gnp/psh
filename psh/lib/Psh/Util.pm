@@ -113,6 +113,35 @@ sub print_list
 }
 
 
+#
+# basic_abs_path()
+#
+
+sub basic_abs_path {
+	my $dir = shift;
+	my $FS= $Psh::OS::FILE_SEPARATOR;
+	
+	$dir = '~' unless defined $dir and $dir ne '';
+	
+	if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
+		my $user = $2; 
+		my $rest = $3;
+		
+		my $home;
+		
+		if ($user eq '') { $home = $ENV{HOME}; }
+		else             { $home = Psh::OS::get_home_dir($user); }
+		
+		if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
+	}
+
+	if( !Psh::OS::is_path_absolute($dir)) {
+		$dir = cwd . $FS. $dir
+	}
+	
+	return $dir;
+}
+
 
 #
 # string abs_path(string DIRECTORY)
@@ -123,32 +152,10 @@ sub print_list
 eval "use Cwd 'fast_abs_path';";
 if (!$@) {
 	print_debug("Using &Cwd::fast_abs_path()\n");
-	sub abs_path { return fast_abs_path(@_); }
+#	sub abs_path { return fast_abs_path(@_); }
+	*abs_path = \&fast_abs_path;
 } else {
-    sub abs_path {
-		my $dir = shift;
-		my $FS= $Psh::OS::FILE_SEPARATOR;
-		
-		$dir = '~' unless defined $dir and $dir ne '';
-		
-		if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
-			my $user = $2; 
-			my $rest = $3;
-			
-			my $home;
-			
-			if ($user eq '') { $home = $ENV{HOME}; }
-			else             { $home = Psh::OS::get_home_dir($user); }
-			
-			if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
-		}
-
-		if( !Psh::OS::is_path_absolute($dir)) {
-			$dir = cwd . $FS. $dir
-		}
-		
-		return $dir;
-	}
+	*abs_path = \&basic_abs_path;
 }
 
 
