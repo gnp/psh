@@ -1,5 +1,0 @@
-This directory contains the documentation for psh2:
-
-- *.pod files are user documentation and installed into MANPATH
-- other files are development information, tech notes etc. for
-  interest to psh developers
