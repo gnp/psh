@@ -33,6 +33,9 @@ CVS HEAD
   * New builtin 'unalias'
   * It's now possible to do "bg commandname" (e.g. "bg emacs")
     fg has the same behaviour for consistency
+  * Added 'env' builtin. On systems with an env binary installed
+    it will use the binary, on other systems (namely Win32) it
+	will print a list of environment variables
 
 
 ------------------------------------------------------------
