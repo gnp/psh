@@ -225,7 +225,6 @@ sub decompose {
             push @pieces3, $piece;
             $space= 0;
         } else {
-            $piece=~ s/\\//g;
             @tmp= split /(?<!\\)\s+/, $piece, -1;
             if (@tmp) {
                 if ($tmp[0] eq '') {
@@ -242,6 +241,7 @@ sub decompose {
                 } else {
                     $space=0;
                 }
+                @tmp= map { s/\\//g;$_ } @tmp;
                 push @pieces3, @tmp;
             }
         }
