@@ -33,17 +33,8 @@ sub new {
     my $self= {
 	       option =>
 	       {
-		array_exports =>
-		{
-		 path => path_separator(),
-		 classpath => path_separator(),
-		 ld_library_path => path_separator(),
-		 fignore => path_separator(),
-		 cdpath => path_separator(),
-		 ls_colors => ':'
-	     },
-		frontend => 'readline',
-	    },
+		frontend => 'editline',
+               },
 	       cache => {
 			 path => {},
 			 command => {},
@@ -175,6 +166,9 @@ sub init_minimal {
 	$ENV{HOME}= $self->get_home_dir();
     }
     setup_signal_handlers();
+    foreach my $key (keys %ENV) {
+        $self->get_variable($key);
+    }
 }
 
 sub init_finish {
@@ -633,12 +627,7 @@ sub set_option {
 	    if (ref $value[0]) {
 		@value= @{$value[0]};
 	    }
-	    if ($self->{option}{array_exports} and
-		$self->{option}{array_exports}{$option}) {
-		$val= join($self->{option}{array_exports}{$option},@value);
-	    } else {
-		$val= $value[0];
-	    }
+            $val= $value[0];
 	} else {
 	    $val= $value[0];
 	}
@@ -659,10 +648,6 @@ sub get_option {
     my $val;
     if ($env_option{$option}) {
 	$val= $ENV{uc($option)};
-	if ($self->{option}{array_exports} and
-	    $self->{option}{array_exports}{$option}) {
-	    $val= [split($self->{option}{array_exports}{$option}, $val)];
-	}
     } else {
 	$val=$self->{option}{$option};
     }
@@ -953,12 +938,86 @@ sub delete_function {
 ##
 ############################################################################
 
-sub set_variable {
-    my ($self, $name, @vals)= @_;
+sub get_variable {
+    my ($self, $name)= @_;
+
     if ($name!~ /::/) {
         $name= $self->{current_package}.'::'.$name;
     }
-    $self->{variable}{$name}= \@vals;
+    $self->{variable}{$name}= Psh2::Variable->new($self, $name) unless
+      exists $self->{variable}{$name};
+    return $self->{variable}{$name};
+}
+
+package Psh2::Variable;
+
+{
+ my %defaultjoinby= ( path => Psh2::path_separator(),
+                      classpath => Psh2::path_separator(),
+                      ld_library_path => Psh2::path_separator(),
+                      ls_colors => ':',
+                    );
+
+ sub new {
+     my ($class, $psh, $name)= @_;
+
+     my $simple_name= $name;
+     if ($name=~/\:\:(.*)$/) {
+         $simple_name= $1;
+     }
+
+     my $self= {
+                psh => $psh,
+                name => $name,
+                simple_name => $simple_name,
+                value => [],
+                joinby => $defaultjoinby{$simple_name}||'',
+               };
+     bless $self, $class;
+
+     if (exists $ENV{$simple_name}) {
+         $self->value(-1, $ENV{$simple_name});
+         $self->{exported}= 1;
+     }
+     return $self;
+ }
+}
+
+sub value {
+    my ($self, $subscript, $value)= @_;
+    # subscript == -1 : flat value
+
+    if (defined $value) { # set
+        if ($subscript>=0) {
+            $self->{value}[$subscript]= $value;
+        } else {
+            if ($self->{joinby}) {
+                $self->{value}= [ split /\Q$self->{joinby}\E/, $value ];
+            } else {
+                $self->{value}= [ $value ];
+            }
+        }
+        if ($self->{exported}) {
+            $ENV{$self->{simple_name}}= $self->value(-1);
+        }
+    } else {
+        if ($subscript==-1) {
+            return join($self->{joinby}||' ',@{$self->{value}})
+        } else {
+            return $self->{value}[$subscript] || '';
+        }
+    }
+}
+
+sub export {
+    my ($self, $flag)= @_;
+    if ($flag) {
+        $self->{exported}= 1;
+        $ENV{$self->{simple_name}}= $self->value(-1);
+    } else {
+        delete $self->{exported};
+        delete $ENV{$self->{simple_name}};
+    }
 }
 
 ############################################################################

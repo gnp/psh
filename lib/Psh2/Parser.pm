@@ -11,7 +11,7 @@ sub T_EXECUTE() { 1; }
 # generate and cache regexpes
 my %quotehash= qw|' ' " " q[ ] qq[ ]|;
 my %quotedquotes= ("'" => "\'", "\"" => "\\\"", 'q[' => "\\]",
-		   'qq[' => "\\]");
+		   'qq[' => "\\]" );
 my %nesthash=  ('('=> ')', '$(' => ')',
 		'{'=> '}', '${' => '}',
 		'['=> ']',
@@ -226,6 +226,7 @@ sub decompose {
             push @pieces3, $piece;
             $space= 0;
         } else {
+            $piece=~ s/\\//g;
             @tmp= split /(?<!\\)\s+/, $piece, -1;
             if (@tmp) {
                 if ($tmp[0] eq '') {
@@ -249,22 +250,7 @@ sub decompose {
     return \@pieces3;
 }
 
-sub expand_dollar {
-    my ($psh, $piece)= @_;
-    if (length($piece)>2 and substr($piece,0,2) eq '${') {
-	return qq['$piece']; # FIX
-    }
-    else {
-	if (substr($piece,0,2) eq '$(') {
-	    $piece= substr($piece,2,-1);
-	} else {
-	    $piece= substr($piece,1);
-	}
-	return $ENV{uc($piece)}||'';
-    }
-}
-
-sub _remove_backslash {
+sub _parse_control_char {
     my $text= shift;
 
     $$text=~ s/\\\\/\001/g;
@@ -353,13 +339,13 @@ sub _clean_word {
     if (length($$tmp)>1) {
 	if (length($$tmp)> 3 and substr($$tmp,0,2) eq 'qq[') {
 	    $$tmp= substr($$tmp,3,-1);
-	    _remove_backslash($tmp);
+	    _parse_control_char($tmp);
 	} elsif (substr($$tmp,0,1) eq "'") {
 	    $$tmp= substr($$tmp,1,-1);
 	    $$tmp=~ s/\'\'/\'/g;
 	} elsif (substr($$tmp,0,1) eq '"') {
 	    $$tmp= substr($$tmp,1,-1);
-	    _remove_backslash($tmp);
+	    _parse_control_char($tmp);
 	} elsif (substr($$tmp,0,2) eq 'q[') {
 	    $$tmp= substr($$tmp,2,-1);
 	} else {
@@ -508,31 +494,41 @@ sub _parse_simple {
 	$opt->{$words[0]}= 1;
 	shift @words;
     }
-    my $first= $words[0];
+    return () if !@words or (@words==1 and $words[0] eq '');
 
-    return () if !@words or (@words==1 and $first eq '');
-
-    if (substr($first,0,1) eq '\\') {
-	$first= substr($first,1);
-    }
-
-    while (defined $first and $first=~/^(.*?)=(.*)$/) {
-        my ($key,$val)= ($1,$2);
+    while (@words) {
+        my ($key, $val);
+        if ($words[0]=~/^(.*?)=(.*)$/) {
+            ($key,$val)= ($1,$2);
+            shift @words;
+        }
+        elsif (@words>2 and $words[0]=~/^[a-zA-Z0-9:_-]+$/ and
+               $words[1]=~/^\[\d+\]$/ and
+               substr($words[2],0,1) eq '=') {
+            $key=qq[$words[0]$words[1]];
+            $val=substr($words[2],1);
+            shift @words; shift @words; shift @words;
+        }
+        else {
+            last;
+        }
         if (!$opt->{noglob}) {
             $val=join(' ',@{glob_expansion($psh, [$val])});
         }
-        $options->{env}{$key}=$val;
-        shift @words;
-        $first= $words[0];
+        $options->{env}{$key}= $val;
     }
     if (!@words) {
-        # we'd have to set the variables now
+        set_internal_variables($psh, $options->{env});
         return ();
     }
 
+    if (substr($words[0],0,1) eq '\\') {
+	$words[0]= substr($words[0],1);
+    }
+    my $first= $words[0];
     my $line= join ' ', @words;
 
-    if (is_group($words[0])) {
+    if (is_group($first)) {
 	return ['reparse', undef, $options, \@words, $line, undef];
     }
 
@@ -616,5 +612,44 @@ sub glob_expansion {
     return \@retval;
 }
 
+############################################################################
+##
+## Variable handling
+##
+############################################################################
+
+sub set_internal_variables {
+    my ($psh, $vars)= @_;
+
+    while (my ($key, $val)= each %$vars) {
+        my $subscript= -1;
+        if ($key=~/^(.*)\[(\d+)\]$/) {
+            ($key,$subscript)=($1,$2);
+        }
+        my $var= $psh->get_variable($key);
+        $var->value($subscript, $val);
+    }
+}
+
+
+sub expand_dollar {
+    my ($psh, $piece)= @_;
+    if (length($piece)>2 and substr($piece,0,2) eq '${') {
+	return qq['$piece']; # FIX
+    }
+    else {
+	if (substr($piece,0,2) eq '$(') {
+	    $piece= substr($piece,2,-1);
+	} else {
+	    $piece= substr($piece,1);
+	}
+        my $subscript= -1;
+        if ($piece=~/^(.*)\[(\d)+\]$/ ) {
+            ($piece,$subscript)=($1,$2);
+        }
+        my $var= $psh->get_variable($piece);
+        return $var->value($subscript);
+    }
+}
 
 1;
