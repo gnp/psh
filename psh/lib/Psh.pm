@@ -531,6 +531,7 @@ sub add_history
 
 sub save_history
 {
+	return unless $term;
 	Psh::Util::print_debug_class('o',"[Saving history]\n");
 	if( Psh::Options::get_option('save_history')) {
 		my $file= Psh::Options::get_option('history_file');
