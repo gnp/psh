@@ -186,6 +186,13 @@ sub get_path_extension {
 	return split("$extsep",$pathext);
 }
 
+
+# Simply doing backtick eval - mainly for Prompt evaluation
+sub backtick {
+	return `@_`;
+}
+
+
 1;
 
 __END__

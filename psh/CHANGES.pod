@@ -20,6 +20,33 @@ A reverse-chronological ordered list of changes
 ###############################################################################
 ###############################################################################
 ##
+## CVS
+##
+###############################################################################
+###############################################################################
+
+=head1 CVS
+
+=head2 New Features
+
+=over 4
+
+=item * New builtin 'rename' - this does the same as Larry Wall's PPT program but profits from being integrated into Psh (can use Psh subs and variables for the modification) - warp [2000-05-01]
+
+=item * Psh::OS::backtick() now can call and capture the output of Psh builtins on Unix - warp [2000-05-01]
+
+=head2 Internals
+
+=item * New sub Psh::Util::prompt for interactive prompting - warp [2000-05-01]
+
+=item * Cleanups in Psh::OS::Unix::_setup_redirects and _remove_redirects - warp [2000-05-01]
+
+=back
+
+
+###############################################################################
+###############################################################################
+##
 ## 0.008
 ##
 ###############################################################################

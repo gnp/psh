@@ -41,7 +41,7 @@ EOT
 
 	$tmp=File::Spec->catfile($home,'.pshrc');
 	if (-r $tmp) {
-		$line=_prompt('yn',
+		$line=Psh::Util::prompt('yn',
 					 "Warning - you already have a .pshrc file!!!!\n".
 					  "Do you really want to continue (y/n)? ");
 		return undef if $line eq 'n';
@@ -62,7 +62,7 @@ EOT
 	# so we offer to source them
 	$tmp=File::Spec->catfile($home,'.alias');
 	if (-r $tmp) {
-		$line=_prompt('ics',
+		$line=Psh::Util::prompt('ics',
 					  "We have found a .alias file. Do you want to\n".
 					  "(c)all it from your .pshrc file\n".
 					  "(i)nsert it into your .pshrc file\n".
@@ -75,12 +75,12 @@ EOT
 		}
 	}
 
-	$line=_prompt('cs',"Parse (s) bash/sh files or\n      (c) csh files? ");
+	$line=Psh::Util::prompt('cs',"Parse (s) bash/sh files or\n      (c) csh files? ");
 	if ($line eq 's') {
 		foreach my $file (@sh_files) {
 			$tmp=File::Spec->catfile($home,$file);
 			if (-r $tmp) {
-				$line=_prompt('yn',
+				$line=Psh::Util::prompt('yn',
 							  "Found file $file - parse it (y/n)? ");
 				if ($line eq 'y') {
 					_parse_sh_file($tmp);
@@ -91,7 +91,7 @@ EOT
 		foreach my $file (@csh_files) {
 			$tmp=File::Spec->catfile($home,$file);
 			if (-r $tmp) {
-				$line=_prompt('yn',
+				$line=Psh::Util::prompt('yn',
 							  "Found file $file - parse it (y/n)? ");
 				if ($line eq 'y') {
 					_parse_csh_file($tmp);
@@ -110,20 +110,6 @@ EOT
 	close(FILE);
 	print "$home/.pshrc saved\n";
 	return undef;
-}
-
-sub _prompt {
-	my $allowed= shift;
-	$allowed= "^[$allowed]\$";
-	my $text= shift;
-	my $line='';
-
-	do {
-		print $text;
-		$line=<STDIN>;
-	} while (!$line || lc($line) !~ $allowed);
-	chomp $line;
-	return lc($line);
 }
 
 sub _generate_stuff {
