@@ -1,0 +1,13 @@
+#!psh
+# kax theme by Fatih Demir (kabalak@mx.net) for bashish
+
+package themes
+
+$tmp='\C{nobold magenta}{<\C{cyan bold}\u\C{nobold magenta}{<\C{cyan bold}\t\C{nobold magenta}{<\C{blue bold} \w\C{nobold magenta}>}\C{cyan bold}.\C{nobold magenta}>}\C{cyan bold}.\C{nobold magenta}>}\C{cyan bold}.\C{nobold magenta}:- \C{none} '
+
+option ps1="$tmp"
+option ps2="$tmp\{<< "
+
+undef $tmp
+
+package main

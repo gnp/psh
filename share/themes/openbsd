@@ -1,0 +1,4 @@
+#!psh
+
+option ps1='\h:\W {\#} '
+option ps2='> '
