@@ -235,10 +235,7 @@ sub make_tokens {
 
 	    _parse_fileno(\@parts, \@fileno);
 	    if ($fileno[1]==0) {
-		use Data::Dumper;
-		print STDERR Dumper(\@parts);
 		while (@parts>0) {
-		    print STDERR Dumper(\@parts);
 		    $file= shift @parts;
 		    last if $file !~ /^\s+$/;
 		    $file= '';
@@ -319,7 +316,7 @@ sub _parse_complex {
     my $psh= shift;
     my $piped= 0;
     my $fg= 1;
-    return [ T_EXECUTE, $fg, _sub_parse_complex($tokens, \$piped, \$fg, {}, $psh )];
+    return [ T_EXECUTE, $fg, @{_sub_parse_complex($tokens, \$piped, \$fg, {}, $psh )}];
 }
 
 sub _sub_parse_complex {
@@ -372,6 +369,8 @@ sub _parse_simple {
 	}
     }
 
+    return () unless @words;
+
     if (!$opt->{noalias} and $psh->{aliases} and
         $psh->{aliases}->{$words[0]} and
         !$alias_disabled->{$words[0]}) {
@@ -389,7 +388,7 @@ sub _parse_simple {
     
     my $line= join ' ', @words;
     $psh->{tmp}{options}= $opt;
-    
+
     if ($words[0] and substr($words[0],-1) eq ':') {
 	my $tmp= lc(substr($words[0],0,-1));
 	if (exists $psh->{language}{$tmp}) {
@@ -397,7 +396,7 @@ sub _parse_simple {
 	    if ($@) {
 		# TODO: Error handling
 	    }
-	    return [ 'Psh2::Language::'.ucfirst($words[0]), undef, \@options, \@words, $line, $opt];
+	    return [ 'language', 'Psh2::Language::'.ucfirst($words[0]), \@options, \@words, $line, $opt];
 	} else {
 	    die "parse: unsupported language $tmp";
 	}
@@ -409,7 +408,7 @@ sub _parse_simple {
 	    if ($@) {
 		# TODO: Error handling
 	    }
-	    return [ 'Psh2::Builtins::'.ucfirst($words[0]), undef, \@options, \@words, $line, $opt];
+	    return [ 'builtin', 'Psh2::Builtins::'.ucfirst($words[0]), \@options, \@words, $line, $opt];
 	}
     }
     unless ($opt->{builtin}) {
