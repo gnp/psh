@@ -104,7 +104,7 @@ sub print_list
         print_out($list[$index]) if $index <= $#list;
         print_out("\n\r");
     }
-
+	print_out("\n");
 }
 
 
