@@ -72,6 +72,7 @@ if($opt{'c'}) {
 if (@ARGV) {
 	Psh::process_args;
 } else {
+	Psh::initialize_interactive_mode;
 	while (1) {
 		eval { Psh::main_loop; };
 		Psh::handle_message($@,'main_loop');

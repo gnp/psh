@@ -625,7 +625,9 @@ sub finish_initialize
 		$host= $1 if( $longhost=~ /([^\.]+)\..*/);
 	}
 	$ENV{HOSTNAME}= $host;
+}
 
+sub initialize_interactive_mode {
 	if (-t STDIN) {
 		#
 		# Set up Term::ReadLine:
