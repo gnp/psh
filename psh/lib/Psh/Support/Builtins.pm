@@ -15,9 +15,11 @@ sub get_builtin_commands {
 sub build_autoload_list {
 	%builtins= ();
 
+	my $unshift='';
 	foreach my $tmp (@INC) {
-		my $tmpdir= File::Spec->catdir($tmp,'Psh','Builtins');
+		my $tmpdir= Psh::OS::catdir($tmp,'Psh','Builtins');
 		if (-r $tmpdir) {
+			$unshift=$tmp;
 			my @files= Psh::OS::glob('*.pm',$tmpdir);
 			foreach( @files) {
 				s/\.pm$//;
@@ -26,6 +28,7 @@ sub build_autoload_list {
 			}
 		}
 	}
+	unshift @INC, $unshift if $unshift;
 }
 
 sub is_builtin {

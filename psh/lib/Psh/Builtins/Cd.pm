@@ -62,7 +62,7 @@ sub bi_cd
 	}
 	my $dirpath='.';
 
-	if ($ENV{CDPATH} && !File::Spec->file_name_is_absolute($in_dir)) {
+	if ($ENV{CDPATH} && !Psh::OS::file_name_is_absolute($in_dir)) {
 		$dirpath.=$ENV{CDPATH};
 	}
 
@@ -71,7 +71,7 @@ sub bi_cd
 		if( $cdbase eq '.') {
 			$dir = Psh::Util::abs_path($dir);
 		} else {
-			$dir = Psh::Util::abs_path(File::Spec->catdir($cdbase,$dir));
+			$dir = Psh::Util::abs_path(Psh::OS::catdir($cdbase,$dir));
 		}
 
 		if ($dir and (-e $dir) and (-d _)) {

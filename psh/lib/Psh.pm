@@ -1,8 +1,5 @@
 package Psh;
 
-use locale;
-
-
 BEGIN {
 	require Psh::OS;
 }
@@ -13,7 +10,6 @@ require Psh::Strategy;
 require Psh::Joblist;
 require Psh::Parser;
 require Psh::PerlEval;
-require Psh::Prompt;
 require Psh::Options;
 
 ##############################################################################
@@ -213,6 +209,10 @@ sub process
 	my $result_array_name = 'Psh::val';
 
 	my $control_d_counter=0;
+
+	if ($q_prompt) {
+		require Psh::Prompt;
+	}
 
 	while (1) {
 		if ($q_prompt) {
@@ -566,11 +566,11 @@ sub minimal_initialize
 	}
 
 	$Psh::cmd                    = 1;
-	my @tmp= File::Spec->splitdir($0);
+	my @tmp= Psh::OS::splitdir($0);
 	$Psh::bin= pop @tmp;
 	Psh::Options::set_option('history_file',
-							 File::Spec->catfile(Psh::OS::get_home_dir(),
-												 '.'.$Psh::bin.'_history'));
+							 Psh::OS::catfile(Psh::OS::get_home_dir(),
+											  '.'.$Psh::bin.'_history'));
 
 	$Psh::old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;

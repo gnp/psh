@@ -39,7 +39,7 @@ EOT
 
 	my $tmp;
 
-	$tmp=File::Spec->catfile($home,'.pshrc');
+	$tmp= Psh::OS::catfile($home,'.pshrc');
 	if (-r $tmp) {
 		$line=Psh::Util::prompt('yn',
 					 "Warning - you already have a .pshrc file!!!!\n".
@@ -60,7 +60,7 @@ EOT
 
 	# .alias files usually _only_ contain aliases and functions
 	# so we offer to source them
-	$tmp=File::Spec->catfile($home,'.alias');
+	$tmp= Psh::OS::catfile($home,'.alias');
 	if (-r $tmp) {
 		$line=Psh::Util::prompt('ics',
 					  "We have found a .alias file. Do you want to\n".
@@ -78,7 +78,7 @@ EOT
 	$line=Psh::Util::prompt('cs',"Parse (s) bash/sh files or\n      (c) csh files? ");
 	if ($line eq 's') {
 		foreach my $file (@sh_files) {
-			$tmp=File::Spec->catfile($home,$file);
+			$tmp= Psh::OS::catfile($home,$file);
 			if (-r $tmp) {
 				$line=Psh::Util::prompt('yn',
 							  "Found file $file - parse it (y/n)? ");
@@ -89,7 +89,7 @@ EOT
 		}
 	} else {
 		foreach my $file (@csh_files) {
-			$tmp=File::Spec->catfile($home,$file);
+			$tmp= Psh::OS::catfile($home,$file);
 			if (-r $tmp) {
 				$line=Psh::Util::prompt('yn',
 							  "Found file $file - parse it (y/n)? ");

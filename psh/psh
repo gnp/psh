@@ -10,8 +10,6 @@
 package Psh; # still use a package so getopt etc. is not imported into
              # the shell namespace
 
-use locale;
-
 $Psh::VERSION='0.010pre';
 
 use Psh;

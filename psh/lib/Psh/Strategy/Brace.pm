@@ -10,7 +10,6 @@ interpreter.
 
 
 require Psh::Strategy;
-require Psh::Strategy::Eval;
 
 @Psh::Strategy::Brace::ISA=('Psh::Strategy');
 

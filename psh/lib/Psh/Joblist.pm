@@ -5,7 +5,6 @@ require Psh::OS;
 
 my @jobs_order=();
 my %jobs_list=();
-my $pointer=0;
 
 sub create_job {
 	my ($pid, $call, $assoc_obj) = @_;
@@ -98,23 +97,26 @@ sub find_last_with_name {
 	return wantarray?():undef;
 }
 
+{
+	my $pointer;
+
 #
 # Resets the enumeration counter for access using "each"
 #
-sub enumerate {
-	$pointer=0;
-}
+	sub enumerate {
+		$pointer=0;
+	}
 
 #
 # Returns the next job
 #
-sub each {
-	if ($pointer <= $#jobs_order) {
-		return $jobs_order[$pointer++];
+	sub each {
+		if ($pointer <= $#jobs_order) {
+			return $jobs_order[$pointer++];
+		}
+		return undef;
 	}
-	return undef;
 }
-
 
 package Psh::Job;
 

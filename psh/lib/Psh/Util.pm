@@ -146,7 +146,7 @@ sub abs_path {
 			}
 		}
 		unless ($result) {
-			my $tmp= File::Spec->rel2abs($dir,$ENV{PWD});
+			my $tmp= Psh::OS::rel2abs($dir,$ENV{PWD});
 
 			my $old= $ENV{PWD};
 			if ($tmp and -r $tmp) {
@@ -173,7 +173,7 @@ sub abs_path {
 			$result.='/' unless $result=~ m:[/\\]:;  # abs_path strips / from letter: on Win
 		}
 	}
-	$Psh::Util::path_hash{$dir}= $result if File::Spec->file_name_is_absolute($dir);
+	$Psh::Util::path_hash{$dir}= $result if Psh::OS::file_name_is_absolute($dir);
 	return $result;
 }
 
@@ -208,6 +208,8 @@ sub abs_path {
 		my $cmd= shift;
 		return undef unless $cmd;
 
+		return $Psh::Util::command_hash{$cmd} if exists $Psh::Util::command_hash{$cmd};
+
 		if ($cmd =~ m|$re1|o) {
 			$cmd =~ m|$re2|o;
 			my $path_element= $1 || '';
@@ -215,7 +217,7 @@ sub abs_path {
 			return undef unless $path_element and $cmd_element;
 			$path_element=Psh::Util::abs_path($path_element);
 			return undef unless $path_element;
-			my $try= File::Spec->catfile($path_element,$cmd_element);
+			my $try= Psh::OS::catfile($path_element,$cmd_element);
 			if ((-x $try) and (! -d _)) { return $try; }
 			return undef;
 		}
@@ -248,7 +250,7 @@ sub abs_path {
 
 		foreach my $dir (@Psh::absed_path) {
 			next unless $dir;
-			my $try = File::Spec->catfile($dir,$cmd);
+			my $try = Psh::OS::catfile($dir,$cmd);
 			foreach my $ext (@path_extension) {
 				if ((-x $try.$ext) and (!-d _)) {
 					$Psh::Util::command_hash{$cmd} = $try.$ext;
@@ -256,7 +258,7 @@ sub abs_path {
 				}
 			}
 		}
-		$Psh::Util::command_hash{$cmd} = undef;
+		$Psh::Util::command_hash{$cmd} = undef; # no delete by purpose
 
 		return undef;
 	}

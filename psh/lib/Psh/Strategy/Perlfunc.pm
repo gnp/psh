@@ -11,7 +11,6 @@ perlfunc_heavy
 =cut
 
 require Psh::Strategy;
-require Psh::Strategy::Eval;
 
 @Psh::Strategy::Perlfunc::ISA=('Psh::Strategy');
 

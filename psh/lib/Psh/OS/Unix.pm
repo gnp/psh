@@ -45,8 +45,8 @@ sub get_known_hosts {
 		close(F_KNOWNHOST);
 		push @result,Psh::Util::parse_hosts_file($hosts_text);
 	}
-	my $tmp=File::Spec->catfile(Psh::OS::get_home_dir(),
-								 '.ssh','known_hosts');
+	my $tmp= catfile(Psh::OS::get_home_dir(),
+					 '.ssh','known_hosts');
 	if (-r $tmp) {
 		if (open(F_KNOWNHOST, "< $tmp")) {
 			while (<F_KNOWNHOST>) {
@@ -115,7 +115,7 @@ sub get_rc_files {
 		push @rc, '/etc/pshrc';
 	}
 	my $home= Psh::OS::get_home_dir();
-	if ($home) { push @rc, File::Spec->catfile($home,'.pshrc') };
+	if ($home) { push @rc, catfile($home,'.pshrc') };
 	return @rc;
 }
 
@@ -783,6 +783,80 @@ sub get_editor {
 		$editor ||='vi';
 	}
 	return $editor;
+}
+
+# File::Spec
+
+sub canonpath {
+    my ($path) = @_;
+    $path =~ s|/+|/|g unless($^O eq 'cygwin');     # xx////xx  -> xx/xx
+    $path =~ s|(/\.)+/|/|g;                        # xx/././xx -> xx/xx
+    $path =~ s|^(\./)+||s unless $path eq "./";    # ./xx      -> xx
+    $path =~ s|^/(\.\./)+|/|s;                     # /../../xx -> xx
+    $path =~ s|/\Z(?!\n)|| unless $path eq "/";          # xx/       -> xx
+    return $path;
+}
+
+sub catfile {
+    my $file = pop @_;
+    return $file unless @_;
+    my $dir = catdir(@_);
+    $dir .= "/" unless substr($dir,-1) eq "/";
+    return $dir.$file;
+}
+
+sub catdir {
+    my @args = @_;
+    foreach (@args) {
+        # append a slash to each argument unless it has one there
+        $_ .= "/" if $_ eq '' || substr($_,-1) ne "/";
+    }
+    return canonpath(join('', @args));
+}
+
+sub file_name_is_absolute {
+	my $file= shift;
+	return scalar($file =~ m:^/:s);
+}
+
+sub rootdir {
+	'/';
+}
+
+sub splitdir {
+    my ($directories) = @_ ;
+
+    if ( $directories !~ m|/\Z(?!\n)| ) {
+        return split( m|/|, $directories );
+    }
+    else {
+        my( @directories )= split( m|/|, "${directories}dummy" ) ;
+        $directories[ $#directories ]= '' ;
+        return @directories ;
+    }
+}
+
+sub rel2abs {
+    my ($path,$base ) = @_;
+ 
+    # Clean up $path
+    if ( ! file_name_is_absolute( $path ) ) {
+        # Figure out the effective $base and clean it up.
+        if ( !defined( $base ) || $base eq '' ) {
+            $base = Psh::getcwd_psh() ;
+        }
+        elsif ( ! file_name_is_absolute( $base ) ) {
+            $base = rel2abs( $base ) ;
+        }
+        else {
+            $base = canonpath( $base ) ;
+        }
+ 
+        # Glom them together
+        $path = catdir( $base, $path ) ;
+    }
+ 
+    return canonpath( $path ) ;
 }
 
 1;

@@ -58,7 +58,7 @@ sub list {
 sub available_list {
 	my %result= ();
 	foreach my $tmp (@INC) {
-		my $tmpdir= File::Spec->catdir($tmp,'Psh','Strategy');
+		my $tmpdir= Psh::OS::catdir($tmp,'Psh','Strategy');
 		my @tmp= Psh::OS::glob('*.pm',$tmpdir);
 		foreach my $strat (@tmp) {
 			$strat=~s/\.pm$//;
@@ -135,21 +135,21 @@ sub parser_return_objects {
 }
 
 sub setup_defaults {
-	@order= (
-			 get('bang'),
-			 get('perl'),
-			 get('brace'),
-			 get('built_in'),
-			 get('perlfunc'),
-			 get('executable'),
-			 get('eval'),
-			);
+	require Psh::StrategyBunch;
+	foreach my $name (qw(bang perl brace built_in perlfunc executable eval)) {
+		my $tmpname= ucfirst($name);
+		my $obj;
+		eval {
+			$obj= "Psh::Strategy::$tmpname"->new();
+		};
+		push @order, $obj;
+		$loaded{$tmpname}= $obj;
+		$active{$name}= 1;
+	}
 	if ($^O =~ /darwin/i) {
 		splice(@order,@order-1,0, get('darwin_apps'));
 		$active{darwin_apps}=1;
 	}
-	$active{perl}= $active{bang}= $active{brace}= $active{built_in}=
-	  $active{perlfunc}= $active{executable}= $active{eval}= 1;
 	regenerate_cache();
 }
 
