@@ -3,8 +3,6 @@
   * Figure out how to catch SIGINT (Control-C) and have it abandon the
     input currently being constructed (which is managed by Term::ReadLine).
 
-  * Add filename completion.
-
 
 1999-11-01
 
@@ -102,22 +100,5 @@
     using it (for testing and demonstration purposes).
 
   * Intercept Control-C
-
-
-1999-08-16
-
-  * Implement background jobs. Matthew D. Allen suggests something like this:
-
-	if ($input =~ m/&$/) {
-		if (fork) {
-			#
-			# Run it.
-			#
-		} else {
-			#
-			# Record it for watching.
-			#
-		}
-	}
 
 
