@@ -478,6 +478,23 @@ the special Perl variable '$@' is non-empty. Note that the side
 effects of 'use foo' as a B<psh> command line appear to be exactly as
 expected. 
 
+=head1 REQUIREMENTS
+
+psh needs several optional Perl modules to offer full functionality:
+
+=over 4
+
+=item Term::ReadLine::Gnu or Term::ReadLine::Perl for readline support
+(command history, special editing chars etc.). Term::ReadLine::Gnu
+support is by far more advanced currently than support for
+Term::ReadLine::Perl
+
+=item Term::Size to offer the ability to change the environment variables
+LINES and COLUMNS when the terminal window size changes while running
+as standard shell
+
+=back
+
 =head1 OTHER PERL SHELLS
 
 Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
