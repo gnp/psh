@@ -105,12 +105,26 @@ sub evl {
 	my @elements= eval { Psh::Parser::parse_line($line, @use_strats) };
 	return undef unless @elements;
 
+	my @result= _evl(@elements);
+	return @result;
+}
+
+sub _evl {
+	my @elements= @_;
 	my @result=();
 	while( my $element= shift @elements) {
-		eval {
-			@result= Psh::OS::execute_complex_command($element);
-		};
-		handle_message($@,$element->[4]);
+		my @tmp= @$element;
+		my $type= shift @tmp;
+		if ($type == Psh::Parser::T_EXECUTE()) {
+			eval {
+				@result= Psh::OS::execute_complex_command(\@tmp);
+			};
+			handle_message($@);
+		} elsif ($type == Psh::Parser::T_OR()) {
+		} elsif ($type == Psh::Parser::T_AND()) {
+		} else {
+			Psh::Util::print_error("evl: Don't know type $type\n");
+		}
 	}
 	return @result;
 }
