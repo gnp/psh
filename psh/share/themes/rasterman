@@ -3,17 +3,17 @@
 
 package theme;
 
-$g1="\333\262\261\260"
-$g2="\260\261\262\333"
-$ylobrn="\\[\\E[01;33;43m\\]"
-$whtbrn="\\[\\E[01;37;43m\\]"
-$redbrn="\\[\\E[00;31;43m\\]"
-$redblk="\\[\\E[00;31;40m\\]"
-$pplblk="\\[\\E[01;35;40m\\]"
-$whtblk="\\[\\E[01;37;40m\\]"
-$none="\\[\\E[00m\\]"
+$g1='\S{333}\S{262}\S{261}\S{260}'
+$g2='\S{260}\S{261}\S{262}\S{333}'
+$ylobrn='\[\E[01;33;43m\]'
+$whtbrn='\[\E[01;37;43m\]'
+$redbrn='\[\E[00;31;43m\]'
+$redblk='\[\E[00;31;40m\]'
+$pplblk='\[\E[01;35;40m\]'
+$whtblk='\[\E[01;37;40m\]'
+$none='\[\E[00m\]'
 
-Psh::Options::set_option('ps1',"$ylobrn$g1$whtbrn \\h $redbrn$g2$redblk$g1$whtblk \\d \\t $none\n$pplblk\\w/")
+Psh::Options::set_option('ps1',"$ylobrn$g1$whtbrn \\h $redbrn$g2$redblk$g1$whtblk \\d \\t $none\n$pplblk\\w/$none ")
 Psh::Options::set_option('ps2',"$ylobrn$g1$redbrn$g2$redblk$g1$pplblk > $none ")
 option -ps3 -ps4 -prompt_command
 
