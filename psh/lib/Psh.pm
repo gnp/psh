@@ -1355,18 +1355,30 @@ sub finish_initialize
 		$term = undef;
 		print_error_i18n(no_readline);
 	} else {
-		$term = Term::ReadLine->new('psh');
-		$term->MinLine(10000);   # We will handle history adding
-		# ourselves (undef causes trouble). 
-		$term->ornaments(0);
-		print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
-		if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
-			$readline_saves_history = 1;
-			$term->StifleHistory($history_length); # Limit history
+		eval { $term= Term::ReadLine->new('psh'); };
+		if( $@) {
+			# Try one more time after a second, maybe the tty is
+			# not setup
+			sleep 1;
+			eval { $term= Term::ReadLine->new('psh'); };
+			if( $@) {
+				print_error_i18n(readline_error,$@);
+				$term= undef;
+			}
 		}
-		&Psh::Completion::init();
-		$term->Attribs->{completion_function} =
-			\&Psh::Completion::completion;
+		if( $term) {
+			$term->MinLine(10000);   # We will handle history adding
+			# ourselves (undef causes trouble). 
+			$term->ornaments(0);
+			print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
+			if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
+				$readline_saves_history = 1;
+				$term->StifleHistory($history_length); # Limit history
+			}
+			&Psh::Completion::init();
+			$term->Attribs->{completion_function} =
+				\&Psh::Completion::completion;
+		}
 	}
 
     #
