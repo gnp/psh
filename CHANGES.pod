@@ -25,6 +25,20 @@ A reverse-chronological ordered list of changes
 ###############################################################################
 ###############################################################################
 
+=head1 1.8 [2003-01-18]
+
+=head2 Fixes
+
+=over 4
+
+=item *
+
+Removed module-specific VERSION variables (some were based on their CVS
+revision numbers.
+
+=back
+
+
 =head1 1.7 [2003-01-16]
 
 =head2 Fixes
