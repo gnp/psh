@@ -145,6 +145,10 @@ sub setup_defaults {
 			 get('executable'),
 			 get('eval'),
 			);
+	if ($^O =~ /darwin/i) {
+		splice(@order,@order-1,0, get('darwin_apps'));
+		$active{darwin_apps}=1;
+	}
 	$active{perl}= $active{bang}= $active{brace}= $active{built_in}=
 	  $active{perlfunc}= $active{executable}= $active{eval}= 1;
 	regenerate_cache();
