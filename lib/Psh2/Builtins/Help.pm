@@ -10,13 +10,13 @@ sub get_pod_from_file {
 	open(FILE, "< $tmpfile");
 	my $add=0;
 	while(<FILE>) {
-	    if( !$add && /\=item \* C\<$arg[ >]/) {
+	    if( !$add and /^\=item \* C\<$arg[ >]/) {
 		$tmp="\n".$_;
 		$add=1;
 	    } elsif( $add) {
 		$tmp.=$_;
 	    }
-	    if( $add && $_ =~ /\=cut/) {
+	    if( $add and $_ =~ /\=cut/) {
 		$add=0;
 		last;
 	    }
