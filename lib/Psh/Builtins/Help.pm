@@ -35,24 +35,17 @@ sub bi_help
 {
 	my $arg= shift;
 	if( $arg) {
-		my $tmp= eval '$Psh::Builtins::help_'.$arg;
-		if( !$tmp) {
-			my $tmpfile;
-			foreach my $line (@INC) {
-				$tmpfile= File::Spec->catfile(
-						File::Spec->catdir($line,'Psh'),'Builtins.pm');
-				$tmp= get_pod_from_file($tmpfile,$arg);
-				last if $tmp;
-				$tmpfile= File::Spec->catfile(
-						File::Spec->catdir($line,'Psh','Builtins'),ucfirst($arg).'.pm');
-				$tmp= get_pod_from_file($tmpfile,$arg);
-				last if $tmp;
-				$tmpfile= File::Spec->catfile(
-						File::Spec->catdir($line,'Psh','Builtins','Fallback'),ucfirst($arg).'.pm');
-				$tmp= get_pod_from_file($tmpfile,$arg);
-				last if $tmp;
-			}
-			#unlink($tmpfile) if $tmpfile;
+		my $tmpfile;
+		foreach my $line (@INC) {
+			$tmpfile= File::Spec->catfile(
+			 File::Spec->catdir($line,'Psh','Builtins'),ucfirst($arg).'.pm');
+			$tmp= get_pod_from_file($tmpfile,$arg);
+			last if $tmp;
+			$tmpfile= File::Spec->catfile(
+		   			File::Spec->catdir($line,'Psh','Builtins','Fallback'),
+										  ucfirst($arg).'.pm');
+			$tmp= get_pod_from_file($tmpfile,$arg);
+			last if $tmp;
 		}
 		if( $tmp ) {
 			Psh::OS::display_pod("=over 4\n".$tmp."\n=back\n");
@@ -61,14 +54,14 @@ sub bi_help
 		}
 	} else {
 		Psh::Util::print_out_i18n('help_header');
-		Psh::Util::print_list(Psh::Builtins::get_builtin_commands());
+		Psh::Util::print_list(Psh::Support::Builtins::get_builtin_commands());
 	}
     return undef;
 }
 
 sub cmpl_help {
 	my $text= shift;
-	return (1,grep { Psh::Util::starts_with($_,$text) } Psh::Builtins::get_builtin_commands());
+	return (1,grep { Psh::Util::starts_with($_,$text) } Psh::Support::Builtins::get_builtin_commands());
 }
 
 1;
