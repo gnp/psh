@@ -72,7 +72,7 @@ sub execute {
 	}
 	@words = map { Psh::Parser::unquote($_)} @words;
 
-	return (join(' ',$executable,@words),[$executable,$tmp,@words], 0, undef, );
+	return (1,join(' ',$executable,@words),[$executable,$tmp,@words], 0, undef, );
 }
 
 1;

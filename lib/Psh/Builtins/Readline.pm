@@ -34,7 +34,7 @@ sub bi_readline
 		print_out("  $feechr => ${$featureref}{$feechr}\n");
 	}
 
-	return undef;
+	return (1,undef);
 }
 
 1;

@@ -34,7 +34,7 @@ sub execute {
 	my $fnname= ${$_[2]}[0];
     my ($index)= Psh::Joblist::find_last_with_name($fnname,1);
     Psh::OS::restart_job(1,$index);
-    return undef;
+	return (1,undef);
 }
 
 sub runs_before {

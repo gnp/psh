@@ -51,6 +51,7 @@ sub bi_complete {
 			$COMPSPEC{$_} = $cs;
 		}
     }
+	return (1,undef);
 }
 
 sub print_compspec ($) {

@@ -25,14 +25,14 @@ sub bi_strategy
 	if( ! $words->[0]) {
 		require Psh::Builtins::Help;
 		Psh::Builtins::Help::bi_help('strategy');
-		return undef;
+		return (0,undef);
 	} elsif( $words->[0] eq 'add') {
 		my $strat= lc($words->[1]);
 		my $obj= Psh::Strategy::get($strat);
 		my $pos;
 		unless ($obj) {
 			Psh::Util::print_error_i18n('bi_strategy_notfound',$strat);
-			return 1;
+			return (0,undef);
 		}
 
 		if( @{$words}>3) {
@@ -41,7 +41,7 @@ sub bi_strategy
 				$pos= Psh::Strategy::find($pos);
 				if( $pos<0) {
 					Psh::Util::print_error_i18n('bi_strategy_notfound',$words->[3]);
-					return 1;
+					return (0,undef);
 				}
 			} else {
 				$pos--;
@@ -88,8 +88,9 @@ sub bi_strategy
 		}
 	} else {
 		Psh::Util::print_error_i18n('bi_strategy_wrong_arg');
+		return (0,undef);
 	}
-	return undef;
+	return (1,undef);
 }
 
 sub cmpl_strategy {

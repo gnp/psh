@@ -12,8 +12,11 @@ Sets the environment variable NAME to VALUE.
 sub bi_setenv
 {
 	my $var = Psh::Support::Env::do_setenv(@_);
-	Psh::Util::print_error_i18n('usage_setenv') if !$var;
-	return undef;
+	if (!$var) {
+		Psh::Util::print_error_i18n('usage_setenv');
+		return (0,undef);
+	}
+	return (1,undef);
 }
 
 

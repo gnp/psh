@@ -37,7 +37,7 @@ sub execute {
 	}
 
 	Psh::OS::fork_process( $command, $fgflag, $command, 1);
-	return undef;
+	return (1,undef);
 }
 
 1;

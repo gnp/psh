@@ -57,6 +57,11 @@ The sequence ESC-h is now per default bound to the new readline function
 "run-help" which will display any help about the current input line it
 can find. (works only in Term::ReadLine::Gnu)
 
+=item *
+
+It's now possible to bind simple commands with C<&&> and C<||> like
+in a normal shell.
+
 =back
 
 =head2 New builtins

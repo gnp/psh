@@ -40,7 +40,7 @@ sub execute {
 	@tmp= Psh::Parser::parse_line(substr($fnname,1));
 	use Data::Dumper;
 	print Dumper(\@tmp);
-    return undef;
+    return (1,undef);
 }
 
 1;

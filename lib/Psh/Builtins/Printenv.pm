@@ -21,7 +21,7 @@ sub bi_printenv
 			Psh::Util::print_out("$key=$val\n");
 		}
 	}
-	return undef;
+	return (1,undef);
 }
 
 

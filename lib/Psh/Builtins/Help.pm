@@ -58,7 +58,7 @@ sub bi_help
 		Psh::Util::print_out_i18n('help_header');
 		Psh::Util::print_list(Psh::Support::Builtins::get_builtin_commands());
 	}
-    return undef;
+    return (1,undef);
 }
 
 sub any_help {

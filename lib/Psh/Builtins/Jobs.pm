@@ -11,7 +11,7 @@ List the currently running jobs.
 sub bi_jobs {
 	if( ! Psh::OS::has_job_control()) {
 		print_error_i18n('no_jobcontrol');
-		return undef;
+		return (0,undef);
 	}
 
 
@@ -32,12 +32,14 @@ sub bi_jobs {
 		$visindex++;
 	}
 
-	if (!$result) { print_out_i18n('bi_jobs_none'); }
+	if (!$result) {
+		print_out_i18n('bi_jobs_none');
+		return (0,undef);
+	}
 	else {
 		print_out($result);
+		return (1,undef);
 	}
-
-	return undef;
 }
 
 1;

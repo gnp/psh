@@ -157,7 +157,7 @@ sub execute {
 	foreach (@options) { $opts{$_} = 1; }
 
 
-	return (sub {
+	return (1,sub {
 				package main;
 				# TODO: Is it possible/desirable to put main in the pristine
 				# state that it typically is in when a script starts up,
@@ -168,9 +168,9 @@ sub execute {
 			if ($opts{warnings}) { $^W = 1; }
 			else                 { $^W = 0; }
 
-			do $script;
+			local $Psh::tmp= do $script;
 
-			CORE::exit 0;
+			CORE::exit !$Psh::tmp;
 		}, [], 1, undef);
 }
 

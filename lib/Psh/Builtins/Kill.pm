@@ -14,7 +14,7 @@ sub bi_kill
 {
 	if( ! Psh::OS::has_job_control()) {
 		Psh::Util::print_error_i18n('no_jobcontrol');
-		return undef;
+		return (0,undef);
 	}
 
 	my @args = split(' ',$_[0]);
@@ -24,13 +24,13 @@ sub bi_kill
 	if (scalar(@args) == 1 &&
 		$args[0] eq '-l') {
 		Psh::Util::print_out($Config::Config{sig_name}."\n");
-		return undef;
+		return (0,undef);
 	} elsif( substr($args[0],0,1) eq '-') {
 		$sig= substr($args[0],1);
 		shift @args;
 	}
 
-	my $status= 0;
+	my $count= 0;
 	foreach my $pid (@args) {
 		if ($pid =~ m|^%(\d+)$|) {
 			my $temp = $1 - 1;
@@ -38,7 +38,6 @@ sub bi_kill
 			$job= Psh::Joblist::find_job($temp);
 			if( !defined($job)) {
 				Psh::Util::print_error_i18n('bi_kill_no_such_job',$pid);
-				$status=1;
 				next;
 			}
 			
@@ -66,17 +65,18 @@ sub bi_kill
 
 		$sig=0 if $sig eq 'ZERO'; # stupid perl bug
 		
-		if (CORE::kill($sig, $pid) != 1) {
+		if (my $num=CORE::kill($sig, $pid) != 1) {
 			Psh::Util::print_error_i18n('bi_kill_error_sig',$pid,$sig);
-			$status=1;
 			next;
+		} else {
+			$count+=$num;
 		}
 		
 		if ($sig eq 'CONT' and Psh::Joblist::job_exists($pid)) {
 			Psh::Joblist::get_job($pid)->{running}=1;
 		}
 	}
-	return $status;
+	return ($count!=0,$count);
 }
 
 # Completion function for kill
