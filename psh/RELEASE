@@ -1,10 +1,11 @@
 How to make a Perl Shell release:
 
 1999-12-28
+Updated 2000-04-30 for Version 0.008
 
 
 After making all the appropriate changes to psh.pod
-and CHANGES.pod and elsewhere:
+and CHANGES.pod, psh.ppd and elsewhere:
 
     cd psh
     make realclean

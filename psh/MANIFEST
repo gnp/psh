@@ -12,7 +12,6 @@ README.upgrade
 RELEASE
 TODO
 psh
-psh.NEWS
 doc/psh.pod
 doc/pshdevel.pod
 tryme
