@@ -2,7 +2,6 @@ package Psh::Strategy::Perlscript;
 
 require Psh::Strategy;
 require Psh::Util;
-require Config;
 
 =item * C<perlscript>
 
@@ -47,6 +46,7 @@ sub runs_before {
 sub matches_perl_binary
 {
 	my ($filename) = @_;
+	require Config;
 
 	#
 	# Chase down symbolic links, but don't crash on systems that don't
