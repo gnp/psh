@@ -1236,15 +1236,15 @@ sub iget
 #	$line =~ s/\s+$//;
 
 	if ($term and $line !~ m/^\s*$/) {
-               $term->addhistory($line); 
+		$term->addhistory($line); 
 
 		if ($save_history && !$readline_saves_history) {
-		  my $fhist = new FileHandle($history_file, 'a');
-		  $fhist->print("$line\n");
-		  $fhist->close();
+			my $fhist = new FileHandle($history_file, 'a');
+			$fhist->print("$line\n");
+			$fhist->close();
 		}
 	}
-
+	
 	return $line . "\n";         # This is expected by other code.
 }
 
