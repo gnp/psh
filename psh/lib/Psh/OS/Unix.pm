@@ -19,12 +19,22 @@ $Psh::OS::FILE_SEPARATOR='/';
 $Psh::rc_file = ".pshrc";
 $Psh::history_file = ".psh_history";
 
+
+# Sets the title of the current window
+sub set_window_title {
+	my $title= shift;
+	my $term= $ENV{TERM};
+	if( $term=~ /^(rxvt.*)|(xterm.*)|(.*xterm)|(kterm)|(aixterm)|(dtterm)/) {
+		print "\017\033]2;$title\007";
+	}
+}
+
 #
 # Returns the hostname of the machine psh is running on, preferrably
 # the full version
 #
 
-sub get_hostname() {
+sub get_hostname {
 	return hostname;
 }
 
@@ -515,6 +525,13 @@ sub restart_job
 			}
 		}
 	}
+}
+
+sub resume_job {
+	my $job= shift;
+
+	kill 'CONT', -$job->{pid};
+	kill 'CONT', -$job->{pgrp_leader} if $job->{pgrp_leader};
 }
 
 # Simply doing backtick eval - mainly for Prompt evaluation

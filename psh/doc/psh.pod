@@ -302,12 +302,6 @@ The name of the current shell.
 
 The command serial number in the currently-executing processing loop.
 
-=item I<$Psh::change_title> (1)
-
-If set to true, the environment variable PSH_TITLE will be set to
-the current working directory to display it in the window title if
-possible.
-
 =item I<$Psh::currently_active> (0)
 
 The pid of the process B<psh> will currently forward signals to, or 0
