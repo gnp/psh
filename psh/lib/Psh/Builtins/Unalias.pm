@@ -12,11 +12,11 @@ Removes the alias with name <C<I<NAME>> or all aliases if either <C<I<-a>>
 
 sub bi_unalias {
 	my $name= shift;
-	if( ($name eq '-a' || $name eq 'all') and !Psh::Support::Alias::_is_aliased($name) ) {
-		%aliases= ();
+	if( ($name eq '-a' || $name eq 'all') and !Psh::Support::Alias::is_aliased($name) ) {
+		%Psh::Support::Alias::aliases=();
 		return (1,undef);
-	} elsif( Psh::Support::Alias::_is_aliased($name)) {
-		delete($aliases{$name});
+	} elsif( Psh::Support::Alias::is_aliased($name)) {
+		delete($Psh::Support::Alias::aliases{$name});
 		return (1,undef);
 	} else {
 		Psh::Util::print_error_i18n('unalias_noalias', $name);
