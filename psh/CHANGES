@@ -7,8 +7,8 @@ CVS HEAD
 1999-12-18 warp:
  Feature:
   * Added new builtin 'builtin'
-  * Added new evaluation strategy 'auto_resume' - documentation
-    will follow :-)
+  * Added new evaluation strategy 'auto_resume'
+
  Internal:
   * Changed prompt evaluation to be more bash compatible and
     to handle even complex prompts

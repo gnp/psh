@@ -110,7 +110,8 @@ the tokenization is irrelevant to that strategy.
 
 =head2 STANDARD EVALUATION STRATEGIES
 
-B<psh> includes the following evaluation strategies:
+B<psh> includes the following evaluation strategies, sorted by the
+order we suggest for @Psh::strategies.
 
 =over 4
 
@@ -136,7 +137,7 @@ function, call the subroutine associated with that built-in; the
 subroutine receives a single argument, which is the remainder of the
 input line exactly as entered.
 
-=item * C<perlfunc>
+=item * C<perlfunc> (not enabled by default)
 
 If the first word of the input line matches either a built-in Perl
 function (as determined by the %Psh::perl_builtins hash), or the name
@@ -155,7 +156,13 @@ bash's "shell function" capacity with ordinary Perl subroutines. The
 slogan is, "If the command line looks like an ordinary shell command,
 interpret it like one, even if the first word is a Perl subroutine."
 
-=item * C<perlscript>
+=item * C<auto_resume> (not enabled by default)
+
+If the input line matches the name of a stopped job then brings that
+job to the foreground instead of starting a new programm with that
+name.
+
+=item * C<perlscript> (not enabled by default)
 
 If (1) the first word of the input line matches the name of a file found in
 one of the directories listed in the path (C<$ENV{PATH}>), and (2) that file
