@@ -17,7 +17,7 @@
 package psh;
 
 use vars qw($VERSION);
-$VERSION   = '0.00203';
+$VERSION   = '0.00204';
 
 use Cwd;
 use Cwd 'chdir';
@@ -45,7 +45,7 @@ if (@ARGV and $ARGV[0] eq '-d') {
 # The other variables are private, lexical variables.
 #
 
-use vars qw($bin $news_file $cmd $prompt $smart @wday @mon);
+use vars qw($bin $news_file $cmd $prompt $smart @wday @mon %prompt_vars %built_ins);
 my $default_prompt = '\s\$ ';
 
 my $input;
@@ -118,6 +118,36 @@ sub read_until
 # TODO: Undo any side effects, e.g. done by m//.
 #
 
+sub which
+{
+	my $cmd  = shift;
+	my @path = split(':', $ENV{PATH});
+
+	foreach my $dir (@path) {
+		my $try = "$dir/$cmd";
+
+		if ((-r $try) and (-x $try) and (!-d $try)) { return $try; }
+	}
+
+	return undef;
+}
+
+%built_ins = (
+	'exit'  => sub { exit; },
+	'cd'    => sub { chdir @_; },
+	'which' => sub {
+		my $cmd   = shift;
+		if (!defined($cmd) or $cmd eq '') {
+			print STDER "which: requires one argument\n";
+		}
+		my $which = which $cmd;
+		if (!defined($which)) {
+			print STDERR "which: no $cmd in ($ENV{PATH})\n";
+		}
+		print "$which\n";
+	}
+);
+
 sub process
 {
 	my ($get, $put, $prompt) = @_;
@@ -146,17 +176,51 @@ sub process
 		} elsif ($input =~ m/^\s*!(.+)\s*$/) {
 			system($1);
 			undef $input;
-		} elsif (($psh::smart) and ($input =~ m/^\s*([a-zA-Z0-9_-]+)((\s*$)|(\s+.+$))/)) {
-			my $smart = $1;
-			my $which = `which $smart`;
-			chomp $which;
-			if (!($which =~ m/^which: no $smart in/)) {
-				system($input);
+
+		#
+		# TODO: This expression works well for single arguments with no
+		# quoting or internal spaces. Really what we need is a perl
+		# quoting mechanism that produces an array of arguments using
+		# shell-like parsing rules. The idea would be you give it a
+		# string which is expected to be a sequence of scalars without
+		# commas between them. This is much like qw(), except that it
+		# allows internal quoting. Note that the handling of the string
+		# sent to system() probably has some of the necessary logic.
+		#
+
+		} elsif ($input =~ m/^\s*([a-zA-Z0-9_-]+)(\s*)(|\S+)\s*$/) {
+			my $cmd = $1;
+			my $arg = $3;
+
+			if (ref $psh::built_ins{$cmd} eq 'CODE') {
+				&{$psh::built_ins{$cmd}}($arg);
 				undef $input;
+			} elsif ($psh::smart) {
+				my $which = which($cmd);
+
+				if (defined($which)) {
+					system("$which $arg");
+					undef $input;
+				}
 			}
 		}
 
 		next unless defined($input);
+
+		#
+		# TODO: Is this the best way to manage the package context?
+		#
+		# Consider:
+		#
+		#     my $pkg = package;
+		#     package psh;
+		#     ...
+		#     package $pkg;
+		#     eval ...
+		#     package $psh;
+		#
+		# The idea here is to not force "package main" as it does now.
+		#
 
 		my $result;
 		package main;
@@ -167,7 +231,7 @@ sub process
 		chomp $msg;
 
 		if (!defined($result)) {
-			# TODO: This *should be an indication of trouble, too!
+			# TODO: This *should* be an indication of trouble, too!
 			# But, sub { ... }; and use ...; both have undef results from eval!
 #			print STDERR "Error ($msg) evaluating input: `$input'!\n";
 		}
@@ -212,6 +276,40 @@ sub process_file
 #
 # Construct a prompt string.
 #
+# TODO: Should we have an entry for '\'?
+#
+
+%prompt_vars = (
+	'd' => sub {
+			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
+			$wday = $wday[$wday];
+			$mon  = $mon[$mon];
+			return "$wday $mon $mday";
+		},
+	'h' => sub {
+			my $host = `uname -n`;
+			chomp $host;
+			return $host;
+		},
+	's' => sub {
+			my $shell = $bin;
+			$shell =~ s/^.*\///;
+			return $shell;
+		},
+	'n' => sub { return "\n"; },
+	't' => sub {
+			my ($hour, $min, $sec) = (localtime)[2, 1, 0];
+			return sprintf("%02d:%02d:%02d", $hour, $min, $sec);
+		},
+	'u' => sub {
+			# Camel, 2e, p. 172: 'getlogin'.
+			return getlogin || (getpwuid($>))[0] || "uid$>";
+		},
+	'w' => sub { return cwd; },
+	'W' => sub { my $dir = cwd; $dir =~ s/^.*\///; return $dir },
+	'#' => sub { return $cmd; },
+	'$' => sub { return ($> ? '$' : '#'); }
+);
 
 sub prompt_string
 {
@@ -237,37 +335,12 @@ sub prompt_string
 	while ($temp =~ m/^(.*)\\(.)(.*)$/) {
 		my $sub;
 
-		if ($2 eq 'd') {
-			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
-			$wday = $wday[$wday];
-			$mon  = $mon[$mon];
-			$sub  = "$wday $mon $mday";
-		} elsif ($2 eq 'h') {
-			$sub = `uname -n`;
-			chomp $sub;
-		} elsif ($2 eq 's') {
-			$sub = $bin;
-			$sub =~ s/^.*\///;
-		} elsif ($2 eq 'n') {
-			$sub = "\n";
-			$sub = "\n";
-		} elsif ($2 eq 't') {
-			my ($hour, $min, $sec) = (localtime)[2, 1, 0];
-			$sub  = sprintf("%02d:%02d:%02d", $hour, $min, $sec);
-		} elsif ($2 eq 'u') {
-			# Camel, 2e, p. 172: 'getlogin'.
-			$sub = getlogin || (getpwuid($>))[0] || "uid$>";
-		} elsif ($2 eq 'w') {
-			$sub = cwd;
-		} elsif ($2 eq 'W') {
-			$sub = cwd;
-			$sub =~ s/^.*\///;
-		} elsif ($2 eq '#') {
-			$sub = $cmd;
-		} elsif ($2 eq '$') {
-			$sub = $> ? '$' : '#';
+		my $var = $prompt_vars{$2};
+
+		if (ref $var eq 'CODE') {
+			$sub = &$var();
 		} else {
-			print "psh: Warning: $psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n";
+			print "psh: Warning: \$psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n";
 			$sub = ''
 		}
 
@@ -374,13 +447,16 @@ sub process_rc
 	my @rc;
 	my $rc_name = ".pshrc";
 
-	#print "[[LOOKING FOR .pshrc]]\n";
+#	print "[ LOOKING FOR .pshrc ]\n";
 
 	if ($ENV{HOME}) { push @rc, "$ENV{HOME}/$rc_name"; }
-	push @rc, "$rc_name";
+	push @rc, "$rc_name" unless $ENV{HOME} eq cwd;
 
 	foreach my $rc (@rc) {
-		if (-r $rc) { process_file($rc); }
+		if (-r $rc) {
+#			print "[ PROCESSING $rc ]\n";
+			process_file($rc);
+		}
 	}
 }
 
@@ -395,16 +471,13 @@ sub process_rc
 
 sub main_loop
 {
-	my $interactive = -t STDIN and -t STDOUT;
+	my $interactive = (-t STDIN) and (-t STDOUT);
 	my $get;
 
 	#print "[[STARTING MAIN LOOP]]\n";
 
-	if ($interactive) {
-		$get = \&iget;
-	} else {
-		$get = sub { return <STDIN>; };
-	}
+	if ($interactive) { $get = \&iget;                  }
+	else              { $get = sub { return <STDIN>; }; }
 
 	process($get, sub { print @_; }, $interactive);
 }
@@ -548,6 +621,32 @@ variables supported are:
 
 =back
 
+Custom prompting variables may be added by adding entries to the array
+C<%psh::prompt_vars> keyed by the single character code. The entries
+should be subroutine references that return the replacment string.
+
+
+=head2 BUILT-IN FUNCTIONS
+
+The following functions are built into C<psh>:
+
+=over 4
+
+=item * C<cd>
+
+Change the working directory.
+
+=item * C<exit>
+
+Exit out of the shell.
+
+=item * C<which>
+
+Search the directories in the C<PATH> environment variable for an executable
+of the name given. Return the path of the first such executable found.
+
+=back
+
 
 =head1 LIMITATIONS
 
@@ -565,7 +664,7 @@ be fragile.
 
 =head1 OTHER PERL SHELLS
 
-Larry Wall exhibits the simple Perl shell C<while (<>) { eval; print $@; }> on
+Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
 page 161 of the Camel Book (2nd Edition).
 
 Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
@@ -632,16 +731,4 @@ to the same terms as Perl itself.
 #
 # End of file.
 #
-
-print "\n";
-print "Welcome to the Perl Shell (psh Version $psh::VERSION)!\n";
-print "\n";
-print "Try out the new features:\n";
-print "\n";
-
-use Cwd;
-sub cd { chdir(shift); }
-sub pwd { print(cwd(), "\n"); }
-$psh::prompt = '[\u@\h \W]$ ';
-$psh::smart = 1;
 

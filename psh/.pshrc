@@ -4,9 +4,6 @@ print "\n";
 print &psh::news;
 print "\n";
 
-use Cwd;
-sub cd { chdir(shift); }
-sub pwd { print(cwd(), "\n"); }
 $psh::prompt = '[\u@\h \W]{psh}$ ';
 $psh::smart = 1;
 

@@ -1,11 +1,27 @@
 CHANGES
 
 ------------------------------------------------------------
+0.00204
+------------------------------------------------------------
+
+  * Added a bunch of stuff to the TODO file.
+
+  * Added parens around each part of the $interactive
+    detection expression.
+
+  * Prompt variables are now dealt with via %prompt_vars,
+    which can be modified, so that custom prompt variables
+    can be created.
+
+  * Added %built_ins.
+
+
+------------------------------------------------------------
 0.00203
 ------------------------------------------------------------
 
-Fixed typo that caused a bug where prompt variable $ didn't
-work. Thanks to John Labovitz.
+  * Fixed typo that caused a bug where prompt variable "$"
+    didn't work. Thanks to John Labovitz.
 
 
 ------------------------------------------------------------
