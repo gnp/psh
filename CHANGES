@@ -18,7 +18,7 @@ New Features:
      ls | s/a/b/
    (runs replacement over output of previous program and prints it)
      or
-     ls | { print $_; }q
+     ls | { print ++$i, ": $_"; }q
    ( runs the code in braces in an iteration over each line of
      the output unmodified)
      or
