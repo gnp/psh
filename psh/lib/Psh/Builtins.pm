@@ -46,7 +46,6 @@ package Psh::Builtins;
 use strict;
 use vars qw($VERSION %aliases @dir_stack $dir_stack_pos);
 
-use Cwd qw(:DEFAULT chdir);
 use Config;
 use Psh::Util qw(:all print_list);
 use Psh::OS;
@@ -59,7 +58,7 @@ my $PS=$Psh::OS::PATH_SEPARATOR;
 %Psh::array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
 					 'FIGNORE'=>$PS,'CDPATH'=>$PS,'LS_COLORS'=>':');
 
-@dir_stack= (cwd);
+@dir_stack= (Psh::OS::getcwd());
 $dir_stack_pos=0;
 
 
@@ -239,9 +238,10 @@ sub bi_cd
 
 		if ((-e $dir) and (-d _)) {
 			if (-x _) {
-				$ENV{OLDPWD}= cwd;
+				$ENV{OLDPWD}= $ENV{PWD};
 				unshift @dir_stack, $dir if $explicit;
-				chdir $dir;
+				CORE::chdir $dir;
+				$ENV{PWD}=$dir;
 				return 0;
 			} else {
 				print_error_i18n('perm_denied',$in_dir,$Psh::bin);

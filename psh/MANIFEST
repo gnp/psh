@@ -50,6 +50,7 @@ lib/Psh/Builtins/Fg.pm
 lib/Psh/Builtins/Firsttime.pm
 lib/Psh/Builtins/Function.pm
 lib/Psh/Builtins/Dirs.pm
+lib/Psh/Builtins/Drives.pm
 lib/Psh/Builtins/Help.pm
 lib/Psh/Builtins/History.pm
 lib/Psh/Builtins/Jobs.pm

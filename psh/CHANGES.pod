@@ -66,6 +66,10 @@ compatible with bash's fc
 
 New builtin B<bind> which does keybindings (similar to bash). - Andrew Turner [2000-08-11]
 
+=item *
+
+New builtin B<drives> which shows the available drives on Windows - warp [2000-08-26]
+
 =head2 Internals
 
 =item *
@@ -100,6 +104,20 @@ Half-hearted attempt at getting whitespace and special characters in
 TAB completion right
 - warp [2000-07-08]
 
+=item *
+
+Psh::OS::exit renamed to Psh::OS::exit_psh due to problems with POSIX's exit
+- warp [2000-08-26]
+
+=item *
+
+Removed/reduced usage of Cwd.pm due to partly strange behaviour on non-UNIX
+systems - warp [2000-08-26]
+
+=item *
+
+The help builtin cleans up the temp files it creates - warp [2000-08-26]
+
 =head2 Fixes
 
 =item *
@@ -113,11 +131,11 @@ Should work on Perl 5.004 again - warp [2000-07-31]
 
 =item *
 
-Fallback builtins for Windows work again - warp [2000-07-31]
+Windows port works and tested on ActiveState Perl 5.6 - warp [2000-08-26]
 
 =item *
 
-Removed some errors in prompt package - warp [2000-07-31]
+Removed some errors and problems with Windows in prompt package - warp [2000-07-31]
 
 =back
 

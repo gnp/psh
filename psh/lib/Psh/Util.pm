@@ -3,7 +3,7 @@ package Psh::Util;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-use Cwd qw(:DEFAULT chdir);
+use Cwd;
 use Config;
 use Psh::OS;
 use File::Spec;
@@ -125,57 +125,53 @@ sub print_list
     }
 }
 
+{
+	my $abs_path;
 
-#
-# basic_abs_path()
-#
+	sub basic_abs_path {
+		my $dir = shift;
+		$dir = '~' unless defined $dir and $dir ne '';
+		if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
+			my $user = $2;
+			my $rest = $3;
+			my $home;
 
-sub basic_abs_path {
-	my $dir = shift;
-	
-	$dir = '~' unless defined $dir and $dir ne '';
-	
-	if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
-		my $user = $2; 
-		my $rest = $3;
-		
-		my $home;
+			$home= Psh::OS::get_home_dir($user);
+			if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
+		}
 
-		$home= Psh::OS::get_home_dir($user);
-		if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
-	}
-
-	if( !File::Spec->file_name_is_absolute($dir)) {
-		$dir = File::Spec->catdir(cwd,$dir);
-	}
-	
-	return $dir;
-}
-
-
-#
-# string abs_path(string DIRECTORY)
-#
-# expands the argument DIRECTORY into a full, absolute pathname.
-#
-
-eval "use Cwd 'fast_abs_path';";
-if (!$@) {
-	print_debug("Using &Cwd::fast_abs_path()\n");
-	*abs_path = sub {
-	    my $path= eval { &fast_abs_path(@_); };
-		$path= eval { &basic_abs_path(@_) } if( $@);
-		# This is a hack :-) I'm not sure yet wether
-		# fast_abs_path can do everything our abs_path
-		# can... I'm not even sure wether fast_abs_path
-		# is really fast and wether we need all its
-		# abilities (e.g. symlink resolving)
-		return $path;
+		if( !File::Spec->file_name_is_absolute($dir)) {
+			$dir = File::Spec->catdir($ENV{PWD},$dir);
+		}
+		return $dir;
 	};
-} else {
-	*abs_path = sub { eval { &basic_abs_path; }};
-}
 
+	#
+	# string abs_path(string DIRECTORY)
+	#
+	# expands the argument DIRECTORY into a full, absolute pathname.
+	#
+
+	eval "use Cwd 'fast_abs_path';";
+	if ($@) {
+		$abs_path=\&basic_abs_path;
+	} else {
+		$abs_path=\&fast_abs_path;
+	}
+
+	sub abs_path {
+		my $dir= shift;
+		my $dir2= Psh::OS::abs_path($dir);
+		unless ($dir2) {
+			eval {
+				$dir2= &$abs_path($dir);
+			};
+			$dir2= basic_abs_path($dir) if $@;
+			$dir2.='/' unless $dir2=~m:[/\\]:; # abs_path strips / from letter: on Win
+		}
+		return $dir2;
+	}
+}
 
 #
 # string which(string FILENAME)
@@ -211,7 +207,7 @@ if (!$@) {
 			$cmd =~ m|$re2|o;
 			my $path_element= $1;
 			my $cmd_element= $2||'';
-			my $try = abs_path($path_element).$FS.$cmd_element;
+			my $try = Psh::Util::abs_path($path_element).$FS.$cmd_element;
 			if ((-x $try) and (! -d _)) { return $try; }
 			return undef;
 		}
@@ -219,8 +215,8 @@ if (!$@) {
 		# Only search for names which match a given regexp
 		if ($cmd !~ m/$Psh::which_regexp/) { return undef; }
 
-		if ($last_path_cwd ne ($ENV{PATH} . cwd())) {
-			$last_path_cwd = $ENV{PATH} . cwd();
+		if ($last_path_cwd ne ($ENV{PATH} . $ENV{PWD})) {
+			$last_path_cwd = $ENV{PATH} . $ENV{PWD};
 			@Psh::absed_path    = ();
 			%hashed_cmd    = ();
 
@@ -228,7 +224,7 @@ if (!$@) {
 
 			eval {
 				foreach my $dir (@path) {
-					push @Psh::absed_path, abs_path($dir);
+					push @Psh::absed_path, Psh::Util::abs_path($dir);
 				}
 			};
 			# Without the eval Psh might crash if the directory
