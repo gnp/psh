@@ -5,6 +5,7 @@ use vars qw($VERSION);
 use Psh::Util ':all';
 
 eval { use Win32; };
+
 if ($@) {
 	print_error_i18n('no_libwin32');
 	die "\n";
@@ -65,7 +66,7 @@ sub execute_complex_command {
 	my $string='';
 	my @tmp;
 
-	if($#ARRAY) {
+	if($#array) {
 		print_error("No piping yet.\n");
 		return ();
 	}
