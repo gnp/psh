@@ -246,7 +246,7 @@ sub execute_complex_command {
 
 		my $line= join(' ',@$words);
 		my $forcefork;
-		($eval_thingie,$forcefork, @return_val)= &$coderef( \$line, $words,$how,$i>0);
+		($eval_thingie,$words,$forcefork, @return_val)= &$coderef( \$line, $words,$how,$i>0);
 
 		if( defined($eval_thingie)) {
 			if( $#array) {
@@ -260,7 +260,8 @@ sub execute_complex_command {
 			}
 			my $termflag=!($i==$#array);
 
-			($pid,@tmp)= _fork_process($eval_thingie,$fgflag,$text,$options,
+			($pid,@tmp)= _fork_process($eval_thingie,$words,
+									   $fgflag,$text,$options,
 									   $pgrp_leader,$termflag,$forcefork);
 
 			if( !$i && !$pgrp_leader) {
@@ -352,12 +353,15 @@ sub _remove_redirects {
 }
 
 #
-# void fork_process( code|program, int fgflag, text to display in jobs,
-#                    pid of pgroupleader, set terminal flag)
+# void fork_process( code|program, words,
+#                    int fgflag, text to display in jobs,
+#                    redirection options,
+#                    pid of pgroupleader, set terminal flag,
+#                    force a fork?)
 #
 
 sub _fork_process {
-    my( $code, $fgflag, $string, $options,
+    my( $code, $words, $fgflag, $string, $options,
 		$pgrp_leader, $termflag, $forcefork) = @_;
 	my($pid);
 
@@ -388,13 +392,12 @@ sub _fork_process {
 			&{$code};
 			&exit(0);
 		} else {
-			my @words= map { Psh::Parser::unquote($_) }
-			            split ' ',$code;
 			{
 				if( ! ref $options) {
 					exec $code;
 				} else {
-					exec { $words[0] } @words;
+					$code= shift @$words;
+					exec { $code } @$words;
 				}
 			} # Avoid unreachable warning
 			Psh::Util::print_error_i18n(`exec_failed`,$code);
@@ -407,7 +410,7 @@ sub _fork_process {
 
 sub fork_process {
     my( $code, $fgflag, $string, $options) = @_;
-	my ($pid,@result)= _fork_process($code,$fgflag,$string,$options);
+	my ($pid,@result)= _fork_process($code,undef,$fgflag,$string,$options);
 	return @result if !$pid;
 	my $job= $Psh::joblist->create_job($pid,$string);
 	if( !$fgflag) {

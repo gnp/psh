@@ -52,7 +52,9 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * SIGTERM and HUP is now not ignored anymore and exits the Perl Shell instead  - warp [2000-03-11]
 
-=item * switch -r now reserved for restricted mode, new switch -f for alternative resource file
+=item * switch -r now reserved for restricted mode, new switch -f for alternative resource file - warp [2000-03-12]
+
+=item * Fixed problem with quoting which was not removed for the executable strategy - warp [2000-03-12]
 
 =back
 

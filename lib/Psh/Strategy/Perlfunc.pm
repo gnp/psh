@@ -189,7 +189,7 @@ $Psh::strategy_eval{perlfunc}= sub {
 	my $todo= $_[2];
 	return (sub {
 		return Psh::protected_eval($todo,'eval');
-	}, 0, undef);
+	}, [], 0, undef);
 };
 
 @always_insert_before= qw( perlscript auto_resume executable);

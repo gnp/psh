@@ -23,7 +23,7 @@ sub bi_which
 
 	my @words= Psh::Parser::std_tokenize($line);
 	foreach my $strat (@Psh::unparsed_strategies) {
-		if (!defined($Psh::strategy_which{$strat})) {
+		if (!exists($Psh::strategy_which{$strat})) {
 			print_warning_i18n('no_such_strategy',$strat,'which');
 			next;
 		}
@@ -31,6 +31,9 @@ sub bi_which
 		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
 
 		if ($how) {
+			if (ref $how eq 'ARRAY') {
+				$how=$how->[0]
+			}
 			print_out_i18n('evaluates_under',$line,$strat,$how);
 			return 0;
 		}
