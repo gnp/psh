@@ -1,9 +1,0 @@
-## @(#) created by arne
-#######################
-##
-## the plan 9 rc shell default
-
-THEME_AUTHOR="arne <brummelufs@hotmail.com>"
-
-PS1="; "
-TITLE="plan 9"

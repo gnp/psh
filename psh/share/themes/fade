@@ -1,7 +1,0 @@
-# Created by Jim Foltz <aa204@acorn.net>
-# Changed by Spidey 08/06
-# Converted to BASHISH by arne
-needmod color
-
-PS1="\[\E[33;43;1m\]\333\262\261\260\[\E[37;43;1m\]\u@\h\[\E[0m\E[33;40m\]\333\262\261\260\[\E[37;40;1m\] \d \$(date +%I:%M:%S%P)\n\[\E[33;40;1m\]\w/\[\E[0m\] "
-PS2="\[\E[33;40m\]\333\262\261\260\[\E[0m\]>"

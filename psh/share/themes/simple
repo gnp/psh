@@ -1,4 +1,0 @@
-#!psh
-
-option -ps3 -ps4 -prompt_command
-option window_title='\w' ps1='\h:[\W] ' ps2='> '

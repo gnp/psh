@@ -1,2 +1,0 @@
-# http://www.patoche.org/LTT/all/00000080.html
-PS1="[\e[31m\h\e[m:\e[34m\u\e[m:\e[31m\w\$\e[m]"

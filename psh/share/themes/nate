@@ -1,6 +1,0 @@
-#!psh
-# from bashish, original file without credits
-
-option ps1='\C{red}\h:\C{bold blue}\w \C{nobold green}(\t)\C{none}\n\$ '
-option ps2='> '
-option -ps3 -ps4 -prompt_command

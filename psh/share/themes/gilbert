@@ -1,7 +1,0 @@
-#!psh
-# theme by gilbert, found at http://www.tombgilbert.freeserve.co.uk
-# from bashish
-
-option ps1='\C{none green}(\C{cyan}\u@\h\C{green})(\C{cyan}$(date +%d/%m/%y)\C{green})  (\C{cyan}\!\C{green})\n\C{cyan}\$\C{none} '
-option ps2='> '
-option -ps3 -ps4 -prompt_command

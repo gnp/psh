@@ -1,7 +1,0 @@
-#!/usr/bin/psh
-
-# This will eventually provide a thorough test of psh features.
-
-help
-
-exit

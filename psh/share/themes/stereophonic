@@ -1,5 +1,0 @@
-#!psh
-# lfe themes from bashish
-
-option ps1='\C{none blue bold}((\C{white}o\C{blue bold}))\C{none}#'
-option ps2='> '
