@@ -14,8 +14,7 @@ sub T_AND() { 6; }
 sub T_EXECUTE() { 1; }
 
 # generate and cache regexpes
-my %quotehash= qw|' ' " " ` `|;
-my %nesthash=  qw|( ) { } [ ]|;
+my %quotehash= qw|' ' " " ` ` ( ) { } [ ]|;
 my %quotedquotes= ();
 
 my $part2= '(?!a)a';
@@ -25,7 +24,7 @@ foreach my $opener (keys %quotehash) {
     $quotedquotes{$opener}= quotemeta($quotehash{$opener});
 }
 
-my $part1= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|\&>|\\&|>>|>|<<|<|\\(|\\)|\\{|\\}|\\[|\\])';
+my $part1= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|\&>|\\&|>>|>|<<|<)';
 my $regexp= qr[^((?:[^\\\\]|\\\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 ############################################################################
@@ -72,7 +71,7 @@ sub decompose {
 	    my ($rest_of_quote, $remainder)=
 		($rest =~ m/^((?:[^\\]|\\.)*?)$quotedquotes{$quote}(.*)$/s);
 	    if (defined $rest_of_quote) {
-		if ($quote ne "\'") {
+		if ($quote eq "\"") {
 		    $rest_of_quote= remove_backslash($rest_of_quote);
 		}
 		$pieces[$#pieces]= join('', $pieces[$#pieces], $prefix, $quote,
@@ -139,39 +138,6 @@ sub ungroup {
     return $text;
 }
 
-# Combine parenthesized parts
-sub recombine_parts {
-    my @tmpparts= @{shift()};
-    my @parts= ();
-    my @open= ();
-    my @tmp= ();
-    foreach (@tmpparts) {
-	if (length($_)==1) {
-	    if ($_ eq '[' or $_ eq '(' or $_ eq '{') {
-		push @open, $_;
-	    } elsif ($_ eq '}' or $_ eq ')' or $_ eq ']') {
-		my $tmp= pop @open;
-		if (!defined $tmp) {
-		    die "parse: nest: closed $_";
-		}
-		if ($nesthash{$tmp} ne $_) {
-		    die "parse: nest: wrong $tmp $_";
-		}
-	    }
-	}
-	if (@open) {
-	    push @tmp, $_;
-	} elsif (@tmp) {
-	    push @parts, join('', @tmp, $_);
-	    @tmp= ();
-	} else {
-	    push @parts, $_;
-	}
-    }
-    die "parse: nest: open @open" if @open;
-    return \@parts;
-}
-
 ############################################################################
 ##
 ## Convert line pieces into tokens
@@ -220,7 +186,7 @@ sub make_tokens {
     my ($partstmp, $openquotes)= decompose($line);
     die "parse: openquotes: $openquotes" if $openquotes;
 
-    my @parts= @{recombine_parts($partstmp)};
+    my @parts= @$partstmp;
 
     my @tmp= ();
     my @tokens= ();
