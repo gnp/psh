@@ -143,7 +143,7 @@ sub process_variable {
 
 sub process_rc {
     my ($self)= @_;
-    foreach my $file ('/etc/psh2rc', "$ENV{HOME}/.psh2/rc") {
+    foreach my $file ('/etc/psh2/rc', "$ENV{HOME}/.psh2/rc") {
 	if (-r $file) {
 	    $self->process_file($file);
 	}
@@ -340,8 +340,10 @@ sub printdebug {
 
     my $tmp= quotemeta(file_separator());
     my $re= qr/^(.*)$tmp([^$tmp]+)$/;
-    my $last_path_cwd;
+    my $last_path;
+    my $last_cwd;
     my $needs_path_recalc= 1;
+    my $path_contains_relatives= 0;
     my @absed_path;
 
     sub which {
@@ -367,9 +369,10 @@ sub printdebug {
 
 	return undef if $command !~ /^[\-a-zA-Z0-9_.~+]+$/;
 
-	if ($needs_path_recalc and
-	    (!@absed_path or $last_path_cwd ne ($ENV{PATH}.$ENV{PWD}))) {
-	    $last_path_cwd= $ENV{PATH}.$ENV{PWD};
+        if ($needs_path_recalc or !@absed_path or
+            $last_path ne $ENV{PATH} or
+            ($path_contains_relatives and
+             $last_cwd ne $ENV{PWD})) {
 	    _recalc_absed_path($self);
 	}
 	my $path_ext= get_path_extension();
@@ -397,14 +400,18 @@ sub printdebug {
     sub _recalc_absed_path {
 	my $self= shift;
 
+        $last_path= $ENV{PATH};
+        $last_cwd= $ENV{PWD};
 	@absed_path= ();
 	my @path= split path_separator(), $ENV{PATH};
 	$needs_path_recalc=0;
+        $path_contains_relatives=0;
 	eval {
 	    foreach my $dir (@path) {
 		next unless $dir;
-		if (!file_name_is_absolute($self,$dir)) {
-		    $needs_path_recalc=1;
+		if ($dir eq '.' or
+                    !file_name_is_absolute($self,$dir)) {
+                    $path_contains_relatives= 1;
 		}
 		$dir= abs_path($self, $dir);
 		next unless $dir and -r $dir and -x _;

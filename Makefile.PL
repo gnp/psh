@@ -2,16 +2,16 @@ use ExtUtils::MakeMaker;
 
 # Calculate which pods to install
 
-my $pods;
+my $pods={};
 
 chdir 'docs';
 
 my @tmp= glob('*.pod');
 foreach (@tmp) {
-	my $source= 'docs/'.$_;
-	s/\.pod$//;
-	my $dest= '$(INST_MAN1DIR)/'.$_.'.$(MAN1EXT)';
-	$pods->{$source}=$dest;
+    my $source= 'docs/'.$_;
+    s/\.pod$//;
+    my $dest= '$(INST_MAN1DIR)/'.$_.'.$(MAN1EXT)';
+    $pods->{$source}=$dest;
 }
 chdir '..';
 
@@ -28,5 +28,6 @@ WriteMakefile(
 			       'File::Glob' => 0,
 			   },
 	      MAN1PODS     => $pods,
+              MAN3PODS     => {}, # don't create man file for CHANGES.pod
 	      dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
 	     );
