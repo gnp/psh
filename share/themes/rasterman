@@ -15,5 +15,6 @@ $none="\\[\\E[00m\\]"
 
 Psh::Options::set_option('ps1',"$ylobrn$g1$whtbrn \\h $redbrn$g2$redblk$g1$whtblk \\d \\t $none\n$pplblk\\w/")
 Psh::Options::set_option('ps2',"$ylobrn$g1$redbrn$g2$redblk$g1$pplblk > $none ")
+option -ps3 -ps4 -prompt_command
 
 package main;

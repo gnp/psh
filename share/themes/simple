@@ -1,7 +1,4 @@
-#!theme
+#!psh
 
-PS1="\h:[\W] "
-PS2="> "
-PS3=""
-PS4=""
-TITLE="\w"
+option -ps3 -ps4 -prompt_command
+option window_title='\w' ps1='\h:[\W] ' ps2='> '

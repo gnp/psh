@@ -36,7 +36,8 @@ sub _set_theme {
 			Psh::process_variable(join("\n",@lines));
 			return (1,undef);
 		} else { # try to parse it as a simple bashish theme
-			my (@ps,$title);
+			my @ps;
+			my $title='\w';
 			my $bashish_compat=0;
 			foreach my $line (@lines) {
 				next if substr($line,0,1) eq '#';
@@ -82,6 +83,9 @@ sub _set_theme {
 				next unless defined $ps[$i];
 				Psh::Options::set_option("ps$i",$ps[$i]);
 			}
+			Psh::Options::del_option('ps3') unless defined $ps[3];
+			Psh::Options::del_option('ps4') unless defined $ps[4];
+			Psh::Options::del_option('promp_command');
 			return (1,undef);
 		}
 	}
