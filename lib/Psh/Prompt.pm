@@ -154,4 +154,17 @@ sub continue_prompt {
 	return $prompt;
 }
 
+sub pre_prompt_hook {
+	change_title();
+}
+
+sub change_title {
+	my $title= $ENV{PSH_TITLE};
+	return if !$title;
+	my $term= $ENV{TERM};
+	if( $term=~ /^(rxvt.*)|(xterm.*)|(.*xterm)|(kterm)|(aixterm)|(dtterm)/) {
+		print "\017\033]2;$title\007";
+	}
+}
+
 1;

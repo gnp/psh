@@ -209,6 +209,10 @@ directory".
 				if (-x _) {
 					$last_dir = cwd;
 					$ENV{OLDPWD}= $last_dir;
+					if( $Psh::change_title) {
+						$ENV{PSH_TITLE}=$dir;
+						Psh::Prompt::change_title();
+					}
 					chdir $dir;
 					return 0;
 				} else {
