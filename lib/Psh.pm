@@ -981,7 +981,7 @@ sub minimal_initialize
 
 	$news_file                   = "$bin.NEWS";
 
-	$old_shell = $ENV{SHELL};
+	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
 	$ENV{PWD} = cwd;
 
