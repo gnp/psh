@@ -1,3 +1,4 @@
+#! /usr/local/bin/perl -w
 package Psh::Job;
 
 use strict;
@@ -28,7 +29,8 @@ sub new {
 sub continue {
 	my $self= shift;
 
-	kill 'CONT', $self->{pid};
+	# minus sign to wake up the whole group of the child:
+	kill 'CONT', -$self->{pid};
 	$self->{running}=1;
 }
 
