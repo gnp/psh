@@ -143,6 +143,11 @@ sub export
 
 sub kill
 {
+	if( ! Psh::OS::has_job_control()) {
+		print_error_i18n('no_jobcontrol');
+		return undef;
+	}
+
 	my @args = split(' ',$_[0]);
 	my ($sig, $pid, $job);
 
@@ -292,6 +297,11 @@ sub fg
 {
 	my $arg = shift;
 
+	if( ! Psh::OS::has_job_control()) {
+		print_error_i18n('no_jobcontrol');
+		return undef;
+	}
+
 	$arg = -0 if (!defined($arg) or ($arg eq ''));
 	$arg =~ s/\%//;
 	if( $arg =~ /[^0-9]/) {
@@ -299,7 +309,7 @@ sub fg
 		return undef;
 	}
 
-	Psh::restart_job(1, $arg - 1);
+	Psh::OS::restart_job(1, $arg - 1);
 
 	return undef;
 }
@@ -313,6 +323,12 @@ sub bg
 {
 	my $arg = shift;
 
+	if( ! Psh::OS::has_job_control()) {
+		print_error_i18n('no_jobcontrol');
+		return undef;
+	}
+
+
 	$arg = 0 if (!defined($arg) or ($arg eq ''));
 	$arg =~ s/\%//;
 	if( $arg =~ /[^0-9]/) {
@@ -320,7 +336,7 @@ sub bg
 		return undef;
 	}
 
-	Psh::restart_job(0, $arg - 1);
+	Psh::OS::restart_job(0, $arg - 1);
 
 	return undef;
 }
@@ -335,6 +351,12 @@ sub bg
 #
 
 sub jobs {
+	if( ! Psh::OS::has_job_control()) {
+		print_error_i18n('no_jobcontrol');
+		return undef;
+	}
+
+
 	my $result = '';
 	my $job;
 	my $visindex=1;
@@ -380,7 +402,7 @@ sub exit
 		process_file(abs_path($file));
 	}
 
-	CORE::exit $result;
+	Psh::OS::exit($result);
 }
 
 

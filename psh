@@ -23,17 +23,6 @@ use vars qw($VERSION);
 
 $VERSION='0.005pre';
 
-$SIG{'INT'}   = \&Psh::signal_handler;
-$SIG{'QUIT'}  = \&Psh::signal_handler;
-$SIG{'CONT'}  = \&Psh::signal_handler;
-$SIG{'STOP'}  = \&Psh::signal_handler;
-$SIG{'TSTP'}  = \&Psh::signal_handler;
-$SIG{'TTIN'}  = \&Psh::signal_handler;
-$SIG{'TTOU'}  = \&Psh::signal_handler;
-$SIG{'CHLD'}  = \&Psh::ignore_handler;
-$SIG{'WINCH'} = \&Psh::resize_handler;
-
-
 #
 # Parse the command line and deal with the options except -r, which is
 # handled in the MAIN program below. We do this part vary early in this

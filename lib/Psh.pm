@@ -6,7 +6,6 @@ use Cwd;
 use Cwd 'chdir';
 use FileHandle;
 use Getopt::Std;
-use POSIX qw(:sys_wait_h getpid setpgid tcgetpgrp tcsetpgrp);
 
 use Psh::OS;
 use Psh::Joblist;
@@ -70,7 +69,7 @@ sub protected_eval
 		{ #Another such dummy block
 			if ($redo_sentinel) { last; }
 			$redo_sentinel = 1;
-			fork_process( sub {
+			Psh::OS::fork_process( sub {
 				#No need to save the result, we're not using it:
 				eval "$Psh::eval_preamble $Psh::string";
 				if ($@) { exit -1; }
@@ -536,63 +535,6 @@ sub signal_description {
    'eval' => sub { return 'perl evaluation'; }
 );
 
-
-#
-# void remove_signal_handlers()
-#
-# TODO: Is there a way to do this in a loop over something from the
-# Config module? If so, should we use it? If we do, shouldn't we
-# use the same mechanism to set up the signal handlers in the first
-# place?
-#
-
-sub remove_signal_handlers
-{
-	$SIG{INT}   = 'DEFAULT';
-	$SIG{QUIT}  = 'DEFAULT';
-	$SIG{CONT}  = 'DEFAULT';
-	$SIG{STOP}  = 'DEFAULT';
-	$SIG{TSTP}  = 'DEFAULT';
-	$SIG{TTIN}  = 'DEFAULT';
-	$SIG{TTOU}  = 'DEFAULT';
-	$SIG{CHLD}  = 'DEFAULT';
-#	$SIG{WINCH} = 'DEFAULT';
-# This one should stay installed
-}
-
-
-#
-# void give_terminal_to (int PID) 
-#
-# Make pid the foreground process of the terminal controlling STDIN.
-#
-
-sub give_terminal_to
-{
-	# Why are the signal handlers changed for this method only ?!?
-
-        # Current answer by gtw: I put these signal-handler changes in
-        # here. It's the last bit of "magic" I copied from
-        # bash-2.03/jobs.c . I don't know why it's necessary, I just
-        # know that job control was erratic, sometimes causing hangs
-        # when foreground children terminated, until I changed these
-        # signal handlers. This whole function is closely modeled on
-        # the function by the same name in bash-2.03/jobs.c .
-
-	local $SIG{TSTP}  = 'IGNORE';
-	local $SIG{TTIN}  = 'IGNORE';
-	local $SIG{TTOU}  = 'IGNORE';
-	local $SIG{CHLD}  = 'IGNORE';
-
-	#
-	# Perl will always complain about the tcsetpgrp if warnings
-	# are enabled... so we switch it off here
-	# TODO: Find out if really something is wrong with this line
-	local $^W=0;
-	tcsetpgrp(STDIN,$_[0]);
-}
-
-
 %strategy_eval = (
 	'comment' => sub { return undef; },
 
@@ -645,7 +587,7 @@ sub give_terminal_to
 		my %opts = ();
 		foreach (@options) { $opts{$_} = 1; }
 
-		fork_process(sub {
+		Psh::OS::fork_process(sub {
 			package main;
 			# TODO: Is it possible/desirable to put main in the pristine
 			# state that it typically is in when a script starts up,
@@ -867,7 +809,7 @@ sub process
 			$input = &$get();
 		}
 
-		reap_children(); # Check wether we have dead children
+		Psh::OS::reap_children(); # Check wether we have dead children
 
 		$cmd++;
 
@@ -1104,7 +1046,7 @@ sub iget
 	my $line;
 	my $sigint = 0;
 
-	local $SIG{'INT'}=\&readline_handler;
+	Psh::OS::setup_readline_handler;
  
 	do {
 		if ($sigint) {
@@ -1127,6 +1069,8 @@ sub iget
 		}
 		if ($@) { $sigint=1; }
 	} while ($sigint);
+
+	Psh::OS::remove_readline_handler;
 
 	chomp $line;
 
@@ -1194,6 +1138,8 @@ sub minimal_initialize
 
 	$news_file                   = "$bin.NEWS";
 
+	Psh::OS::setup_signal_handlers();
+
 	# The following accessible variables are undef during the
 	# .pshrc file:
 	undef $prompt;
@@ -1219,7 +1165,7 @@ sub minimal_initialize
 
 sub finish_initialize
 {
-	$SIG{SEGV} = \&error_handler       if $Psh::handle_segfaults;
+	Psh::OS::setup_sigsegv_handler if $Psh::handle_segfaults;
 
 	$prompt          = $default_prompt if !defined($prompt);
 	$save_history    = 1               if !defined($save_history);
@@ -1407,7 +1353,6 @@ sub symbols
 			push @array,  "\@$sym" if ref *{"${pack}::$sym"}{ARRAY}  eq 'ARRAY';
 			push @hash,   "\%$sym" if ref *{"${pack}::$sym"}{HASH}   eq 'HASH';
 			push @code,   "\&$sym" if ref *{"${pack}::$sym"}{CODE}   eq 'CODE';
-#			push @glob,   "\*$sym" if ref *{"${pack}::$sym"}{GLOB}   eq 'GLOB';
 			push @handle, "$sym"   if ref *{"${pack}::$sym"}{FILEHANDLE};
 		}
 	}
@@ -1417,118 +1362,8 @@ sub symbols
 	print_out("Array:     ", join(' ', @array),  "\n");
 	print_out("Hash:      ", join(' ', @hash),   "\n");
 	print_out("Code:      ", join(' ', @code),   "\n");
-#	print_out("Glob:      ", join(' ', @glob),   "\n");
 	print_out("Handle:    ", join(' ', @handle), "\n");
 }
-
-
-
-##############################################################################
-##############################################################################
-##
-## SUBROUTINES: Signal Handlers
-##
-##############################################################################
-##############################################################################
-
-
-
-#
-# void signal_handler( string SIGNAL )
-#
-
-sub signal_handler
-{
-	my ($sig) = @_;
-	
-	if ($Psh::currently_active > 0) {
-		print_debug("Received signal SIG$sig, sending to $Psh::currently_active\n");
-
-		kill $sig, $Psh::currently_active;
-	} elsif ($currently_active < 0) {
-		print_debug("Received signal SIG$sig, sending to Perl code\n");
-
-		die "SECRET $bin: Signal $sig\n";
-	} else {
-		print_debug("Received signal SIG$sig, die-ing\n");
-	}
-
-	$SIG{$sig} = \&signal_handler;
-}
-
-
-#
-# ignore_handler()
-#
-# From Markus: Apparently letting a signal execute an empty sub is not the same
-# as setting the sighandler to IGNORE
-#
-
-sub ignore_handler
-{
-	my ($sig) = @_;
-	$SIG{$sig} = \&ignore_handler;
-}
-
-
-sub error_handler
-{
-	my ($sig) = @_;
-	print_error("Received SIG$sig - ignoring\n");
-	$SIG{$sig} = \&error_handler;
-	kill 'INT',getpid(); # HACK to stop a possible endless loop!
-}
-
-#
-# resize_handler()
-#
-
-sub resize_handler
-{
-	my ($sig) = @_;
-	my ($cols, $rows) = (0, 0);
-
-	eval {
-		($cols,$rows)= &Term::Size::chars();
-	};
-
-	unless( $cols) {
-		eval {
-			($cols,$rows)= &Term::ReadKey::GetTerminalSize(STDOUT);
-		};
-	}
-
-
-# I do not really want to active this before I know more about
-# where this will work
-#
-#  	unless( $cols) {
-#  		#
-#  		# Portability alarm!! :-)
-#  		#
-#  		eval 'use "ioctl.ph';
-#  		eval 'use "sys/ioctl.ph';
-#  		eval 'use "sgtty.ph';
-#		
-#  		eval {
-#  			my $TIOCGWINSZ = &TIOCGWINSZ if defined(&TIOCGWINSZ);
-#  			my $TIOCGWINSZ = 0x40087468 if !defined($TIOCGWINSZ);
-#  			my $winsz_t="S S S S";
-#  			my $winsize= pack($winsz_t,0,0,0,0);
-#  			if( ioctl(STDIN,$TIOCGWINSZ,$winsize)) {
-#  				($rows,$cols)= unpack("S S S S",$winsize);
-#  			}
-#  		}
-#  	}
-
-	if(($cols > 0) && ($rows > 0)) {
-		$ENV{COLUMNS} = $cols;
-		$ENV{LINES}   = $rows;
-	}
-
-	$SIG{$sig} = \&resize_handler;
-}
-
 
 
 ##############################################################################
@@ -1538,32 +1373,6 @@ sub resize_handler
 ##
 ##############################################################################
 ##############################################################################
-
-#
-# void fork_process( code, int fgflag)
-#
-
-sub fork_process {
-	local( $Psh::code, $Psh::fgflag, $Psh::string) = @_;
-	local $Psh::pid;
-
-	unless ($Psh::pid = fork) { #child
-		open(STDIN,"-");
-		open(STDOUT,">-");
-		open(STDERR,">&STDERR");
-		remove_signal_handlers();
-		setpgid(getpid(),getpid());
-		give_terminal_to(getpid()) if $Psh::fgflag;
-		&{$Psh::code};
-	}
-	setpgid($Psh::pid,$Psh::pid);
-	local $Psh::job= $joblist->create_job($Psh::pid,$Psh::string);
-	if( !$Psh::fgflag) {
-		my $visindex= $joblist->get_job_number($Psh::job->{pid});
-		print_out("[$visindex] Background $Psh::pid $Psh::string\n");
-	}
-	wait_for_system($Psh::pid, 1) if $Psh::fgflag;
-}
 
 #
 # void my_system(string COMMAND_LINE)
@@ -1594,135 +1403,8 @@ sub my_system
 		$fgflag=0;
 	}
 
-	fork_process( sub {
-		exec $call;
-		print_error_i18n(`exec_failed`,$call);
-		exit -1;
-	}, $fgflag, $call);
+	Psh::OS::fork_process( $call, $fgflag, $call);
 }
-
-
-#
-# void wait_for_system(int PID, [bool QUIET_EXIT])
-#
-# Waits for a program to be stopped/ended, prints no message on normal
-# termination if QUIET_EXIT is specified and true.
-#
-
-sub wait_for_system
-{
-	my($pid, $quiet) = @_;
-        if (!defined($quiet)) { $quiet = 0; }
-
-	my $psh_pgrp = getpgrp;
-
-	my $pid_status = -1;
-
-	my $job= $joblist->get_job($pid);
-
-	while (1) {
-	  print_debug("[[About to give the terminal to $pid.]]\n");
-	  give_terminal_to($pid);
-	  #
-	  # TODO: Is the following line necessary? Should we check to
-	  # make sure te job exists after we do it? This is tricky
-	  # stuff.
-	  #
-	  if (!$job->{running}) { $job->continue; }
-	  my $returnpid;
-	  {
-	    local $Psh::currently_active = $pid;
-	    $returnpid = waitpid($pid, &WUNTRACED);
-	    $pid_status = $?;
-	  }
-	  give_terminal_to($psh_pgrp);
-	  print_debug("[[Just gave myself back the terminal. $pid $returnpid $pid_status]]\n");
-	  handle_wait_status($returnpid, $pid_status, $quiet);
-	  if ($returnpid == $pid) { last; }
-	}
-}
-
-#
-# void handle_wait_status(int PID, int STATUS, bool QUIET_EXIT)
-#
-# Take the appropriate action given that waiting on PID returned
-# STATUS. Normal termination is not reported if QUIET_EXIT is true.
-#
-
-sub handle_wait_status {
-	my ($pid, $pid_status, $quiet) = @_;
-	# Have to obtain these before we potentially delete the job
-	my $job= $joblist->get_job($pid);
-	my $command = $job->{call};
-	my $visindex= $joblist->get_job_number($pid);
-	my $verb='';
-  
-	if (&WIFEXITED($pid_status)) {
-		$verb= "\u$text{done}" if (!$quiet);
-		$joblist->delete_job($pid);
-	} elsif (&WIFSIGNALED($pid_status)) {
-		$verb = "\u$text{terminated} (" .
-			signal_description(WTERMSIG($pid_status)) . ')';
-		$joblist->delete_job($pid);
-	} elsif (&WIFSTOPPED($pid_status)) {
-		$verb = "\u$text{stopped} (" .
-			signal_description(WSTOPSIG($pid_status)) . ')';
-		$job->{running}= 0;
-	}
-	if ($verb) {
-		print_out( "[$visindex] $verb $pid $command\n");
-	}
-}
-
-
-#
-# void reap_children()
-#
-# Checks wether any children we spawned died
-#
-
-sub reap_children
-{
-	my $returnpid=0;
-	while (($returnpid = waitpid(-1, &WNOHANG | &WUNTRACED)) > 0) {
-		handle_wait_status($returnpid, $?);
-	}
-}
-
-#
-# void restart_job(bool FOREGROUND, int JOB_INDEX)
-#
-sub restart_job
-{
-	my ($fg_flag, $job_to_start) = @_;
-
-	my $job= $joblist->find_job($job_to_start);
-
-	if(defined($job)) {
-		my $pid = $job->{pid};
-		my $command = $job->{call};
-
-		if ($command) {
-			my $verb = "\u$text{restart}";
-			my $qRunning = $job->{running};
-			if ($fg_flag) {
-			  $verb = "\u$text{foreground}";
-			} elsif ($qRunning) {
-			  # bg request, and it's already running:
-			  return;
-			}
-			my $visindex = $joblist->get_job_number($pid);
-			print_out("[$visindex] $verb $pid $command\n");
-
-			if($fg_flag) {
-				eval { wait_for_system($pid, 0); };
-			} elsif( !$qRunning) {
-				$job->continue;
-			}
-		}
-	}
-}
-
 
 #
 # End of file.

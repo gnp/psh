@@ -7,6 +7,7 @@ use Cwd;
 use Cwd 'chdir';
 use Psh::Util ':all';
 use Psh::Util qw(starts_with ends_with);
+use Psh::OS;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -24,14 +25,7 @@ my $ac; # character to append
 
 sub init
 {
-	@user_completions= ();
-
-	# TODO: Portability ?
-	setpwent;
-	while( my ($name)= getpwent) {
-		push(@user_completions,'~'.$name);
-	}
-	endpwent;
+	@user_completions= Psh::OS::get_all_users();
 
 	my $attribs=$Psh::term->Attribs;
 
@@ -64,7 +58,7 @@ sub cmpl_bookmarks
 sub cmpl_filenames
 {
 	my $text= shift;
-	my @result= glob "$text*";
+	my @result= Psh::OS::glob("$text*");
 	if( $ENV{FIGNORE}) {
 		my @ignore= split(':',$ENV{FIGNORE});
 		@result= grep {
@@ -114,7 +108,7 @@ sub cmpl_executable
 	
 	foreach my $dir (@Psh::absed_path) {
 		CORE::chdir $dir;
-		push( @result, grep { -x && ! -d } glob "$cmd*" );
+		push( @result, grep { -x && ! -d } Psh::OS::glob("$cmd*") );
 	}	
 	CORE::chdir $old_cwd;
 	return @result;

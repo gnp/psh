@@ -2,8 +2,49 @@ package Psh::OS::Win;
 
 use strict;
 use vars qw($VERSION);
+use Psh::Util ':all';
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
+
+#
+# For documentation see Psh::OS::Unix
+#
+
+# dummy currently
+sub get_hostname { return 'localhost'; }
+
+sub exit { CORE::exit( shift); }
+
+# not necessary I think on Win32
+sub reap_children {};
+
+sub fork_process {
+	local( $Psh::code, $Psh::fgflag, $Psh::string) = @_;
+	local $Psh::pid;
+
+	print_error_i18n('no_jobcontrol') unless $fgflag;
+
+	if( ref($Psh::code) eq 'CODE') {
+		&{$Psh::code};
+	} else {
+		system($Psh::code);
+	}
+}
+
+sub has_job_control { return 0; }
+
+
+sub glob {
+	my @result= glob(shift);
+	return @result;
+}
+
+sub get_all_users { return (); }
+sub restart_job { }
+sub remove_signal_handlers {}
+sub setup_signal_handlers {}
+sub setup_sigsegv_handler {}
+sub setup_readline_handler {}
 
 1;
 

@@ -4,6 +4,8 @@ package Psh::Job;
 use strict;
 use vars qw($VERSION);
 
+use Psh::OS;
+
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 #
@@ -30,7 +32,7 @@ sub continue {
 	my $self= shift;
 
 	# minus sign to wake up the whole group of the child:
-	kill 'CONT', -$self->{pid};
+	kill 'CONT', -$self->{pid} if Psh::OS::has_job_control;
 	$self->{running}=1;
 }
 
