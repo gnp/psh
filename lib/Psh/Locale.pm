@@ -234,7 +234,7 @@ sub months {
 					push( @mon, POSIX::strftime("%b",0,0,0,1,$i,99));
 				}
 			} else {
-				@mon= qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov);
+				@mon= qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 			}
 		}
 	}
