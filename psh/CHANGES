@@ -1,290 +1,50 @@
 CHANGES
 
 ------------------------------------------------------------
-DEVELOPMENT                                     [1999-12-10]
+0.004                                           [1999-12-13]
 ------------------------------------------------------------
 
-Bug Fixes:
+This release fixes bugs, refactors the code, and adds the
+following features:
 
-  * alias now handles quotes on rhs, e.g. alias ls='ls -CF'
-    does the expected thing.
+  * Background process management much more like bash.
 
-Additional features:
+  * Perl code in addition to executables may be put in the
+    background.
 
-  * added perlfunc as a default strategy, so that the 
-    distribution pshrc will run regardless of whether there
-    is an executable named "print" in your path.
-  * (re)implemented a list of aliases if builtin "alias" is
-    called with no arguments
+  * Pipelines.
 
-[LOTS OF OTHER HISTORY since 0.004pre2 not in here yet. ]
+  * Initial internationalization.
 
-------------------------------------------------------------
-0.004pre2 (Limited Release)                     [1999-12-05]
-------------------------------------------------------------
+  * New built-ins: 'alias', 'export', 'setenv'.
 
-Fixes of known 0.004pre1 bugs by Markus Peter. Also:
-
-  * Some more fixes, especially for the job managment code
-    which now works like bash does for background processes
-    trying to access the terminal.
-
-Additional features:
-
-  * Support for pipes in the executable completion, a new
-    built-in "export" or "setenv" and short description of
-    signals in handle_wait_status
-
-
-------------------------------------------------------------
-0.004pre1 (Limited Release)                     [1999-12-04]
-------------------------------------------------------------
-
-KNOWN BUGS:
-
-  * You have to say 'exit' twice to get out.
-
-  * 'ls -l' works, but 'ls' doesn't
-
-Concerning these two main issues:
-
-
-  1) The lexicals in psh were masking main package variables
-     in eval.
-
-  2) All of the child processes for background jobs were in
-     'psh's process group, which was also the foreground
-     process group of the terminal controlling psh. This
-     meant that a Control-C to psh would send SIGINT to psh
-     *and* to all its children. (Try this in an earler
-     version of psh: do xclock &, then xcalc &, and then hit
-     control-C.) Not what you really want in job control.
-     This led me to read the source for bash 2.03 (jobs.c in
-     particular), and I mimicked POSIX job control from
-     there. This involved changing the forking code so that
-     each child could set its own process group.  Some of
-     the lines of Perl I wrote are still magic to me, and
-     there may be some unnecessary ones that I put in trying
-     to get it all to work. Perhaps a Unix signal/job control
-     expert could look it over someday. But it seems to work,
-     at least for me, now...
-
-Contributions from Glen Whitney are:
-
-  * In gw2, the fact that handle_message would die from the
-    main loop meant that installing a builtin with a bug in
-    it and trying to execute it would cause psh to die. That
-    seemed bad, so I added an extra eval protecting the call
-    to $strategy_eval{$strat} so that problems in there
-    wouldn't die all the way back to the main loop.
-
-  * Fixed a few typos: $pid => $temp in builtin_kill; next;
-    => return undef; if no strategy succeeded.
-
-  * Added functions to perform various shell-like expansions
-    on command words, that evaluation strategies may use.
-
-  * Changed the perlfunc strategy to try to evaluate simple
-    command lines beginning with the name of a perl function
-    as if they were shell commands, with the words of the
-    expanded argument line passed to the perl function as
-    arguments. This lets perl functions play a similar role
-    in psh that shell functions do in bash.
-
-  * Fixed problem (1) by moving protected_eval and
-    variable_expansion to the top of the file.
-
-  * Renamed perlfunc_insert_commas and
-    executable_interpolate_arguments to perlfunc_expand_arguments
-    and executable_expand_arguments to have consistent terminology
-    with other shells and to indicate that they are now trying to
-    do the same thing.
-
-  * Made perlfunc_expand_arguments default to true. 
-
-  * Added perlscript strategy, which runs the script in a
-    copy of the current interpreter, without execing.
-
-  * Allowed eval and perlfunc strategies to run in the background
-    also, if the command lines end in &. (So you can say
-    sleep(100)& and continue working in the main psh, although
-    that's not a very useful example.)
-
-  * Made decompose split off & from the last word, to move a tiny
-    step closer to uniform treatment of &.
-
-  * Fixed problem (2) by mimicking bash-2.03 job control using
-    the POSIX module. This means that psh-gw3 will definitely not
-    work on non-POSIX platforms. The job control should be cleaned
-    up a bit (I think) and made able to be turned off and on.
-
-Changes from Simon Huggins:
-
-  * Control-C aborts Readline, printing a new line.
+  * A flexible set of evaluation strategies that can be
+    selected or reordered by setting a configuration
+    variable.
 
   * Prompt strings can have escapes like \07 (ASCII BEL) or
     \10 (ASCII LF).
 
-Changes from Markus Peter:
-
-  * Fix a nasty bug in executable completion which
-    will change the current working directory
-    unwantedly
-
-  * Just entering "alias" without a command to
-    alias will display an error message now. The
-    way Glen included the aliases into the regular
-    built_in system is clever because of its elegency
-    but I cannot imagine a proper way a list of
-    aliases or displaying what an alias does would
-    still work with this system. If there are no
-    objections I´ll add the old alias code as
-    new evaluation strategy.
-
-  * \h in prompts agains uses the short hostname
-    as bash does (vanished with the gw1 patch),
-    you can now use \H for the longname
-
-  * Fixed a bug in is_job_running (still running
-    children could under certain circumstances be
-    removed from the joblist)
-
-Plus:
-
-  * Block comments and moving subroutines around into groups
-
-  * Reformatting contributed code to project indentation style.
-
-  * A few more TODO items.
-
-  * Regenerated README from psh.pod.
-
-
-------------------------------------------------------------
-0.003-gw2 (Limited Release)
-------------------------------------------------------------
-
-Contributions from Glen Whitney:
-
-Documentation:
-
-  * Minor updates, for example noting that the executable
-    strategy is now in by default.
-
-Code:
-
-  * version number changed to gw2
+  * avoided trying to save history if there wasn't even a
+    ReadLine module
 
   * added $psh::debugging variable to hold the debugging
     state, so it can be turned on and off in a running psh
 
-  * removed vestigal "ABSING" debug message that was used to
-    figure out what was so slow on some systems (that's why
-    fast_abs_path is used when available).
+  * A $psh::echo variable to control whether perl results of
+	evaluation are printed.
 
-  * if you're sending a signal to a stopped job, wake it up
-    first. (bash does this)
+  * The which builtin now shows which strategy will apply to
+	a given command line
 
-  * if you kill CONT a job, record the fact that you now
-    think it's running
-
-  * changed the interface for getting information about a
-    job from a straight hash to a suite of functions
-    (get_job_command, is_job_running, record_job_running) so
-    that the is_job_running function can actually ask the
-    job whether it's still running or has been stopped or
-    terminated.
-
-  * added a (still very rudimentary) readline builtin for
-    interacting with the ReadLine implementation psh is
-    using; my hope is for it eventually to be like the bash
-    builtin "bind". I didn't want to call it bind, though,
-    because perl has a built-in function bind.
-
-  * remove initial whitespace in &psh::decompose (should
-    have been that way all along).
-
-  * changed handle_message so that it dies when an unknown
-    error occurs in the top-level eval of main_loop in the
-    main program. (Otherwise, if there's a bug in psh that
-    prevents builtins from executing, you could end up stuck
-    in psh with no way to exit. This happened while
-    debugging.)
-
-  * moved reap_children from iget() to process(), since
-    non-interactive psh's shoud reap their children, too.
-
-  * avoided trying to save history if there wasn't even a
-    ReadLine module
-
-  * replaced literal file handle HIST with a FileHandle (this
-    was an old todo, right?)
-
-  * added handle_wait_status function so that wait_for_system
-    and is_job_running could receive from the waitpid status
-    the information of whether the job finished, was
-    terminated, or was stopped. This way psh won't be "fooled"
-    if something else, like the window manager, stops one of
-    its jobs. Similarly, psh won't be fooled if the job catches
-    Control-C and doesn't actually terminate.
-
-  * added option to wait_for_system to ask it not to print out
-    a message for normal termination, used by my_system in the
-    foreground.
-
-  * removed $flag_signal_sent and $signal_sent, since the waits
-    now get that info directly from waitpid.
-
-  * replaced a busy wait loop in wait_for_system with a
-    quiescent one (i.e., replaced WNOHANG with WUNTRACED). This
-    means the actual perl process won't be doing anything until
-    the child changes state, which should help the operating
-    system out.
-
-  * made reap_children check for processes that have 
-    disappeared altogether. (In odd circumstances you could get
-    entries on this list that would never go away.)
-
-  * made restart_job use the highest-numbered job if no job is
-    specified and there are no stopped jobs.
-
-
-------------------------------------------------------------
-0.003-gw1 (Limited Release)
-------------------------------------------------------------
-
-Contributions from Glen Whitney:
-
-  *  psh::decompose function to handle word-splitting of the command line
-
-  * psh::evl, the basic line evaluator split out as a single function so
-    it can be called by the user
-
-  * A flexible set of evaluation strategies that can be selected or
-    reordered by setting a configuration variable
-
-  * A $psh::echo variable to control whether perl results of evaluation
-    are printed.
-
-  * A new strategy which checks if the first word is a perl function, so
-    that print can be Perl print, not /usr/bin/print, if you like.
-
-  * Handled aliasing using %built_ins (0.003 does alias handling
-    separately; this could be implemented via another evaluation strategy)
-
-  * Updated the which builtin to show which strategy will apply to a given
-    command line
-
-  * Grab more input automatically if <<BLOCK appears anywhere on the line,
-    or if the line ends with an open brace.
-
-  * Control-C now abandons a partial line of input
+  * Grab more input automatically if <<BLOCK appears
+	anywhere on the line, or if the line ends with an open
+	brace.
 
   * results of psh::which searches are hashed.
 
-  * a few other small items
-
-  * Thorough documentation of every user-accessible variable and function
+  * Thorough documentation of every user-accessible variable
+	and function
 
 
 ------------------------------------------------------------
