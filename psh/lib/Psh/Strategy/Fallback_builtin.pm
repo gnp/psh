@@ -28,15 +28,16 @@ sub runs_before {
 }
 
 sub applies {
-	my $fnname = ${$_[1]}[0];
+	my $fnname = ${$_[2]}[0];
 	if( $fallback_builtin{$fnname}) {
 		eval 'use Psh::Builtins::Fallback::'.ucfirst($fnname);
-		return "(fallback built in $fnname)";
+		return "fallback built-in $fnname";
 	}
 	return '';
 }
 
 sub execute {
+	my $self= shift;
 	my $line= ${shift()};
 	my @words= @{shift()};
 	my $command= shift @words;

@@ -45,6 +45,11 @@ First attempt at a B<ulimit> command.
 
 =item *
 
+New builtin B<printenv> to display a list of environment variables (like
+B<env>) or the value of a certain environment variable.
+
+=item *
+
 New default strategy B<perl> - send everything after 'p!' unparsed to the
 perl interpreter (might be used later on for a special rc file compiler)
 
@@ -97,6 +102,11 @@ perldoc for Psh::Locale
 =item *
 
 Switch to new evaluation strategies system. Please also see README.upgrade
+
+=item *
+
+The builtin B<pshtokenize> was removed as it duplicated code from the
+B<debug> strategy.
 
 =back
 
