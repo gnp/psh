@@ -4,6 +4,8 @@ use strict;
 use vars qw($VERSION);
 use Psh::Util ':all';
 
+use DirHandle;
+
 eval {
 	use Win32;
 	use Win32::TieRegistry 0.20;
@@ -110,9 +112,23 @@ sub fork_process {
 	}
 }
 
-sub has_job_control { return 0; }
+sub get_all_users {
+	my @result = (".DEFAULT");
+	if (-d "$ENV{windir}\Profiles") {
+		my $Profiles = new DirHandle "$ENV{windir}\Profiles";
+		if (defined($Profiles)) {
+			while (defined(my ($Profile) = $Profiles->read())) {
+				if (-d $Profile) {
+					push (@result, $Profile);
+				}
+			}
+		}
+	}
+	return @result;
+}
 
-sub get_all_users { return (); } # this should have a value on NT and Win9x with multiple profiles
+
+sub has_job_control { return 0; }
 sub restart_job {1}
 sub remove_signal_handlers {1}
 sub setup_signal_handlers {1}
