@@ -65,7 +65,7 @@ sub print_error
 sub _print_i18n
 {
 	my( $stream, $text, @rest) = @_;
-	$text= $Psh::text{$text} || '';
+	$text= Psh::Locale::get_text($text);
 	# This was looping over 0 and 1 and replacing %0 and %1
 	for( my $i=1; $i<=@rest; $i++)
 	{

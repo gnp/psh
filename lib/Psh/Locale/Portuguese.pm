@@ -59,24 +59,3 @@ EOT
 
 
 1;
-__END__
-
-=head1 NAME
-
-Psh::Locale::Portuguese - containing translations for Portuguese locale
-
-=head1 SYNOPSIS
-
-
-=head1 DESCRIPTION
-
-
-=head1 AUTHOR
-
-Gregor N. Purdy, gregor@focusresearch.om
-
-=head1 SEE ALSO
-
-
-=cut
-

@@ -55,23 +55,3 @@ EOT
 
 
 1;
-__END__
-
-=head1 NAME
-
-Psh::Locale::French - containing translations for French locale
-
-=head1 SYNOPSIS
-
-
-=head1 DESCRIPTION
-
-
-=head1 AUTHOR
-
-Gregor N. Purdy, gregor@focusresearch.com
-
-=head1 SEE ALSO
-
-
-=cut

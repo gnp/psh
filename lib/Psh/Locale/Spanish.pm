@@ -54,23 +54,3 @@ EOT
 
 
 1;
-__END__
-
-=head1 NAME
-
-Psh::Locale::Spanish - containing translations for Spanish locale
-
-=head1 SYNOPSIS
-
-
-=head1 DESCRIPTION
-
-
-=head1 AUTHOR
-
-Gregor N. Purdy, gregor@focusresearch.com
-
-=head1 SEE ALSO
-
-
-=cut

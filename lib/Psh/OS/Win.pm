@@ -183,7 +183,8 @@ sub _handle_wait_status {
 	my $visindex= Psh::Joblist::get_job_number($pid);
 	my $verb='';
 
-	Psh::Util::print_out("[$visindex] \u$Psh::text{done} $pid $command\n") unless $quiet;
+	my $tmp= Psh::Locale::get_text('done');
+	Psh::Util::print_out("[$visindex] \u$tmp $pid $command\n") unless $quiet;
 	Psh::Joblist::delete_job($pid);
 	return '';
 }
@@ -222,10 +223,12 @@ sub restart_job
 		my $command = $job->{call};
 
 		if ($command) {
-			my $verb = "\u$Psh::text{restart}";
+			my $tmp=Psh::Locale::get_text('restart');
+			my $verb = "\u$tmp";
 			my $qRunning = $job->{running};
 			if ($fg_flag) {
-			  $verb = "\u$Psh::text{foreground}";
+				my $tmp= Psh::Locale::get_text('foreground');
+				$verb = "\u$tmp";
 			} elsif ($qRunning) {
 			  # bg request, and it's already running:
 			  return;

@@ -99,24 +99,3 @@ no_libwin32=libwin32 Library benötigt (vorhanden als CPAN Bundle oder ausgeliefe
 
 # Psh::OS::Unix
 unix_received_strange_sig=Signal SIG%1 wurde empfangen - wird ignoriert
-
-__END__
-
-=head1 NAME
-
-Psh::Locale::German - containing translations for German locales
-
-=head1 SYNOPSIS
-
-
-=head1 DESCRIPTION
-
-
-=head1 AUTHOR
-
-Markus Peter, warp@spin.de
-
-=head1 SEE ALSO
-
-
-=cut
