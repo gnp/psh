@@ -31,17 +31,37 @@ A reverse-chronological ordered list of changes
 
 =over 4
 
-=item * New builtin 'rename' - this does the same as Larry Wall's PPT program but profits from being integrated into Psh (can use Psh subs and variables for the modification) - warp [2000-05-01]
+=item *
 
-=item * Psh::OS::backtick() now can call and capture the output of Psh builtins on Unix - warp [2000-05-01]
+New builtin B<rename> - this does the same as Larry Wall's PPT program but
+profits from being integrated into B<psh> (it can use B<psh> subs and
+variables for the modification).
+- warp [2000-05-01]
 
-=item * Added new builtin 'fc' which is similar to bash's fc - inspired by a command on the SourceForge message board (and I finally start to like this command ;-) - warp [2000-05-03]
+=item *
+
+C<Psh::OS::backtick()> now can call and capture the output of B<psh> builtins
+on Unix.
+- warp [2000-05-01]
+
+=item *
+
+Added new builtin B<fc> which is similar to the command of the same name from
+B<bash> - inspired by a command on the SourceForge message board (and I
+finally start to like this command ;-).
+- warp [2000-05-03]
 
 =head2 Internals
 
-=item * New sub Psh::Util::prompt for interactive prompting - warp [2000-05-01]
+=item *
 
-=item * Cleanups in Psh::OS::Unix::_setup_redirects and _remove_redirects - warp [2000-05-01]
+New sub C<Psh::Util::prompt()> for interactive prompting.
+- warp [2000-05-01]
+
+=item *
+
+Cleanups in C<Psh::OS::Unix::_setup_redirects> and C<...::_remove_redirects>.
+- warp [2000-05-01]
 
 =back
 
