@@ -2,10 +2,12 @@
 #
 # psh - Perl Shell
 #
-# A simple read-eval loop. The -w flag and 'use strict' are
-# not employed so that the user is not bound by their stipulations.
-# Setting $^W = 1 will turn on warnings, and calling 'use strict'
-# will do the usual thing if called by the user.
+# TODO: Use more obsure file handle names, or use lexical FileHandle objects,
+# so that the user cannot get them and their names don't interfere with user
+# code.
+#
+# TODO: Behave more like a shell so that, e.g. `use Shell qw(vi); vi "foo";'
+# does what one would expect.
 #
 # Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
 # This script is free software. It may be copied or modified according
@@ -14,27 +16,78 @@
 
 package psh;
 
-use vars qw($prompt $input $result $VERSION);
+use vars qw($VERSION);
+$VERSION   = '0.002';
 
-$|         = 1;        # Set ouput autoflush on
-$prompt    = 'psh$ ';  # Set default prompt
-$VERSION   = '0.001';
-$input;                # Declare 
+use Cwd;
+use Cwd 'chdir';
+
+
+#
+# Deal with debug mode:
+#
+
+if (@ARGV and $ARGV[0] eq '-d') {
+	print "DEBUGGING!\n";
+
+	$^W = 1;    # Simulate the -w command-line switch
+	use strict; # Turned on when debugging
+}
+
+
+#
+# Global Variables:
+#
+# $prompt is intended to be accessible to the user via $psh::prompt, 
+# which can be set to a string, or to a subroutine ref that returns
+# a prompt string.
+#
+# The other variables are private, lexical variables.
+#
+
+use vars qw($bin $news_file $cmd $prompt $smart @wday @mon);
+my $default_prompt = '\s\$ ';
+
+my $input;
+
+
+#
+# Set up ReadLine:
+#
+
+my $term;
+
+eval { use Term::ReadLine; };
+
+if ($@) {
+	$term = undef;
+	#print "Term::ReadLine not available.\n";
+} else {
+	$term = Term::ReadLine->new('psh');
+	$term->MinLine(undef); # No minimum line length for history adding.
+	#print "Using ReadLine: ", $term->ReadLine(), "\n";
+}
 
 
 #
 # read_until()
 #
+# Get successive lines via calls to &$get() until one of those
+# lines contains exactly the text $terminator. Used to implement
+# the `<<EOF` multiline quoting construct;
+#
+# TODO: Undo any side effects of, e.g., m//.
+#
 
 sub read_until
 {
-	my ($terminator) = @_;
+	my ($get, $terminator) = @_;
 	my $input;
 	my $temp;
 
 	$input = '';
 	while (1) {
-		$temp = <>;
+		$temp = &$get();
 		last unless defined($temp);
 		last if $temp =~ m/^$terminator$/;
 		$input .= $temp;
@@ -45,83 +98,376 @@ sub read_until
 
 
 #
-# read_file()
+# process()
+#
+# Process a source of lines until it returns undef.
+#
+# The $get argument is a subroutine ref, each call to which
+# returns a line of input, or undef if there are no more lines.
+#
+# The $put argument is a subroutine ref, each call to which
+# prints output. It is important for the output routine to
+# ensure that output is flushed at each call, since it is
+# used to print the prompt.
+#
+# The $prompt argument is a boolean which indicates whether or
+# not to print the prompt. When sourcing files (like .pshrc),
+# it is important to not print the prompt string, but for
+# interactive use, it is important to print it.
+#
+# TODO: Undo any side effects, e.g. done by m//.
 #
 
-sub read_file
+sub process
+{
+	my ($get, $put, $prompt) = @_;
+	local $cmd;
+
+#	print "[[PROCESSING GENERIC INPUT]]\n";
+
+	while (1) {
+		&$put(prompt_string()) if $put and $prompt;
+		$cmd++;
+
+		$input = &$get();
+		last unless defined($input);
+
+		chomp $input;
+
+		if      ($input =~ m/^\s*\#.*$/) {
+			undef $input;
+		} elsif ($input =~ m/^\s*$/) {
+			undef $input;
+		} elsif ($input =~ m/^\s*<<([a-zA-Z_0-9\-]*)\s*$/) {
+			$input = read_until($get, $1);
+		} elsif ($input =~ m/^\s*\.\s+(.+)\s*$/) {
+			process_file($1);
+			undef $input;
+		} elsif ($input =~ m/^\s*!(.+)\s*$/) {
+			system($1);
+			undef $input;
+		} elsif ($psh::smart) {
+			$input =~ m/^\s*(\S+)\s*/;
+			my $smart = $1;
+			my $which = `which $smart`;
+			chomp $which;
+			if (!($which =~ m/^which: no $smart in/)) {
+				system($input);
+				undef $input;
+			}
+		}
+
+		next unless defined($input);
+
+		my $result;
+		package main;
+		$result = eval $input;
+		package psh;
+
+		my $msg = $@;
+		chomp $msg;
+
+		if (!defined($result)) {
+			# TODO: This *should be an indication of trouble, too!
+			# But, sub { ... }; and use ...; both have undef results from eval!
+#			print STDERR "Error ($msg) evaluating input: `$input'!\n";
+		}
+
+		if ($msg) {
+			print STDERR "Error ($msg)!\n";
+		}
+	}
+}
+
+
+#
+# process_file()
+#
+
+sub process_file
 {
 	my ($path) = @_;
-	my $input;
+
+#	print "[[PROCESSING FILE $path]]\n";
 
 	if (!-r $path) {
-		print STDERR "$0: Cannot read script `$path'\n";
+		print STDERR "$bin: Cannot read script `$path'\n";
 		return;
 	}
 
 	if (!open(FILE, $path)) {
-		print STDERR "$0: Cannot open script `$path'\n";
+		print STDERR "$bin: Cannot open script `$path'\n";
 		return;
 	}
 
-	$input = join('', <FILE>);
+	process(sub { return <FILE>; });
+
 	close(FILE);
 
-	return $input;
+#	print "[[FINISHED PROCESSING FILE $path]]\n";
 }
 
 
 #
 # prompt_string()
 #
+# Construct a prompt string.
+#
 
 sub prompt_string
 {
+	my $temp;
+
+	#
+	# First, get the prompt string from a subroutine or from the default:
+	#
+
 	if (ref($prompt) eq 'CODE') { # If it is a subroutine,
-		return &$prompt();    #   return the result.
+		$temp = &$prompt();
 	} elsif (ref($prompt)) {      # If it isn't a scalar
-		$prompt = 'psh$ ';    #   set it to a default.
+		print "psh: Warning: $psh::prompt is neither a SCALAR nor a CODE reference.\n";
+		$temp = $default_prompt;
+	} else {
+		$temp = $prompt;
 	}
 
-	return $prompt;
+	#
+	# Now, subject it to substitutions:
+	#
+
+	while ($temp =~ m/^(.*)\\(.)(.*)$/) {
+		my $sub;
+
+		if ($2 eq 'd') {
+			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
+			$wday = $wday[$wday];
+			$mon  = $mon[$mon];
+			$sub  = "$wday $mon $mday";
+		} elsif ($2 eq 'h') {
+			$sub = `uname -n`;
+			chomp $sub;
+		} elsif ($2 eq 's') {
+			$sub = $bin;
+			$sub =~ s/^.*\///;
+		} elsif ($2 eq 'n') {
+			$sub = "\n";
+			$sub = "\n";
+		} elsif ($2 eq 't') {
+			my ($hour, $min, $sec) = (localtime)[2, 1, 0];
+			$sub  = sprintf("%02d:%02d:%02d", $hour, $min, $sec);
+		} elsif ($2 eq 'u') {
+			# Camel, 2e, p. 172: 'getlogin'.
+			$sub = getlogin || (getpwuid($>))[0] || "uid$>";
+		} elsif ($2 eq 'w') {
+			$sub = cwd;
+		} elsif ($2 eq 'W') {
+			$sub = cwd;
+			$sub =~ s/^.*\///;
+		} elsif ($2 eq '#') {
+			$sub = $cmd;
+		} elsif ($2 eq '#') {
+			$sub = $> ? '$' : '#';
+		} else {
+			print "psh: Warning: $psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n";
+			$sub = ''
+		}
+
+		{
+			local $1;
+			if ($sub =~ m/\\(.)/) {
+				print "psh: Warning: Expansion of `\\$2' in prompt string yielded\n";
+				print "     string containing `$1'. Stripping escape sequences from\n";
+				print "     substitution.\n";
+				$sub =~ s/\\(.)//g;
+			}
+		}
+
+		$temp = $1 . $sub . $3
+	}
+
+	return $temp;
 }
 
+
+#
+# iget()
+#
+# Interactive line getting routine. If we have a
+# Term::ReadLine instance, use it and record the
+# input into the history buffer. Otherwise, just
+# grab an input line from STDIN.
+#
+# readline() returns a line WITHOUT a "\n" at the
+# end, and <STDIN> returns one WITH a "\n", UNLESS
+# the end of the input stream occurs after a non-
+# newline character. So, first we chomp() the
+# output of <STDIN> (if we aren't using readline()),
+# and then we tack the newline back on in both
+# cases. Other code later strips it off if necessary.
+#
+
+sub iget
+{
+	my $line;
+
+	if ($term) {
+		$line = $term->readline();
+		$term->addhistory($line);
+	} else {
+		$line = <STDIN>;
+		chomp $line;
+	}
+
+	return $line . "\n";         # This is expected by other code.
+}
+
+
+#
+# news
+#
+
+sub news 
+{
+	if (-r $news_file) {
+		return `cat $news_file`;
+	} else {
+		return '';
+	}
+}
+
+
+#
+# initialize()
+#
+
+sub initialize
+{
+	$|         = 1;                # Set ouput autoflush on
+	$prompt    = $default_prompt;  # Set default prompt
+	$smart     = 0;
+	$cmd       = 1;
+
+	$bin       = $0;
+	$bin       =~ s/.*\///;
+
+	$news_file = "$bin.NEWS";
+
+	#
+	# TODO: Internationalize!
+	#
+	# Although, right now they can be overridden in the .pshrc file
+	# via @psh::wday = qw(Dom Lun Mar Mie Jue Vie Sab).
+	#
+
+	@wday      = qw(Sun Mon Tue Wed Thu Fri Sat);
+	@mon       = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+}
+
+
+#
+# process_rc()
+#
+# Search for and process .pshrc files.
+#
+
+sub process_rc
+{
+	my @rc;
+	my $rc_name = ".pshrc";
+
+	#print "[[LOOKING FOR .pshrc]]\n";
+
+	if ($ENV{HOME}) { push @rc, "$ENV{HOME}/$rc_name"; }
+	push @rc, "$rc_name";
+
+	foreach my $rc (@rc) {
+		if (-r $rc) { process_file($rc); }
+	}
+}
+
+
+#
+# main_loop()
+#
+# Determine whether or not we are operating interactively,
+# set up the input routine accordingly, and process the
+# input.
+#
+
+sub main_loop
+{
+	my $interactive = -t STDIN and -t STDOUT;
+	my $get;
+
+	#print "[[STARTING MAIN LOOP]]\n";
+
+	if ($interactive) {
+		$get = \&iget;
+	} else {
+		$get = sub { return <STDIN>; };
+	}
+
+	process($get, sub { print @_; }, $interactive);
+}
+
+
+#
+# symbols()
+#
+# Print out the symbols of each type used by a package. Note: in testing,
+# it bears out that the filehandles are present as scalars, and that arrays
+# are also present as scalars. The former is not particularly surprising,
+# since they are implemented as tied objects. But, use vars qw(@X) causes
+# both @X and $X to show up in this display. This remains mysterious.
+#
+
+sub symbols
+{
+	my $pack = shift;
+	my (@ref, @scalar, @array, @hash, @code, @glob, @handle);
+	my @sym;
+
+	{
+		no strict qw(refs);
+		@sym = keys %{*{"${pack}::"}};
+	}
+
+	for my $sym (sort @sym) {
+		next unless $sym =~ m/^[a-zA-Z]/; # Skip some special variables
+		next if     $sym =~ m/::$/;       # Skip all package hashes
+
+		{
+			no strict qw(refs);
+
+			push @ref,    "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'REF';
+			push @scalar, "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'SCALAR';
+			push @array,  "\@$sym" if ref *{"${pack}::$sym"}{ARRAY}  eq 'ARRAY';
+			push @hash,   "\%$sym" if ref *{"${pack}::$sym"}{HASH}   eq 'HASH';
+			push @code,   "\&$sym" if ref *{"${pack}::$sym"}{CODE}   eq 'CODE';
+#			push @glob,   "\*$sym" if ref *{"${pack}::$sym"}{GLOB}   eq 'GLOB';
+			push @handle, "$sym"   if ref *{"${pack}::$sym"}{FILEHANDLE};
+		}
+	}
+
+	print "Reference: ", join(' ', @ref),    "\n";
+	print "Scalar:    ", join(' ', @scalar), "\n";
+	print "Array:     ", join(' ', @array),  "\n";
+	print "Hash:      ", join(' ', @hash),   "\n";
+	print "Code:      ", join(' ', @code),   "\n";
+#	print "Glob:      ", join(' ', @glob),   "\n";
+	print "Handle:    ", join(' ', @handle), "\n";
+}
 
 
 #
 # MAIN:
 #
 
-if ($ENV{HOME} and -r "$ENV{HOME}/.pshrc") {
-	$input = read_file("$ENV{HOME}/.pshrc");
-	eval $input if defined($input);
-} elsif (-r ".pshrc") {
-	$input = read_file(".pshrc");
-	eval $input if defined($input);
-}
+initialize;
+process_rc;
+main_loop;
 
-while (1) {
-	print prompt_string();
-
-	$input = <>;
-	exit unless defined($input);
-
-	if ($input =~ m/^\s*<<([a-zA-Z_0-9\-]*)\s*$/) {
-		$input = read_until($1);
-	} elsif ($input =~ m/^\s*!(.+)\s*$/) {
-		system($1);
-		undef $input
-	} elsif ($input =~ m/^\s*\.\s+(.+)\s*$/) {
-		$input = read_file($1);
-	}
-
-	next unless defined($input);
-
-	package main;
-	$psh::result = eval $psh::input;
-
-#	package psh;
-#	print "$result\n" if defined($result);
-}
+exit 0;
 
 __END__
 
@@ -129,22 +475,23 @@ __END__
 
 =head1 NAME
 
-C<psh> - Perl Shell
+psh - Perl Shell
 
 
 =head1 SYNOPSIS
 
 A fairly simple read-eval loop. The C<-w> flag and 'C<use strict>' are
 not employed so that the user is not bound by their stipulations.
-Setting C<$^W = 1> will turn on warnings, and calling '<use strict>'
-will do the usual thing if called by the user.
+Setting C<$^W = 1> will turn on warnings, and calling 'C<use strict>'
+will (almost) do the usual thing if called by the user (see LIMITATIONS,
+below).
 
 
 =head1 DESCRIPTION
 
 Each line of input is read and immediately evaluated.
 
-Multiline input may be entered by starting with a line like C<&lt&ltXXX>,
+Multiline input may be entered by starting with a line like C<E<lt>E<lt>XXX>,
 followed by lines of input not having C<XXX> on a line by itself,
 followed by such a line. If C<XXX> is not specified, then the first
 blank line terminates the input.
@@ -158,8 +505,11 @@ evaluated.
 
 If C<$ENV{HOME}> is set, and the file C<$ENV{HOME}/.pshrc> is present,
 it will be read in and evaluated before processing begins. If not,
-but <.pshrc> is present in the current directory, it will be
+but C<.pshrc> is present in the current directory, it will be
 read and executed.
+
+
+=head2 PROMPT STRINGS
 
 Setting the variable C<$psh::prompt> to a string will cause that string
 to be used as the prompt-string. Setting it to a subroutine reference
@@ -170,6 +520,35 @@ For example,
 
 will cause the prompt to be C<psh [1]$> followed by C<psh [2]$>, and so on.
 
+C<psh> uses some of the same ``prompting variables'' as C<bash>. They are
+accessed by placing a backslash followed by the code in the prompt string,
+either hard coded, or as returned by the prompt string function. The
+variables supported are:
+
+=over 4
+
+=item d The date in ``Weekday Month Day'' format
+
+=item h The hostname
+
+=item n A carriage return and line feed
+
+=item s The name of the shell
+
+=item t The current time in HH:MM:SS format
+
+=item u The username of the current user
+
+=item w The current working directory
+
+=item W The basename of the current working directory
+
+=item # The command number of the current command
+
+=item $ `#' if the effective UID is zero, else `$'
+
+=back
+
 
 =head1 LIMITATIONS
 
@@ -178,8 +557,26 @@ it uses matches to implement some of its special functions.
 
 Very little error checking is done.
 
+The effect of `use foo' is not as expected. Such statements, when
+sent to Perl's eval() function, cause eval() to return undef, which is
+supposed to indicate an error. Simple detection of isolated use statements
+could be hacked in, but it would not be general, and would therefore
+be fragile.
+
+
+=head1 OTHER PERL SHELLS
+
+Larry Wall exhibits the simple Perl shell C<while (<>) { eval; print $@; }> on
+page 161 of the Camel Book (2nd Edition).
+
+Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
+psh-0.001 announcement on C<http://freshmeat.net>, which contained this
+gem that leverages the Perl debugger: C<perl -d -e 1>;
+
 
 =head1 FILES
+
+C<psh> - The Perl Shell executable script.
 
 C<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
 current directory.
@@ -187,7 +584,41 @@ current directory.
 
 =head1 AUTHOR
 
-Gregor N. Purdy, C<gregor@focusresearch.com>
+Gregor N. Purdy, E<lt>F<gregor@focusresearch.com>E<gt>
+
+
+=head1 CREDITS
+
+The following people made contributions to this project.
+
+=over 4
+
+=item ReadLine Support
+
+Code examples showing how to apply the Term::ReadLine package were contributed
+by Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> (in his C<pash.pl> program,
+which is his own Perl shell).
+
+=item Symbol Table Dumping
+
+Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> also had an example of a symbol
+table printing function that was used as the starting point for the C<psh>
+function C<psh::symbols()>. The C<psh> version adds the ability to specify a
+package name, and it also filters out some special variables. The implementation
+technique is also different from Billy's.
+
+=item Prompt String Variables
+
+Matthew D. Allen E<lt>F<s2mdalle@titan.vcu.edu>E<gt> contributed an enhanced
+prompt string handling routine that emulates the C<bash> prompt variables. This
+was expanded into the form now present.
+
+=item Typo Spotting
+
+Allan Kelly E<lt>F<akelly@holyrood.ed.ac.uk>E<gt> found some problems with the
+generated documentation.
+
+=back
 
 
 =head1 COPYRIGHT
@@ -202,3 +633,16 @@ to the same terms as Perl itself.
 #
 # End of file.
 #
+
+print "\n";
+print "Welcome to the Perl Shell (psh Version $psh::VERSION)!\n";
+print "\n";
+print "Try out the new features:\n";
+print "\n";
+
+use Cwd;
+sub cd { chdir(shift); }
+sub pwd { print(cwd(), "\n"); }
+$psh::prompt = '[\u@\h \W]$ ';
+$psh::smart = 1;
+
