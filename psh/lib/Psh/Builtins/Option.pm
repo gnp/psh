@@ -85,7 +85,8 @@ sub bi_option {
 				if ($char eq '(') {
 					$val=qq:[$val]:;
 				} elsif ($char ne "'" and $char ne '"' and $char ne '['
-						and $char ne '{' and $val !~ /^sub\s*\{/) {
+						and $char ne '{' and $char ne "\\" and
+						 $val !~ /^sub\s*\{/) {
 					$val=qq['$val'];
 				}
 				my @tmp= Psh::PerlEval::protected_eval($val,'eval');

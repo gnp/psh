@@ -33,11 +33,10 @@ require Psh::Options;
 # The other global variables are private, lexical variables.
 #
 
-use vars qw($bin $cmd $echo $host $debugging
+use vars qw($bin $cmd $host $debugging
 			$term @absed_path
-			$history_file
-			$eval_preamble $currently_active $handle_segfaults
-			$result_array $which_regexp $ignore_die $old_shell
+			$eval_preamble $currently_active
+			$result_array $which_regexp $old_shell
 		    $login_shell $window_title
             $interactive $trace $current_options
 			@val @history %text );
@@ -81,7 +80,7 @@ sub handle_message
 		} else {
 			Psh::Util::print_error("$from error ($message)!\n");
 			if ($from eq 'main_loop') {
-				if( $ignore_die) {
+				if( Psh::Options::get_option('ignoredie')) {
 					Psh::Util::print_error_i18n('internal_error');
 				} else {
 					die("Internal psh error.");
@@ -270,6 +269,7 @@ sub process
 		my ($success,@result) = evl($input);
 
 		my $qEcho = 0;
+		my $echo= Psh::Options::get_option('echo');
 
 		if (ref($echo) eq 'CODE') {
 			$qEcho = &$echo(@result);
@@ -530,11 +530,13 @@ sub save_history
 {
 	Psh::Util::print_debug_class('o',"[Saving history]\n");
 	if( Psh::Options::get_option('save_history')) {
+		my $file= Psh::Options::get_option('history_file');
+		return unless $file;
 		if ($Psh::readline_saves_history) {
 			$term->StifleHistory(Psh::Options::get_option('histsize'));
-			$Psh::term->WriteHistory($Psh::history_file);
+			$Psh::term->WriteHistory($file);
 		} else {
-			if (open(F_HISTORY,">> $Psh::history_file")) {
+			if (open(F_HISTORY,">> $file")) {
 				Psh::OS::lock(*F_HISTORY, Psh::OS::LOCK_EX());
 				foreach (@Psh::history) {
 					print F_HISTORY $_;
@@ -589,7 +591,6 @@ sub minimal_initialize
 	# .pshrc file:
 	undef $longhost;
 	undef $host;
-	undef $history_file;
 
 	@val = ();
 	@history= ();
@@ -606,7 +607,8 @@ sub minimal_initialize
 
 sub finish_initialize
 {
-	Psh::OS::setup_sigsegv_handler() if $Psh::handle_segfaults;
+	Psh::OS::setup_sigsegv_handler() if
+	  Psh::Options::get_option('ignoresegfault');
 
 	if (!defined($longhost)) {
 		$longhost                    = $ENV{HOSTNAME}||Psh::OS::get_hostname();
@@ -617,11 +619,6 @@ sub finish_initialize
 		$host= $1 if( $longhost=~ /([^\.]+)\..*/);
 	}
 	$ENV{HOSTNAME}= $host;
-	if (!defined($history_file)) {
-		$history_file= File::Spec->catfile(Psh::OS::get_home_dir(),
-										   ".${bin}_history");
-	}
-
 
 	if (-t STDIN) {
 		#
@@ -630,7 +627,7 @@ sub finish_initialize
 		eval { require Term::ReadLine; };
 		if ($@) {
 			$term = undef;
-			Psh::Util::print_error_i18n(no_readline);
+			Psh::Util::print_error_i18n('no_readline');
 		} else {
 			eval { $term= Term::ReadLine->new('psh'); };
 			if( $@) {
@@ -639,7 +636,7 @@ sub finish_initialize
 				sleep 1;
 				eval { $term= Term::ReadLine->new('psh'); };
 				if( $@) {
-					Psh::Util::print_error_i18n(readline_error,$@);
+					Psh::Util::print_error_i18n('readline_error',$@);
 					$term= undef;
 				}
 			}
@@ -650,7 +647,6 @@ sub finish_initialize
 				Psh::Util::print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
 				if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
 					$readline_saves_history = 1;
-					$term->StifleHistory(Psh::Options::get_option('histsize'));
 				}
 				my $attribs= $term->Attribs;
 				$attribs->{completion_function} =
@@ -682,11 +678,13 @@ sub finish_initialize
 	setup_term_misc();
 
 	if (defined($term) and Psh::Options::get_option('save_history')) {
+		my $file= Psh::Options::get_option('history_file');
+		return unless $file;
 		if ($readline_saves_history) {
 			$term->StifleHistory(Psh::Options::get_option('histsize'));
-			$term->ReadHistory($history_file);
+			$term->ReadHistory($file);
 		} else {
-			if (open(F_HISTORY,"< $history_file")) {
+			if (open(F_HISTORY,"< $file")) {
 				Psh::OS::lock(*F_HISTORY);
 				while (<F_HISTORY>) {
 					chomp;
