@@ -39,6 +39,7 @@ if ($]>=5.005) {
 		$def_metaexp= qr{$def_metaexp};
 		$def_tokenizer= qr{$def_tokenizer};
 	};
+	Psh::Util::print_debug_class('e',"Error: $@") if $@;
 }
 
 sub decompose
