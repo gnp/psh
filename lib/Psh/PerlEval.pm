@@ -93,7 +93,13 @@ sub variable_expansion
 			local $Psh::val = eval("$Psh::eval_preamble \"$Psh::word2\"");
 
 			if ($@) { push @Psh::retval, $Psh::word; }
-			else    { push @Psh::retval, split(/(?<!\\) /,$Psh::val); }
+			else    {
+				if ($]<5.005) {
+					push @Psh::retval, split( /\s+/, $Psh::val);
+				} else {
+					push @Psh::retval, split(/(?<!\\)\s+/,$Psh::val);
+				}
+			}
 		}
 	}
 
