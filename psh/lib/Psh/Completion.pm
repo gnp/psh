@@ -44,7 +44,7 @@ sub init
 	if( $term->ReadLine eq "Term::ReadLine::Perl") {
 		$APPEND='completer_terminator_character';
 		$term->Attribs->{completer_word_break_characters}=
-			$term->Attribs->{completer_word_break_characters}."$%&@~";
+			$term->Attribs->{completer_word_break_characters}.="\$\%\@\~";
 	} elsif( $term->ReadLine eq "Term::ReadLine::Gnu") {
 		$GNU=1;
 		$APPEND='completion_append_character';
@@ -52,7 +52,7 @@ sub init
 	}
 
 	# Wow, both ::Perl and ::Gnu understand it
-	$term->Attribs->{special_prefixes}="$%&@~";
+	$term->Attribs->{special_prefixes}= "\$\%\@\~";
 
 }
 
@@ -145,8 +145,9 @@ sub cmpl_perl
 		next if(! eval "defined(${firstchar}main::$rest)" &&
 				$rest ne "ENV" && $rest ne "INC" && $rest ne "$SIG" &&
 				$rest ne "ARGV" );
-		push @result, $rest if starts_with($tmp,$text);
+		push @result, $tmp if starts_with($tmp,$text);
 	}
+	$ac=$EMPTY_AC if @result;
 	return @result;
 }
 
