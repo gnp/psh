@@ -351,10 +351,14 @@ sub signal_description {
 	     my $fnname = ${$_[1]}[0];
          no strict 'refs';
          if( $built_ins{$fnname}) {
-	         return "(built_in $fnname)";
+	         if (Psh::Builtins::_is_aliased($fnname)) {
+	                 return "(alias $fnname)";
+	         } else {
+	                 return "(built_in $fnname)";
+		 }
          }
          if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
- 	         return "(built_in $fnname)";
+ 	         return "(Psh::Builtins::bi_$fnname)";
          }
 		 return '';
 	},
