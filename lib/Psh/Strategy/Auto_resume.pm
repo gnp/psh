@@ -11,7 +11,7 @@ a new program with that name
 $Psh::strategy_which{auto_resume}= sub {
 	my $fnname= ${$_[1]}[0];
     if( my($index, $pid, $call)=
-		   $Psh::joblist->find_last_with_name($fnname,1))
+		   Psh::Joblist::find_last_with_name($fnname,1))
     {
 		return "(auto-resume $call)";
 	}
@@ -20,7 +20,7 @@ $Psh::strategy_which{auto_resume}= sub {
 
 $Psh::strategy_eval{auto_resume}=sub {
 	my $fnname= ${$_[1]}[0];
-    my ($index)= $Psh::joblist->find_last_with_name($fnname,1);
+    my ($index)= Psh::Joblist::find_last_with_name($fnname,1);
     Psh::OS::restart_job(1,$index);
     return undef;
 };

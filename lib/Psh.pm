@@ -3,10 +3,9 @@ package Psh;
 use locale;
 use Psh::Util ':all';
 require File::Spec;
-require Psh::Locale::Base;
+require Psh::Locale;
 require Psh::OS;
 require Psh::Joblist;
-require Psh::Job;
 require Psh::Completion;
 require Psh::Parser;
 require Psh::Builtins;
@@ -37,21 +36,15 @@ require Psh::Prompt;
 use vars qw($bin $cmd $echo $host $debugging
 		    $executable_expand_arguments
 			$term @absed_path $readline_saves_history
-			$history_file $save_history $history_length $joblist
+			$history_file $save_history $history_length
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $window_title
             $interactive
-			@val @wday @mon @strategies @unparsed_strategies @history
+			@val @strategies @unparsed_strategies @history
             @executable_noexpand
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval %fallback_builtin);
-
-# These constants are used in flock().
-use constant LOCK_SH => 1; # shared lock (for reading)
-use constant LOCK_EX => 2; # exclusive lock (for writing)
-use constant LOCK_NB => 4; # non-blocking request (don't wait)
-use constant LOCK_UN => 8; # free the lock
 
 #
 # Private, Lexical Variables:
@@ -118,7 +111,6 @@ my $input;
 	'brace'    => sub { if ( substr(${$_[1]}[0],0,1) eq '{') { return 'perl evaluation'; } return ''; },
 	'built_in' => sub {
 	     my $fnname = ${$_[1]}[0];
-         no strict 'refs';
          if( $built_ins{$fnname}) {
 			 eval 'use Psh::Builtins::'.ucfirst($fnname);
 			 if ($@) {
@@ -126,6 +118,7 @@ my $input;
 			 }
              return "(Psh::Builtins::".ucfirst($fnname)."::bi_$fnname)";
 		 }
+         no strict 'refs';
          if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
  	         return "(Psh::Builtins::bi_$fnname)";
          }
@@ -133,7 +126,7 @@ my $input;
 	},
 
 	'executable' => sub {
-		my $executable = which(${$_[1]}[0]);
+		my $executable = Psh::Util::which(${$_[1]}[0]);
 
 		return "$executable" if defined($executable);
 		return '';
@@ -266,7 +259,7 @@ sub evl {
 	}
 
 	my @elements= Psh::Parser::parse_line($line, @use_strats);
-	return undef if ! @elements;
+	return undef unless @elements;
 
 	my @result=();
 	while( my $element= shift @elements) {
@@ -391,14 +384,16 @@ sub process
 		}
 		$control_d_counter=0;
 
-		if ($input =~ m/^\s*$/) { next; }
+		next unless $input;
+		next if $input=~ m/^\s*$/;
 
-		my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
 		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
+			my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
 			my $terminator = $1;
 			$input .= read_until($continuation, $terminator, $get);
 			$input .= "$terminator\n";
 		} elsif (Psh::Parser::incomplete_expr($input) > 0) {
+			my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
 			$input = read_until_complete($continuation, $input, $get);
 		}
 
@@ -520,7 +515,7 @@ sub process_file
 		return;
 	}
 
-	eval { flock(FILE, LOCK_SH); };
+	Psh::OS::lock(*FILE, Psh::OS::LOCK_SH);
 
 	if ($Psh::debugging=~ /$class/ or
 	   $Psh::debugging==1) {
@@ -533,7 +528,7 @@ sub process_file
 		process(0, sub { my $txt=<FILE>;$txt });
 	}
 
-	eval { flock(FILE, LOCK_UN); };
+	Psh::OS::unlock(*FILE);
 	close(FILE);
 
 	$interactive=1;
@@ -647,12 +642,12 @@ sub save_history
 			$Psh::term->WriteHistory($Psh::history_file);
 		} else {
 			if (open(F_HISTORY,">> $Psh::history_file")) {
-				eval { flock(F_HISTORY, LOCK_EX); };
+				Psh::OS::lock(*F_HISTORY, Psh::OS::LOCK_EX);
 				foreach (@Psh::history) {
 					print F_HISTORY $_;
 					print F_HISTORY "\n";
 				}
-				eval { flock(F_HISTORY, LOCK_UN); };
+				Psh::OS::unlock(*F_HISTORY);
 				close(F_HISTORY);
 			}
 		}
@@ -680,7 +675,7 @@ sub minimal_initialize
 	$currently_active            = 0;
 	$result_array                = '';
 	$executable_expand_arguments = 1;
-	$which_regexp                = '^[-a-zA-Z0-9_.~+]*$'; #'
+	$which_regexp                = '^[-a-zA-Z0-9_.~+]+$'; #'
 
 	if ($]>=5.005) {
 		eval {
@@ -713,8 +708,6 @@ sub minimal_initialize
 	undef $host;
 	undef $history_file;
 
-	$joblist= new Psh::Joblist();
-
 	@val = ();
 	@history= ();
 
@@ -722,7 +715,7 @@ sub minimal_initialize
 	@executable_noexpand= ('whois','/ezmlm-','/mail$','/mailx$',
 						   '/pine$');
 
-	Psh::Locale::Base::init();
+	Psh::Locale::init();
 }
 
 #
@@ -758,8 +751,7 @@ sub finish_initialize
 		#
 		# Set up Term::ReadLine:
 		#
-		eval "use Term::ReadLine;";
-		
+		eval { require Term::ReadLine; };
 		if ($@) {
 			$term = undef;
 			print_error_i18n(no_readline);
@@ -793,16 +785,15 @@ sub finish_initialize
 		#
 		# Set up Term::Size:
 		#
-		eval "use Term::Size 'chars'";
-		
+		eval { require Term::Size; };
 		if ($@) {
 			print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
-			eval "use Term::ReadKey";
+			eval { require Term::ReadKey; };
 			if( $@) {
 				print_debug_class('i',"[Term::ReadKey not available]\n");
 			}
 		}
-		else    { print_debug_class('i',"[Using &Term::Size::chars().]\n"); }
+		else    { print_debug_class('i',"[Using Term::Size::chars().]\n"); }
 
 		Psh::OS::reinstall_resize_handler();
 	}
@@ -813,12 +804,12 @@ sub finish_initialize
 			$term->ReadHistory($history_file);
 		} else {
 			if (open(F_HISTORY,"< $history_file")) {
-				eval { flock(F_HISTORY, LOCK_SH); };
+				Psh::OS::lock(*F_HISTORY, Psh::OS::LOCK_SH);
 				while (<F_HISTORY>) {
 					chomp;
 					$term->addhistory($_);
 				}
-				eval { flock(F_HISTORY, LOCK_UN); };
+				Psh::OS::unlock(*F_HISTORY);
 				close(F_HISTORY);
 			}
 		}

@@ -15,8 +15,8 @@ my $default_prompt = '\s% ';
 %prompt_vars = (
 	'd' => sub {
 			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
-			$wday = $Psh::wday[$wday];
-			$mon  = $Psh::mon[$mon];
+			$wday = (Psh::Locale::weekdays())[$wday];
+			$mon  = (Psh::Locale::months())[$mon];
 			return "$wday $mon $mday";
 		},
 	'E' => sub { return "\e"} ,

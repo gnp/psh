@@ -180,7 +180,7 @@ sub _wait_for_system
 
 	my $pid_status = -1;
 
-	my $job= $Psh::joblist->get_job($pid);
+	my $job= Psh::Joblist::get_job($pid);
 
 	return if ! $job;
 
@@ -229,9 +229,9 @@ sub _wait_for_system
 sub _handle_wait_status {
 	my ($pid, $pid_status, $quiet, $collect) = @_;
 	# Have to obtain these before we potentially delete the job
-	my $job= $Psh::joblist->get_job($pid);
+	my $job= Psh::Joblist::get_job($pid);
 	my $command = $job->{call};
-	my $visindex= $Psh::joblist->get_job_number($pid);
+	my $visindex= Psh::Joblist::get_job_number($pid);
 	my $verb='';
 
 	if (&WIFEXITED($pid_status)) {
@@ -241,11 +241,11 @@ sub _handle_wait_status {
 		} else {
 			$verb= "\u$Psh::text{error}";
 		}
-		$Psh::joblist->delete_job($pid);
+		Psh::Joblist::delete_job($pid);
 	} elsif (&WIFSIGNALED($pid_status)) {
 		$verb = "\u$Psh::text{terminated} (" .
 			Psh::OS::signal_description(WTERMSIG($pid_status)) . ')';
-		$Psh::joblist->delete_job($pid);
+		Psh::Joblist::delete_job($pid);
 	} elsif (&WIFSTOPPED($pid_status)) {
 		$verb = "\u$Psh::text{stopped} (" .
 			Psh::OS::signal_description(WSTOPSIG($pid_status)) . ')';
@@ -330,12 +330,12 @@ sub execute_complex_command {
 	}
 
 	if( $pid) {
-		my $job= $Psh::joblist->create_job($pid,$string);
+		my $job= Psh::Joblist::create_job($pid,$string);
 		$job->{pgrp_leader}=$pgrp_leader;
 		if( $fgflag) {
 			_wait_for_system($pid, 1);
 		} else {
-			my $visindex= $Psh::joblist->get_job_number($job->{pid});
+			my $visindex= Psh::Joblist::get_job_number($job->{pid});
 			Psh::Util::print_out("[$visindex] Background $pgrp_leader $string\n");
 		}
 	}
@@ -464,9 +464,9 @@ sub fork_process {
     my( $code, $fgflag, $string, $options) = @_;
 	my ($pid,@result)= _fork_process($code,undef,$fgflag,$string,$options);
 	return @result if !$pid;
-	my $job= $Psh::joblist->create_job($pid,$string);
+	my $job= Psh::Joblist::create_job($pid,$string);
 	if( !$fgflag) {
-		my $visindex= $Psh::joblist->get_job_number($job->{pid});
+		my $visindex= Psh::Joblist::get_job_number($job->{pid});
 		Psh::Util::print_out("[$visindex] Background $pid $string\n");
 	}
 	_wait_for_system($pid, 1) if $fgflag;
@@ -485,7 +485,7 @@ sub restart_job
 {
 	my ($fg_flag, $job_to_start) = @_;
 
-	my $job= $Psh::joblist->find_job($job_to_start);
+	my $job= Psh::Joblist::find_job($job_to_start);
 
 	if(defined($job)) {
 		my $pid = $job->{pid};
@@ -500,7 +500,7 @@ sub restart_job
 			  # bg request, and it's already running:
 			  return;
 			}
-			my $visindex = $Psh::joblist->get_job_number($pid);
+			my $visindex = Psh::Joblist::get_job_number($pid);
 			Psh::Util::print_out("[$visindex] $verb $pid $command\n");
 
 			if($fg_flag) {
@@ -710,12 +710,12 @@ sub _resize_handler
 	my ($cols, $rows); # Assume nothing so that unless works!
 
 	eval {
-		($cols,$rows)= &Term::Size::chars();
+		($cols,$rows)= Term::Size::chars();
 	};
 
 	unless( $cols) {
 		eval {
-			($cols,$rows)= &Term::ReadKey::GetTerminalSize(*STDOUT);
+			($cols,$rows)= Term::ReadKey::GetTerminalSize(*STDOUT);
 		};
 	}
 

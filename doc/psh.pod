@@ -469,11 +469,6 @@ expect email adresses, and therefore an at-sign.
 An array of lines to write to the history file when B<psh> exits, only
 filled when the ReadLine module doesn't handle the history file.
 
-=item I<@Psh::mon> ( Jan, Feb, etc. )
-
-An array of month names used in printing dates, for example in prompt
-strings.
-
 =item I<@Psh::strategies> ( comment, bang, built_in, executable, eval)
 
 The list of strategies for executing a line, tried in order.
@@ -482,11 +477,6 @@ The list of strategies for executing a line, tried in order.
 
 The default array where B<psh> stores away the results of executing
 lines, as described in C<$Psh::echo> above. 
-
-=item I<@Psh::wday> ( Mon, Tue, Wed, Thu, Fri, Sat)
-
-An array of the weekday names used in printing dates, for example in
-prompt strings.
 
 =back
 

@@ -122,11 +122,11 @@ sub execute_complex_command {
 	}
 	if ($obj) {
 		my $pid=$obj->GetProcessID();
-		my $job=$Psh::joblist->create_job($pid,$string,$obj);
+		my $job=Psh::Joblist::create_job($pid,$string,$obj);
 		if( $fgflag) {
 			_wait_for_system($obj, 1);
 		} else {
-			my $visindex= $Psh::joblist->get_job_number($pid);
+			my $visindex= Psh::Joblist::get_job_number($pid);
 			Psh::Util::print_out("[$visindex] Background $pid $string\n");
 		}
 	}
@@ -176,13 +176,13 @@ sub _handle_wait_status {
 
 	return '' unless $obj;
 	my $pid= $obj->GetProcessID();
-	my $job= $Psh::joblist->get_job($obj->GetProcessID());
+	my $job= Psh::Joblist::get_job($obj->GetProcessID());
 	my $command = $job->{call};
-	my $visindex= $Psh::joblist->get_job_number($pid);
+	my $visindex= Psh::Joblist::get_job_number($pid);
 	my $verb='';
 
 	Psh::Util::print_out("[$visindex] \u$Psh::text{done} $pid $command\n") unless $quiet;
-	$Psh::joblist->delete_job($pid);
+	Psh::Joblist::delete_job($pid);
 	return '';
 }
 
@@ -224,7 +224,7 @@ sub restart_job
 {
 	my ($fg_flag, $job_to_start) = @_;
 
-	my $job= $Psh::joblist->find_job($job_to_start);
+	my $job= Psh::Joblist::find_job($job_to_start);
 
 	if(defined($job)) {
 		my $pid = $job->{pid};
@@ -239,7 +239,7 @@ sub restart_job
 			  # bg request, and it's already running:
 			  return;
 			}
-			my $visindex = $Psh::joblist->get_job_number($pid);
+			my $visindex = Psh::Joblist::get_job_number($pid);
 			Psh::Util::print_out("[$visindex] $verb $pid $command\n");
 
 			if($fg_flag) {

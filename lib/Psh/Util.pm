@@ -145,8 +145,6 @@ sub abs_path {
 		unless ($result) {
 			my $tmp= File::Spec->rel2abs($dir,$ENV{PWD});
 
-			# Not using Cwd::fast_abs_path here saves us forking
-			# one process on UNIX, but this is not without risk
 			my $old= $ENV{PWD};
 			if ( CORE::chdir($tmp)) {
 				$result = Psh::OS::getcwd_psh();
@@ -186,25 +184,25 @@ sub abs_path {
 
 	if ($]>=5.005) {
 		eval {
-			$re1= qr{$re1};
-			$re2= qr{$re2};
+			$re1= qr{$re1}o;
+			$re2= qr{$re2}o;
 		}
 	}
 
 	sub which
     {
-		my $cmd      = shift;
+		my $cmd= shift;
 
 		if ($cmd =~ m|$re1|o) {
 			$cmd =~ m|$re2|o;
 			my $path_element= $1;
 			my $cmd_element= $2||'';
-			my $try = Psh::Util::abs_path($path_element).$FS.$cmd_element;
+			my $try= join('',Psh::Util::abs_path($path_element),$FS,
+						  $cmd_element);
 			if ((-x $try) and (! -d _)) { return $try; }
 			return undef;
 		}
 
-		# Only search for names which match a given regexp
 		if ($cmd !~ m/$Psh::which_regexp/) { return undef; }
 
 		if ($last_path_cwd ne ($ENV{PATH} . $ENV{PWD})) {
@@ -223,7 +221,7 @@ sub abs_path {
 			# does not exist
 		}
 
-		if (exists($command_hash{$cmd})) { return $command_hash{$cmd}; }
+		return $command_hash{$cmd} if exists $command_hash{$cmd};
 
 		my @path_extension=Psh::OS::get_path_extension();
 

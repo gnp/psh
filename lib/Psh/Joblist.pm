@@ -1,83 +1,73 @@
 package Psh::Joblist;
 
 use strict;
-require Psh::Job;
+require Psh::OS;
 
-sub new {
-	my $class = shift;
-	my $self = {};
-	bless $self, $class;
-	my @jobs_order= ();
-	my %jobs_list= ();
-	$self->{jobs_order}= \@jobs_order;
-	$self->{jobs_list}= \%jobs_list;
-	return $self;
-}
+my @jobs_order=();
+my %jobs_list=();
+my $pointer=0;
 
 sub create_job {
-	my ($self, $pid, $call, $assoc_obj) = @_;
-	my $jobs_order= $self->{jobs_order};
-	my $jobs_list= $self->{jobs_list};
+	my ($pid, $call, $assoc_obj) = @_;
 
 	my $job = new Psh::Job( $pid, $call, $assoc_obj);
-	$jobs_list->{$pid}=$job;
-	push(@$jobs_order,$job);
+	$jobs_list{$pid}=$job;
+	push(@jobs_order,$job);
 	return $job;
 }
 
 sub delete_job {
-	my ($self, $pid) = @_;
-	my $jobs_order= $self->{jobs_order};
-	my $jobs_list= $self->{jobs_list};
+	my ($pid) = @_;
 
-	my $job= $jobs_list->{$pid};
+	my $job= $jobs_list{$pid};
 	return if !defined($job);
 
-	delete $jobs_list->{$pid};
+	delete $jobs_list{$pid};
 	my $i;
-	for($i=0; $i <= $#$jobs_order; $i++) {
-		last if( $jobs_order->[$i]==$job);
+	for($i=0; $i <= $#jobs_order; $i++) {
+		last if( $jobs_order[$i]==$job);
 	}
 
-	splice( @$jobs_order, $i, 1);
+	splice( @jobs_order, $i, 1);
 }
 
 sub job_exists {
-	my ($self, $pid) = @_;
+	my $pid= shift;
 
-	return exists($self->{jobs_list}->{$pid});
+	return exists($jobs_list{$pid});
 }
 
 sub get_job {
-	my ($self, $pid) = @_;
+	my $pid= shift;
+	return $jobs_list{$pid};
+}
 
-	return $self->{jobs_list}->{$pid};
+sub list_jobs {
+	return @jobs_order;
 }
 
 sub get_job_number {
-	my ($self, $pid) = @_;
-	my $jobs_order= $self->{jobs_order};
+	my $pid= shift;
 
-	for( my $i=0; $i<=$#$jobs_order; $i++) {
-		return $i+1 if( $jobs_order->[$i]->{pid}==$pid);
+	for( my $i=0; $i<=$#jobs_order; $i++) {
+		return $i+1 if( $jobs_order[$i]->{pid}==$pid);
 	}
 	return -1;
 }
 
 #
-# $pid=$joblist->find_job([$jobnumber])
+# $pid=Psh::Joblist::find_job([$jobnumber])
 # Finds either the job with the specified job number
 # or the highest numbered not running job and returns
 # the job or undef is none is found
 #
 sub find_job {
-	my ($self, $job_to_start) = @_;
-	my $jobs_order= $self->{jobs_order};
+	my $job_to_start= shift;
 
-	return $jobs_order->[$job_to_start] if defined( $job_to_start);
+	return $jobs_order[$job_to_start] if defined( $job_to_start);
 
-	for (my $i = $#$jobs_order; $i >= 0; $i--) {
-		my $job = $jobs_order->[$i];
+	for (my $i = $#jobs_order; $i >= 0; $i--) {
+		my $job = $jobs_order[$i];
 
 		if(!$job->{running}) {
 			return wantarray?($i,$job):$job;
@@ -87,10 +77,10 @@ sub find_job {
 }
 
 sub find_last_with_name {
-	my ($self, $name, $runningflag) = @_;
-	$self->enumerate();
+	my ($name, $runningflag) = @_;
+	enumerate();
 	my $index=0;
-	while( my $job= $self->each) {
+	while( my $job= Psh::Joblist::each()) {
 		next if $runningflag && $job->{running};
 		my $call= $job->{call};
 		if ($call=~ m:([^/\s]+)\s*: ) {
@@ -112,23 +102,52 @@ sub find_last_with_name {
 # Resets the enumeration counter for access using "each"
 #
 sub enumerate {
-	my $self= shift;
-
-	$self->{pointer}=0;
+	$pointer=0;
 }
 
 #
 # Returns the next job
 #
 sub each {
-	my $self= shift;
-	my $jobs_order= $self->{jobs_order};
-	if( $self->{pointer}<=$#$jobs_order) {
-		return $jobs_order->[$self->{pointer}++];
+	if ($pointer <= $#jobs_order) {
+		return $jobs_order[$pointer++];
 	}
 	return undef;
 }
 
+
+package Psh::Job;
+
+#
+# $job= new Psh::Job( pid, call);
+# Creates a new Job object
+# pid is the pid of the object
+# call is the name of the executed command
+#
+sub new {
+	my ( $class, $pid, $call, $assoc_obj ) = @_;
+	my $self = {};
+	bless $self, $class;
+	$self->{pid}=$pid;
+	$self->{call}=$call;
+	$self->{running}=1;
+	$self->{assoc_obj}=$assoc_obj;
+	return $self;
+}
+
+#
+# $job->run;
+# Sends SIGCONT to the job and records it running
+#
+sub continue {
+	my $self= shift;
+
+	# minus sign to wake up the whole group of the child:
+	if( Psh::OS::has_job_control()) {
+		Psh::OS::resume_job($self);
+	}
+	$self->{running}=1;
+}
 
 1;
 __END__
@@ -141,23 +160,21 @@ Psh::Joblist - A data structure suitable for handling job lists like bash's
 
   use Psh::Joblist;
 
-  $joblist= new Psh::Joblist();
+  $job = Psh::Joblist::create_job($pid,$displayed_command);
 
-  $job = $joblist->create_job($pid,$displayed_command);
+  Psh::Joblist::delete_job($pid);
 
-  $joblist->delete_job($pid);
+  $job = Psh::Joblist::get_job($pid);
 
-  $job = $joblist->get_job($pid);
+  $flag = Psh::Joblist::job_exists($pid);
 
-  $flag = $joblist->job_exists($pid);
+  $index = Psh::Joblist::get_job_number($pid);
 
-  $index = $joblist->get_job_number($pid);
+  $job = Psh::Joblist::find_job();
+  $job = Psh::Joblist::find_job($index);
 
-  $job = $joblist->find_job();
-  $job = $joblist->find_job($index);
-
-  $joblist->enumerate();
-  while( $job=$joblist->each()) { ... }  
+  Psh::Joblist::enumerate();
+  while( $job= Psh::Joblist::each()) { ... }
 
 =head1 DESCRIPTION
 
@@ -166,9 +183,5 @@ Read the source ;-)
 =head1 AUTHOR
 
 Markus Peter (warp@spin.de)
-
-=head1 SEE ALSO
-
-Psh::Job(3)
 
 =cut

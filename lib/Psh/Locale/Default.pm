@@ -5,7 +5,6 @@ package Psh::Locale::Default;
 #
 
 use strict;
-use locale;
 
 my %sig_description = (
 					   'TTOU' => 'TTY output',

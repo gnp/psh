@@ -65,6 +65,28 @@ returned the help of setenv)
 
 =back
 
+=head2 Cleanups
+
+=over 4
+
+=item *
+
+The package Psh::Job is now in the same file with Psh::Joblist. Psh::Job
+stays an object while Psh::Joblist was converted to a procedural interface
+as there was no need for OO here.
+
+=item *
+
+The package Psh::Locale::Base was renamed to Psh::Locale, so the Psh::Locale::
+tree now only contains valid locales.
+
+=item *
+
+The C<@Psh::mon> and C<@Psh::wday> variables were removed. Please see the
+perldoc for Psh::Locale
+
+=back
+
 
 ###############################################################################
 ###############################################################################

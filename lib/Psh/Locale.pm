@@ -1,4 +1,4 @@
-package Psh::Locale::Base;
+package Psh::Locale;
 
 use strict;
 use locale;
@@ -197,25 +197,11 @@ my %alias_table= (
 				  "pt_pt"     => "Portuguese",
 );
 
+my (@mon,@wday);
+
 sub init {
 
 	my $lang= $ENV{LANG};
-
-	# You can call the following a hack - we call
-    # strftime to calculate dates to get the locale dependent
-    # names - if anybody knows a better method to access
-    # the locales installed on the system, feel free to change it
-
-	@Psh::mon= ();
-	for( my $i=0; $i<12; $i++)
-	{
-		push( @Psh::mon, POSIX::strftime("%b",0,0,0,1,$i,99));
-	}
-	@Psh::wday= ();
-	for( my $i=0; $i<7; $i++)
-	{
-		push( @Psh::wday, POSIX::strftime("%a",0,0,0,19+$i,11,99,$i));
-	}
 
 	# Use the default locale for defaults
 	require Psh::Locale::Default;
@@ -235,19 +221,69 @@ sub init {
 }
 
 
+# You can call the following a hack - we call
+# strftime to calculate dates to get the locale dependent
+# names - if anybody knows a better method to access
+# the locales installed on the system, feel free to change it
+sub months {
+	if (@_) {
+		@mon=@_;
+	} else {
+		unless (@mon) {
+			for( my $i=0; $i<12; $i++) {
+				push( @mon, POSIX::strftime("%b",0,0,0,1,$i,99));
+			}
+		}
+	}
+	return @mon;
+}
+
+sub weekdays {
+	if (@_) {
+		@wday=@_;
+	} else {
+		unless (@wday) {
+			for( my $i=0; $i<7; $i++) {
+				push( @wday, POSIX::strftime("%a",0,0,0,19+$i,11,99,$i));
+			}
+		}
+	}
+	return @wday;
+}
+
+
 
 1;
 __END__
 
 =head1 NAME
 
-Psh::Locale::Base - containing base code for I18N
+Psh::Locale - containing base code for I18N
 
 =head1 SYNOPSIS
 
 
 =head1 DESCRIPTION
 
+   Psh::Locale::init();
+
+Initializes locale support
+
+   @tmp= Psh::Locale::months();
+
+Returns an array of locale-dependant month names
+
+   @tmp= Psh::Locale::weekdays();
+
+Returns an array of locale-dependant weekday names
+
+   Psh::Locale::months(qw(Jan Feb ...));
+
+Sets the month names
+
+   Psh::Locale::weekdays(qw(Jan Feb ...));
+
+Sets the weekday names
 
 =head1 AUTHOR
 
