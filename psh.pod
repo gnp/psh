@@ -847,7 +847,15 @@ brief table indicating whether or not each has certain features.
 
   The shells:
 
-    Shell Name         PE    SHE   CLE   JC    PL
+=for table
+ @<<<<<<<<<<<<<<<<<<<  @|||  @|||  @|||  @|||  @|||
+
+=for table-head
+
+    Shell Name         PE    SHE   CLE    JC    PL
+
+=for table-body
+
  psh (this one)         *     *     *     *     *            
  Larry Wall shell       *     -     -     -     -
  lpsh                   *     -     *     -     -
