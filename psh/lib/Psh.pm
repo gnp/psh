@@ -680,6 +680,13 @@ sub minimal_initialize
 	$result_array                = '';
 	$executable_expand_arguments = 1;
 	$which_regexp                = '^[-a-zA-Z0-9_.~+]*$'; #'
+
+	if ($]>=5.005) {
+		eval {
+			$which_regexp= qr/$which_regexp/; # compile for speed reasons
+		}
+	}
+
 	$cmd                         = 1;
 
 	$bin                         = basename($0);
