@@ -162,7 +162,6 @@ sub fb_remove_signal_handlers {1}
 sub fb_setup_signal_handlers {1}
 sub fb_setup_sigsegv_handler {1}
 sub fb_setup_readline_handler {1}
-sub fb_reinstall_resize_handler {1}
 sub fb_reap_children {1}
 sub fb_abs_path { undef }
 
@@ -202,6 +201,50 @@ sub fb_lock {
 sub fb_unlock {
 	my $file= shift;
 	flock($file, Psh::OS::LOCK_UN()| Psh::OS::LOCK_NB());
+}
+
+sub fb_reinstall_resize_handler { 1; }
+
+{
+	my $handler_type=0;
+
+	sub fb_install_resize_handler {
+		eval "use Term::Size;";
+		if ($@) {
+			eval "use Term::ReadKey;";
+			unless ($@) {
+				$handler_type=2;
+			}
+		} else {
+			$handler_type=1;
+		}
+	}
+
+
+	sub fb_check_terminal_size {
+		my ($cols,$rows);
+
+		if ($handler_type==0) {
+			return;
+		} elsif ($handler_type==1) {
+			eval {
+				($cols,$rows)= Term::Size::chars();
+			};
+		} elsif ($handler_type==2) {
+			eval {
+				($cols,$rows)= Term::ReadKey::GetTerminalSize(*STDOUT);
+			};
+		}
+
+		if($cols && $rows && ($cols > 0) && ($rows > 0)) {
+			$ENV{COLUMNS} = $cols;
+			$ENV{LINES}   = $rows;
+			if( $Psh::term) {
+				$Psh::term->Attribs->{screen_width}=$cols-1;
+			}
+			# for ReadLine::Perl
+		}
+	}
 }
 
 1;

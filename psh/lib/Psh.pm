@@ -238,6 +238,7 @@ sub process
 		}
 
 		Psh::OS::reap_children(); # Check wether we have dead children
+		Psh::OS::check_terminal_size() if $interactive;
 
 		$cmd++;
 
@@ -668,24 +669,12 @@ sub initialize_interactive_mode {
 			}
 		}
 
-		#
-		# Set up Term::Size:
-		#
-		eval "use Term::Size;";
-		if ($@) {
-			Psh::Util::print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey]\n");
-
-			eval "use Term::ReadKey;";
-			if( $@) {
-				Psh::Util::print_debug_class('i',"[Term::ReadKey not available]\n");
-			}
-		}
-		else    { Psh::Util::print_debug_class('i',"[Using Term::Size::chars().]\n"); }
-
+		Psh::OS::install_resize_handler();
 		Psh::OS::reinstall_resize_handler();
 		# ReadLine objects often mess with the SIGWINCH handler
+
+		setup_term_misc();
 	}
-	setup_term_misc();
 
 	if (defined($term) and Psh::Options::get_option('save_history')) {
 		my $file= Psh::Options::get_option('history_file');
@@ -723,6 +712,7 @@ sub completion_dummy {
 }
 
 sub setup_term_misc {
+	return unless $term;
 	if ($term->can('add_defun')) { # Term::ReadLine::Gnu
 		$term->add_defun('run-help', \&run_help);
 		$term->parse_and_bind("\"\eh\":run-help"); # bind to ESC-h
