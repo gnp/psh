@@ -8,10 +8,13 @@ execution always was the final fallback.
 psh2 is a shell acting as a shell written in perl. Executing perl is
 not the primary function anymore.
 
-- psh2 has actually a straightforward, parsable syntax
-- the grammar is not ambigue
-- the grammar tries to avoid relying on whitespace as much as possible
-  (unlike sh-derivates)
+psh2 has actually a straightforward, parsable syntax. The grammar is not
+ambigous. The grammar tries to avoid relying on whitespace as much as possible
+(unlike sh-derivates).
+
+psh1' evaluation strategies do not exist in psh2 anymore in the same form.
+Pluggable evaluation strategies still exist - to add additional behaviours -
+but strategies like starting an executable or a builtin are hardcoded.
 
 psh1 was delivered with its own homebrew localization system. As only
 the German locale was ever up to date, and nobody seemed to use them
@@ -26,7 +29,7 @@ Components
 ----------
 
 - the Psh2 main object - containing basic infrastructur and accessors
-- the Psh2::Parser module (no object) which tokenizes input. Tokenizations
+- the Psh2::Parser module (no object) which tokenizes input. Tokenization
 in this context means much more than in psh1: the parser already decides
 which evaluation strategies to use
 - an OS-dependant part: Psh2::Unix (and the unimplemented Psh2::Windows) which
