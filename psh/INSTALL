@@ -51,3 +51,14 @@ putting something like
 in your shell's startup dotfile. Be careful that this file isn't executed
 by a shebang (#!) invocation of the shell, or shell scripts written for
 that shell may mysteriously fail.
+
+SETTING UP A .pshrc FILE
+------------------------
+
+After starting psh, you can enter the command
+
+   firsttime
+
+to have some help with setting up your first .pshrc file. The firsttime
+command will try to parse your bash and tcsh rc files to gather aliases,
+environment variables and bring them into psh format.
