@@ -52,6 +52,7 @@ sub bi_help
 				$tmp= get_pod_from_file($tmpfile,$arg);
 				last if $tmp;
 			}
+			unlink($tmpfile) if $tmpfile;
 		}
 		if( $tmp ) {
 			Psh::OS::display_pod("=over 4\n".$tmp."\n=back\n");
