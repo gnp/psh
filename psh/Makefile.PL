@@ -40,3 +40,23 @@ WriteMakefile (
     PM           => $pms,
 	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
 );
+
+eval {
+	require Term::ReadLine;
+	require Term::ReadLine::Gnu;
+};
+if ($@) {
+	eval {
+		require Term::ReadLine::Perl;
+	};
+	if ($@) {
+		print "We suggest you install Term::ReadLine::Gnu or Term::ReadLine::Perl to make psh more useful!\n";
+	}
+}
+
+eval {
+	require BSD::Resource;
+};
+if ($@) {
+	print "The 'ulimit' command in psh will not work, unless you install BSD::Resource.\n";
+}
