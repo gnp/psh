@@ -167,7 +167,7 @@ sub get_rc_files {
 		push @rc, '/etc/pshrc';
 	}
 	my $home= Psh::OS::get_home_dir();
-	if ($home) { push @rc, File::Spec->catfile($home,$rc_file) };
+	if ($home) { push @rc, File::Spec->catfile($home,$Psh::rc_file) };
 	return @rc;
 }
 

@@ -13,7 +13,7 @@ shell, you can move this strategy ahead of executable.
 $Psh::strategy_which{fallback_builtin}= sub {
 		my $fnname = ${$_[1]}[0];
 		
-		if( $fallback_builtin{$fnname}) {
+		if( $Psh::fallback_builtin{$fnname}) {
 			eval 'use Psh::Builtins::Fallback::'.ucfirst($fnname);
             return "(fallback built in $fnname)";
         }
@@ -28,7 +28,7 @@ $Psh::strategy_eval{fallback_builtin}= sub {
         my $rest= join(' ',@words);
         {
 	        no strict 'refs';
-	        $coderef= *{"Psh::Builtins::Fallback::bi_$command"};
+	        $coderef= *{"Psh::Builtins::Fallback::".ucfirst($command)."::bi_$command"};
             return (sub { &{$coderef}($rest,\@words); },[], 0, undef );
         }
 };
