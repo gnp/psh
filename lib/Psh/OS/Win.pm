@@ -4,7 +4,10 @@ use strict;
 use vars qw($VERSION);
 use Psh::Util ':all';
 
-eval { use Win32; };
+eval {
+	use Win32;
+	use Win32::TieRegistry 0.20;
+};
 
 if ($@) {
 	print_error_i18n('no_libwin32');
@@ -20,8 +23,14 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 $Psh::OS::PATH_SEPARATOR=';';
 $Psh::OS::FILE_SEPARATOR='\\';
 
-# dummy currently
-sub get_hostname { return 'localhost'; }
+$Psh::rc_file = "pshrc";
+$Psh::history_file = "psh_history";
+
+sub get_hostname {
+	my $name_from_reg = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\ComputerName\\ComputerName\\ComputerName"};
+	return $name_from_reg if $name_from_reg;
+	return 'localhost'
+}
 
 # TODO: locate hosts file on Windows and do the same as for Unix
 # (it can be anywhere in PATH I think)
@@ -76,7 +85,7 @@ sub execute_complex_command {
 		my $line= join(' ',@$words);
 		my ($eval_thingie,@return_val)= &$coderef( \$line, $words,$how);
 		my @tmp;
-		
+
 		if( defined($eval_thingie)) {
 			@tmp= fork_process($eval_thingie,$fgflag,$text);
 		}
@@ -128,7 +137,7 @@ sub is_path_absolute {
 
 sub get_path_extension {
 	my $extsep = $Psh::OS::PATH_SEPARATOR || ';';
-	my $pathext = $ENV{PATHEXT} || ".cmd${extsep}.bat${extsep}.com${extsep}.exe";
+	my $pathext = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\Environment\\PATHEXT"} || $ENV{PATHEXT} || ".exe";
 	return split("$extsep",$pathext);
 }
 
