@@ -639,6 +639,35 @@ sub cmpl_help {
 	return (1,grep { Psh::Util::starts_with($_,$text) } get_builtin_commands());
 }
 
+$Psh::Builtins::help_builtin = '
+
+=item * C<builtin COMMAND [ARGS]>
+
+Run a shell builtin.
+
+=cut ';
+
+sub bi_builtin {
+	my $text= shift;
+	my ($command, $rest) = Psh::Parser::std_tokenize($text,2);
+	if( $Psh::built_ins{$command} &&
+		!_is_aliased($command) ) {
+		return &{$Psh::built_ins{$command}}($rest);
+	}
+	{
+		no strict 'refs';
+		if( ref *{"Psh::Builtins::bi_$command"}{CODE} eq 'CODE') {
+			my $coderef= *{"Psh::Builtins::bi_$command"};
+			return &{$coderef}($rest);
+		}
+	}
+	print_error_i18n('no_such_builtin',$command,$Psh::bin);
+	return 1;
+}
+
+sub cmpl_builtin {
+	return cmpl_help(@_);
+}
 
 
 #####################################################################

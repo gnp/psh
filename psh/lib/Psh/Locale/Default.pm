@@ -30,6 +30,7 @@ BEGIN {
     $Psh::text{simulate_perl_w}="Simulating -w switch and strict\n";
 	$Psh::text{perm_denied}="%2: %1: Permission denied.\n";
 	$Psh::text{no_such_dir}="%2: %1: No such directory.\n";
+	$Psh::text{no_such_builtin}="%2: %1: No such builtin.\n";
 	$Psh::text{readline_interrupted}="\nInterrupted!\n";
 	$Psh::text{no_readline}="No Readline module available. Please install Term::ReadLine::Perl\n";
 	$Psh::text{unalias_noalias}="unalias: `%1' not an alias\n";
