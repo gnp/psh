@@ -13,6 +13,7 @@
 	programs that basically hand over control to the module. Then, we
 	could leverage the modules without doing an exec by being aware of
 	the namespace they use...
+	[GNP]
 
 
 1999-12-13
@@ -24,7 +25,7 @@
     [GNP]
 
   * How about this:
-      * 'cd dir' means go do dir (called explicit)
+      * 'cd dir' means go to dir (called explicit)
       * 'cd'     means 'cd ~' (counts as explicit)
       * 'cd -1'  means back one in list of explicit cd's (like on a web browser)
       * 'cd %0'  means go to last explicit cd
@@ -66,6 +67,7 @@
 
 	There is another XMLTerm project, related to the LunuXML project. Info
 	at http://www.geocities.com/ResearchTriangle/Forum/6751/#anchor3
+	[GNP]
 
   * Along those same lines, create a mode whereby the shell intercepts
     all command output (rather than letting it stream to its own STDOUT)
