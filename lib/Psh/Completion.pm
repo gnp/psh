@@ -11,6 +11,9 @@ my $APPEND="not_implemented";
 @Psh::Completion::bookmarks= ();
 @Psh::Completion::autoload=();
 
+my %modules=();
+my %module_loaded=();
+
 sub init
 {
 	my $attribs=$Psh::term->Attribs;
@@ -25,6 +28,28 @@ sub init
 	# Only ::Gnu understand it, and ::Perl ignores it silently.
 	$attribs->{completion_display_matches_hook}
 	    = \&display_match_list;
+}
+
+sub add_module {
+	my ($commands,$file)= @_;
+	foreach (@$commands) {
+		$modules{$_}= $file;
+	}
+}
+
+sub start_module {
+	my $command= shift;
+	my $file= $modules{$command};
+	return unless $file;
+	return if $module_loaded{$file};
+	open(FILE, "< $file");
+	my @lines= <FILE>;
+	close(FILE);
+	if (@lines) {
+		my $text= join('',@lines);
+		Psh::process_variable($text);
+		$module_loaded{$file}=1;
+	}
 }
 
 {
@@ -280,7 +305,6 @@ sub cmpl_method {
 }
 
 {
-	my @keyword;
 
 	# complete perl bare words (Perl function, subroutines, filehandle)
 	sub cmpl_perl_function {
@@ -299,7 +323,7 @@ sub cmpl_method {
 				 keys %$pkg);
 		# Do we need a user customizable variable to ignore @packages?
 		my @result= grep(/^\Q$text/,
-						 !$prefix && @keyword,
+						 !$prefix && @Psh::Completion::keyword,
 						 map($prefix . $_, @packages, @subs));
 		if (@result==1) {
 			$ac='';
@@ -309,7 +333,7 @@ sub cmpl_method {
 
 	BEGIN {
 		# from perl5.004_02 perlfunc
-		@keyword = qw(
+		@Psh::Completion::keyword = qw(
 		    chomp chop chr crypt hex index lc lcfirst
 		    length oct ord pack q qq
 		    reverse rindex sprintf substr tr uc ucfirst
@@ -419,12 +443,19 @@ sub completion
 
 	$ac=' ';
 
+	$command =~ m|^\s*(\S*/)?(\S*)|;
+	my $dir=$1||'';
+	my $base=$2||'';
+	my $cmd;
+
+	if ($modules{$cmd= $dir.$base} or
+		$modules{$cmd= $base}) {
+		start_module($cmd);
+	}
+
 	if ($Psh::PCompletion::LOADED) {
 		# Check completion-spec is defined or not.
 		my $cmd;
-		$command =~ m|^\s*(\S*/)?(\S*)|;
-		my $dir=$1||'';
-		my $base=$2||'';
 		my $cs = $Psh::PCompletion::COMPSPEC{$cmd = $dir . $base}
 		  || $Psh::PCompletion::COMPSPEC{$cmd = $base};
 		my $universal=0;
@@ -509,10 +540,14 @@ sub display_match_list {
 
     map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@{$matches});
 	#map { $_ =~ s/^([^\/]+)\/$/\001\e[01;34m\002$1\001\e[00m\002\//; } (@{$matches});
-    $Psh::term->display_match_list($matches);
 	#print STDOUT "\n";
 	#Psh::Util::print_list($matches,$max_length);
+	eval {
+		local $^W=0;
+		$Psh::term->display_match_list($matches);
+	};
     eval {
+		local $^W=0;
 		$Psh::term->forced_update_display if defined $Psh::term;
 	};
 }

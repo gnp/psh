@@ -6,8 +6,6 @@
 
 package Psh::Builtins::Complete;
 
-require Psh::PCompletion;
-
 =item * C<complete module MODULE>
 
 Load a pre-defined completion module
@@ -37,7 +35,8 @@ Delete completion spec for command NAME
 sub bi_complete {
 	my $cs;
 
-	if ($_[1] and $_[1][0] eq 'module' and
+	if ($_[1] and $_[1][0] and 
+		$_[1][0] eq 'module' and
 	    $_[1][1]) {
 		my @dirs=
 		  (
@@ -81,8 +80,12 @@ sub bi_complete {
 				Psh::Util::print_error("Could not find completion module '$file'.\n");
 				return (0,undef);
 			}
-			if ($lines[0]=~/^\#\!.*psh/) { # psh-script
-				Psh::process_variable(join("\n",@lines));
+			if ($lines[0]=~/^\#\!.*pshcomplete/) { # psh-script
+				my $tmp= $lines[1];
+				$tmp=~s/^\s*\#//;
+				my @commands= split /\s+/, $tmp;
+				require Psh::Completion;
+				Psh::Completion::add_module(\@commands,$file);
 				return (1,undef);
 			} else {
 				Psh::Util::print_error("Completion module '$file' is not in a valid format.\n");
@@ -90,11 +93,20 @@ sub bi_complete {
 			}
 		}
 	}
-	elsif (!$_[1] or !($cs= Psh::PCompletion::pcomp_getopts($_[1]))) {
+	elsif (!$_[1]) {
 		require Psh::Builtins::Help;
 		Psh::Builtins::Help::bi_help('complete');
 		return (0,undef);
 	}
+
+	require Psh::PCompletion;
+	if (!($cs= Psh::PCompletion::pcomp_getopts($_[1]))) {
+		require Psh::Builtins::Help;
+		Psh::Builtins::Help::bi_help('complete');
+		return (0,undef);
+	}
+
+
     @_ = @{$_[1]};
 
     if (! $cs->{remove} && $#_ < 0) {
@@ -121,6 +133,8 @@ sub bi_complete {
 
 sub print_compspec ($) {
     my ($cmd) = @_;
+	require Psh::PCompletion;
+
     my $cs = $Psh::PCompletion::COMPSPEC{$cmd};
     print 'complete';
     foreach (sort keys(%Psh::PCompletion::ACTION)) {
@@ -142,6 +156,8 @@ sub cmpl_complete {
     my ($cur, $dummy, $start, $line) = @_;
 
     my ($prev) = $start =~ /(\S+)\s+$/;
+
+	require Psh::PCompletion;
 
     my @COMPREPLY = Psh::PCompletion::redir_test($cur, $prev);
     return @COMPREPLY if @COMPREPLY;

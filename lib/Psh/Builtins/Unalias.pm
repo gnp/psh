@@ -28,8 +28,7 @@ sub bi_unalias {
 
 sub cmpl_unalias {
 	my $text= shift;
-	return (1,grep { Psh::Util::starts_with($_,$text) } get_alias_commands());
+	return (1,grep { Psh::Util::starts_with($_,$text) } Psh::Support::Alias::get_alias_commands());
 }
-
 
 1;
