@@ -27,8 +27,12 @@ $VERSION='0.007';
 #
 # option -i is ignored
 
-getopts('diwr:c:', \%opt);
+getopts('diwrf:c:', \%opt);
 
+if ($opt{'r'}) {
+	Psh::Util::print_error_i18n('no_r_flag');
+	exit 1;
+}
 
 #
 # -w is "warnings mode":
@@ -51,7 +55,7 @@ else           { $Psh::debugging = 0; }
 Psh::Util::print_debug("Debugging!\n");
 
 Psh::minimal_initialize;
-Psh::process_rc($opt{'r'});
+Psh::process_rc($opt{'f'});
 Psh::finish_initialize;
 
 # TODO: Is this implementation equivalent to sh's ?
