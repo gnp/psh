@@ -34,6 +34,33 @@ each character denotes a certain class of debug messages.
 
 =back
 
+=head2 SPEED
+
+Even though B<psh> aims to be an interactive shell instead of a scripting
+environment, speed is important. The main concern here is that startup
+speed of B<psh>, which is primarily determined by two factors:
+
+=over 4
+
+=item perl startup and module loading
+
+=item command processing speed
+
+=back
+
+The startup time on a normal, not to busy, computer should be smaller than
+one second. To make this possible, keep some simple rules in mind:
+
+=over 4
+
+=item prefer C<require> to C<use> whenever possible
+
+=item delay loading modules until they are really needed
+
+=item let the C<applies> method of evaluation strategies be as fast as possible
+
+=back
+
 =head2 BUILT-IN FUNCTIONS
 
 On startup, C<psh> scans the Psh::Builtins:: namespace and will add
