@@ -33,7 +33,7 @@ require Psh::Prompt;
 #
 
 use vars qw($bin $cmd $echo $host $debugging
-			$term @absed_path $readline_saves_history
+			$term @absed_path
 			$history_file $save_history $history_length
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
@@ -46,8 +46,7 @@ use vars qw($bin $cmd $echo $host $debugging
 #
 
 
-my $input;
-
+my ($input,$readline_saves_history);
 ##############################################################################
 ##############################################################################
 ##
