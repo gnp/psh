@@ -36,12 +36,12 @@ sub get_hostname {
 }
 
 sub get_known_hosts {
-        my $hosts_file = "$ENV{windir}\\HOSTS";
-        my $hfh = new FileHandle($hosts_file, 'r');
-        return qw("localhost") unless defined($hfh);
-        my $hosts_text = join('', <$hfh>);
-        $hfh->close();
-        return Psh::Util::parse_hosts_file($hosts_text);  
+	my $hosts_file = "$ENV{windir}\\HOSTS";
+	my $hfh = new FileHandle($hosts_file, 'r');
+	return qw("localhost") unless defined($hfh);
+	my $hosts_text = join('', <$hfh>);
+	$hfh->close();
+	return Psh::Util::parse_hosts_file($hosts_text);  
 }
 
 sub exit {
@@ -78,7 +78,7 @@ sub inc_shlvl {
 		$Psh::login_shell = 0;
 		$ENV{SHLVL}++;
 	}
-}                                                                               
+}
 
 sub reap_children {1};
 
@@ -157,6 +157,18 @@ sub get_home_dir {
 	return "\\";
 } # we really should return something (profile?)
 
+
+sub get_rc_files {
+	my @rc=();
+
+	if (-r '/etc/pshrc') {
+		push @rc, '/etc/pshrc';
+	}
+	my $home= Psh::OS::get_home_dir();
+	if ($home) { push @rc, File::Spec->catfile($home,$rc_file) };
+	return @rc;
+}
+
 sub remove_readline_handler {1} #FIXME: better than not running at all
 
 sub is_path_absolute {
@@ -183,7 +195,7 @@ Psh::OS::Win - Contains Windows specific code
 
 =head1 SYNOPSIS
 
-	use Psh::OS;
+	use Psh::OS::Win32;
 
 =head1 DESCRIPTION
 

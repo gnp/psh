@@ -88,6 +88,17 @@ sub get_home_dir {
 	return getpwnam($user)->dir;
 }
 
+sub get_rc_files {
+	my @rc=();
+
+	if (-r '/etc/pshrc') {
+		push @rc, '/etc/pshrc';
+	}
+	my $home= Psh::OS::get_home_dir();
+	if ($home) { push @rc, File::Spec->catfile($home,'.pshrc') };
+	return @rc;
+}
+
 sub get_path_extension { return (''); }
 
 #
