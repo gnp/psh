@@ -45,6 +45,7 @@ string containing '%2'. Stripping escape sequence from
 substitution.
 EOT
 	$Psh::text{prompt_unknown_escape}="%2: Warning: \$Psh::prompt contains unknown escape sequence `\\%1'.\n";
+	$Psh::text{no_libwin32}="libwin32 required (available as CPAN bundle or with ActivePerl distribution\n";
 
 }
 
