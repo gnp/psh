@@ -102,33 +102,33 @@ sub decompose
     #generate $quoteexp and fix up the closers:
     my $quoteexp = $nevermatches;
     for my $opener (keys %qhash) {
-            $quoteexp .= '|' . quotemeta($opener);
+		$quoteexp .= '|' . quotemeta($opener);
 	    $qhash{$opener} = quotemeta($qhash{$opener});
     }
 
     while ($line) {
-            if ($startNewPiece) { 
-	            push @pieces, '';
-		    $startNewPiece = 0; 
+		if ($startNewPiece) {
+			push @pieces, '';
+		    $startNewPiece = 0;
 		    $freshPiece = 1;
 	    }
 	    if (scalar(@pieces) == $num) { last; }
 	    # $delimexp is unparenthesized below because we have
 	    # already arranged for it to contain exactly one backref ()
-            my ($prefix,$delimiter,$quote,$meta,$rest) =
+		my ($prefix,$delimiter,$quote,$meta,$rest) =
 	      ($line =~ m/^((?:[^\\]|\\.)*?)(?:$delimexp|($quoteexp)|($metaexp))(.*)$/s);
 	    if (!$keep and defined($prefix)) {
-	    	    # remove backslashes in unquoted part:
-	            $prefix =~ s/\\(.)/$1/g;
+			# remove backslashes in unquoted part:
+			$prefix =~ s/\\(.)/$1/g;
 	    }
 	    if (defined($delimiter)) {
 		    $pieces[scalar(@pieces)-1] .= $prefix;
 		    if ($saveDelimiters) {
-		            if ($pieces[scalar(@pieces)-1] or !$freshPiece) {
-			            push @pieces, $delimiter;
-		            } else {
-			            $pieces[scalar(@pieces)-1] = $delimiter;
-		            }
+				if (length($pieces[scalar(@pieces)-1]) or !$freshPiece) {
+					push @pieces, $delimiter;
+				} else {
+					$pieces[scalar(@pieces)-1] = $delimiter;
+				}
 			    $startNewPiece = 1;
 		    } elsif (scalar(@pieces) > 1 or $pieces[0]) {
 		  	    $startNewPiece = 1;
@@ -141,33 +141,33 @@ sub decompose
 			    if ($keep) {
 				    $pieces[scalar(@pieces)-1] .= "$prefix$quote$restOfQuote${$quotehash}{$quote}";
 			    } else { #Not keeping, so remove backslash
-                                     #from backslashed $quote occurrences
-			            $restOfQuote =~ s/\\$quote/$quote/g;
+					     #from backslashed $quote occurrences
+					$restOfQuote =~ s/\\$quote/$quote/g;
 				    $pieces[scalar(@pieces)-1] .= "$prefix$restOfQuote";
 			    }
 			    $line = $remainder;
 			    $freshPiece = 0;
 		    } else { # can't find matching quote, give up
-		           $uquote = 1;
-		           last;
+				$uquote = 1;
+				last;
 		    }
 	    } elsif (defined($meta)) {
-                    $pieces[scalar(@pieces)-1] .= $prefix;
-		    if ($pieces[scalar(@pieces)-1] or !$freshPiece) {
+			$pieces[scalar(@pieces)-1] .= $prefix;
+		    if (length($pieces[scalar(@pieces)-1]) or !$freshPiece) {
 			    push @pieces, $meta;
-		    } else { 
+		    } else {
 			    $pieces[scalar(@pieces)-1] = $meta;
 		    }
 		    $line = $rest;
 		    $startNewPiece = 1;
 	    } else { # nothing found, so remainder all one unquoted piece
-	            if (!$keep and $line) {
-	                      $line =~ s/\\(.)/$1/g;
+			if (!$keep and length($line)) {
+				$line =~ s/\\(.)/$1/g;
 		    }
 		    last;
 	    }
     }
-    if ($line) { $pieces[scalar(@pieces)-1] .= $line; }
+    if (length($line)) { $pieces[scalar(@pieces)-1] .= $line; }
     if (defined($unmatched)) { ${$unmatched} = $uquote; }
     return @pieces;
 }
@@ -307,7 +307,7 @@ sub unquote {
 	return $text;
 }
 
-sub _make_tokens {
+sub make_tokens {
 	my $line= shift;
 	my @tmpparts= decompose('(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)',
 							$line, undef, 1,\%perlq_hash, '[\[\]{}()]');
@@ -324,7 +324,7 @@ sub _make_tokens {
 		}
 		if ($nestlevel) {
 			$tmp.=$_;
-		} elsif ($tmp) {
+		} elsif (length($tmp)) {
 			push @parts,$tmp.$_;
 			$tmp='';
 		} else {
@@ -450,7 +450,7 @@ sub parse_line {
 		}
 	}
 
-	my @tokens= _make_tokens( $line);
+	my @tokens= make_tokens( $line);
 	my @elements=();
 	my $element;
 	while( @tokens > 0) {
@@ -513,7 +513,7 @@ sub parse_simple_command {
 		$alias =~ s/\'/\\\'/g;
 		$alias_disabled->{$words[0]}=1;
 		shift @words;
-		unshift @words, _make_tokens($alias);
+		unshift @words, make_tokens($alias);
 		return _subparse_complex_command(\@words,$use_strats,$piped,$foreground,$alias_disabled);
 	}
 

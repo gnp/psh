@@ -260,12 +260,19 @@ sub handle_message
 sub evl {
 	my ($line, @use_strats) = @_;
 
+	# In case multi-line input is passed to evl
+	if (ref $line eq 'ARRAY') {
+		foreach (@$line) {
+			evl($_,@use_strats);
+		}
+		return;
+	}
+
 	if (!defined(@use_strats) or scalar(@use_strats) == 0) {
 		@use_strats = @strategies;
 	}
 
 	my @elements= Psh::Parser::parse_line($line, @use_strats);
-
 	return undef if ! @elements;
 
 	my @result=();
