@@ -62,6 +62,7 @@ lib/Psh/Builtins/Fc.pm
 lib/Psh/Builtins/Fg.pm
 lib/Psh/Builtins/Firsttime.pm
 lib/Psh/Builtins/Function.pm
+lib/Psh/Builtins/Hash.pm
 lib/Psh/Builtins/Help.pm
 lib/Psh/Builtins/History.pm
 lib/Psh/Builtins/Jobs.pm
@@ -69,6 +70,7 @@ lib/Psh/Builtins/Kill.pm
 lib/Psh/Builtins/Modules.pm
 lib/Psh/Builtins/Printenv.pm
 lib/Psh/Builtins/Readline.pm
+lib/Psh/Builtins/Rehash.pm
 lib/Psh/Builtins/Rename.pm
 lib/Psh/Builtins/Set.pm
 lib/Psh/Builtins/Setenv.pm
