@@ -1,0 +1,18 @@
+Projects to be done:
+
+- Proper TAB completion
+The API for communication between the Completor object and the frontends has been set. The new ABI does not restrict us to the readline-pecularities, so we can add advanced completion features: optional case insensitive completion for filenames, automatic typo correction etc.
+
+- History support to Psh2.pm
+History has to be handled by Psh2.pm and not by the frontends. Some people also really like to use the ! history expansion features, so we optionally have to offer them.
+
+- Prompts
+We need prompt support. Later on we can add the psh1 "theme" system.
+
+- Support for ROX Packages and Mac OS X/Gnustep .app executables
+
+
+Loose-Ideas:
+- >{} and <{} redirects
+- Auto-directory-changing
+- Error Correction
