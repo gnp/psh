@@ -104,7 +104,6 @@ lib/Psh/Support/Env.pm
 lib/Psh/Support/Functions.pm
 lib/Psh/Support/TiedOption.pm
 t/locale.t
-t/parser.t
 t/bi_tieopt.t
 t/unix.psh
 t/win32.psh
