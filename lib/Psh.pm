@@ -12,6 +12,8 @@ require Psh::Parser;
 require Psh::PerlEval;
 require Psh::Options;
 
+use strict;
+
 ##############################################################################
 ##############################################################################
 ##
@@ -73,21 +75,11 @@ sub handle_message
 sub evl {
 	my ($line, @use_strats) = @_;
 
-	# In case multi-line input is passed to evl
-	if (ref $line eq 'ARRAY') {
-		foreach (@$line) {
-			evl($_,@use_strats);
-		}
-		return;
-	}
+	local @Psh::temp_use_strats;
+	push @Psh::temp_use_strats, @use_strats if @use_strats;
 
-	my @elements= eval { Psh::Parser::parse_line($line, @use_strats) };
-	Psh::Util::print_debug_class('e',"(evl) Error: $@") if $@;
-	return undef unless @elements;
-
-	my ($success,$result)= _evl(@elements);
-	Psh::Util::print_debug_class('s',"Success: $success\n");
-	return ($success,@$result);
+	process_variable($line);
+	return ($Psh::last_success_code, @Psh::last_result);
 }
 
 sub _evl {
@@ -139,10 +131,11 @@ sub read_until
 	my @input;
 
 	while (1) {
-		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),
-					  1,\&Psh::Prompt::pre_prompt_hook);
+		$temp = $prompt_templ?&$get(Psh::Prompt::prompt_string($prompt_templ),
+									1,\&Psh::Prompt::pre_prompt_hook):
+									  &$get();
 		if (!defined($temp)) {
-			Psh::Util::print_error_i18n('input_incomplete',$sofar,$Psh::bin);
+			Psh::Util::print_error_i18n('input_incomplete',join('',@input),$Psh::bin);
 			return '';
 		}
 		last if $temp =~ m/^$terminator$/;
@@ -166,8 +159,10 @@ sub read_until_complete
 	my @input=();
 
 	while (1) {
-		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),1,
-					  \&Psh::Prompt::pre_prompt_hook);
+		$temp = $prompt_templ?
+		  &$get(Psh::Prompt::prompt_string($prompt_templ),1,
+				\&Psh::Prompt::pre_prompt_hook):
+				  &$get();
 		if (!defined($temp)) {
 			Psh::Util::print_error_i18n('input_incomplete',$sofar,$Psh::bin);
 			return '';
@@ -256,7 +251,24 @@ sub process
 
 		chomp $input;
 
-		my ($success,@result) = evl($input);
+		my ($success,@result);
+		my @elements= eval { Psh::Parser::parse_line($input) };
+		Psh::Util::print_debug_class('e',"(evl) Error: $@") if $@;
+		if (@elements) {
+			my $result;
+			($success,$result)= _evl(@elements);
+			Psh::Util::print_debug_class('s',"Success: $success\n");
+			$Psh::last_success_code= $success;
+			if ($result) {
+				@Psh::last_result= @result= @$result;
+			} else {
+				undef @Psh::last_result;
+				undef @result;
+			}
+		} else {
+			undef $Psh::last_success_code;
+			undef @Psh::last_result;
+		}
 
         next unless $Psh::interactive;
 
@@ -509,7 +521,7 @@ sub add_history
 {
 	my $line=shift;
 	return if !$line or $line =~ /^\s*$/;
-	if (!@Psh::history || $Psh::history[$#history] ne $line) {
+	if (!@Psh::history || $Psh::history[$#Psh::history] ne $line) {
 		my $len= Psh::Options::get_option('histsize');
 		$Psh::term->addhistory($line) if $Psh::term;
 		push(@Psh::history, $line);
@@ -566,7 +578,7 @@ sub minimal_initialize
 
 	if ($]>=5.005) {
 		eval {
-			$Psh::which_regexp= qr($which_regexp); # compile for speed reasons
+			$Psh::which_regexp= qr($Psh::which_regexp); # compile for speed reasons
 		};
 		Psh::Util::print_debug_class('e',"(minimal_init) Error: $@") if $@;
 	}
@@ -587,7 +599,7 @@ sub minimal_initialize
 
 	# The following accessible variables are undef during the
 	# .pshrc file:
-	undef $longhost;
+	undef $Psh::longhost;
 	undef $Psh::host;
 
 	@Psh::val = ();
@@ -608,13 +620,13 @@ sub finish_initialize
 	Psh::OS::setup_sigsegv_handler() if
 	  Psh::Options::get_option('ignoresegfault');
 
-	if (!defined($longhost)) {
-		$longhost                    = $ENV{HOSTNAME}||Psh::OS::get_hostname();
-		chomp $longhost;
+	if (!defined($Psh::longhost)) {
+		$Psh::longhost                    = $ENV{HOSTNAME}||Psh::OS::get_hostname();
+		chomp $Psh::longhost;
 	}
 	if (!defined($Psh::host)) {
-		$Psh::host= $longhost;
-		$Psh::host= $1 if( $longhost=~ /([^\.]+)\..*/);
+		$Psh::host= $Psh::longhost;
+		$Psh::host= $1 if( $Psh::longhost=~ /([^\.]+)\..*/);
 	}
 	$ENV{HOSTNAME}= $Psh::host;
 }

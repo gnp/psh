@@ -8,8 +8,10 @@ sub bi_if {
 	my @words=@{$_[1]};
 	my $success=0;
 	my @result=(0,undef);
-	my @cond=();
+	my @cond;
+
 	TRY: while (@words>0) {
+		@cond=();
 		while (@words>0) {
 			last if substr($words[0],0,1) eq '{';
 			push @cond, shift @words;
@@ -20,6 +22,8 @@ sub bi_if {
 		}
 		my $cond= join(' ',@cond);
 		($success)= Psh::evl(Psh::Parser::ungroup($cond));
+		$Psh::Builtins::If::last_success= $success;
+
 		if ($success) {
 			return Psh::evl(Psh::Parser::ungroup(shift @words));
 		} else {

@@ -140,20 +140,22 @@ sub _decompose
 sub incomplete_expr
 {
     my ($line) = @_;
-	return 0 unless $line=~/[\[{(]/s;
+	return 0 unless $line=~/[\[{('"]/s;
 
     my $unmatch = 0;
 	my @words= 	@{scalar(_decompose($line,$stdallinall, 1, undef, \$unmatch))};
     if ($unmatch) { return 2; }
 
     my @openstack = (':'); # : is used as a bottom marker here
-    my %open_of_close = qw|) ( } { ] [|;
+    my %open_of_close = qw|) ( } { ] [ " '|;
 
     foreach my $word (@words) {
 		next if length($word)!=1;
-		if ($word eq '[' or $word eq '{' or $word eq '(') {
+		if ($word eq '[' or $word eq '{' or $word eq '(' or $word eq '"' or
+		    $word eq "\"") {
 			push @openstack, $word;
-		} elsif ($word eq ')' or $word eq '}' or $word eq ']') {
+		} elsif ($word eq ')' or $word eq '}' or $word eq ']' or $word eq '"' or
+				 $word eq "\"") {
 			my $open= $open_of_close{$word};
 			my $curopen = pop @openstack;
 			if ($open ne $curopen) {
@@ -481,6 +483,8 @@ sub parse_line {
 	my ($lvl1,$lvl2,$lvl3);
 	if (@use_strats) {
 		($lvl1,$lvl2,$lvl3)= Psh::Strategy::parser_return_objects(@use_strats);
+	} elsif (@Psh::temp_use_strats) {
+		($lvl1,$lvl2,$lvl3)= Psh::Strategy::parser_return_objects(@Psh::temp_use_strats);
 	} else {
 		($lvl1,$lvl2,$lvl3)= Psh::Strategy::parser_strategy_list();
 	}
