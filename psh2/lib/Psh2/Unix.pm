@@ -2,7 +2,9 @@ package Psh2::Unix;
 
 use strict;
 
-use POSIX ':signal_h';
+#use POSIX ':signal_h';
+
+require POSIX;
 
 POSIX::setpgid( 0, $$);
 
@@ -29,17 +31,17 @@ sub get_home_dir {
 ############################################################################
 
 {
-    my $sigact_term= POSIX::SigAction->new('Psh2::Unix::_term_handler', SIGTERM, SA_NOCLDSTOP|SA_RESTART);
+    my $sigact_term= POSIX::SigAction->new('Psh2::Unix::_term_handler', &POSIX::SIGTERM, &POSIX::SA_NOCLDSTOP|&POSIX::SA_RESTART);
 
-    my $sigset_all= POSIX::SigSet->new(SIGTERM);
-    my $sigact_all_dfl= POSIX::SigAction->new(SIG_DFL, $sigset_all);
+    my $sigset_all= POSIX::SigSet->new(&POSIX::SIGTERM);
+    my $sigact_all_dfl= POSIX::SigAction->new(&POSIX::SIG_DFL, $sigset_all);
 
     sub setup_signal_handlers {
-	POSIX::sigaction(SIGTERM, $sigact_term);
+	POSIX::sigaction(&POSIX::SIGTERM, $sigact_term);
     }
 
     sub remove_signal_handlers {
-	POSIX::sigaction(SIGTERM, $sigact_all_dfl);
+	POSIX::sigaction(&POSIX::SIGTERM, $sigact_all_dfl);
     }
 
     sub _default_handler {
@@ -71,8 +73,8 @@ sub get_home_dir {
 sub reap_children {
     my ($self)= @_;
     my $returnpid= 0;
-    while (($returnpid = CORE::waitpid(-1, POSIX::WNOHANG() |
-				           POSIX::WUNTRACED())) > 0) {
+    while (($returnpid = CORE::waitpid(-1, &POSIX::WNOHANG |
+				           &POSIX::WUNTRACED)) > 0) {
 	my $job= $self->get_job($returnpid);
 	if (defined $job) {
 	    $job->_handle_wait_status($?);

@@ -13,6 +13,10 @@ sub execute {
     shift @$words;
     TRY: while (1) {
 	my $cond= shift @$words;
+	if (!defined $cond) {
+	    $psh->printerrln($psh->gt('if: missing condition'));
+	    return 0;
+	}
 	if (Psh2::Parser::is_group($cond)) {
 	    $cond= Psh2::Parser::ungroup($cond);
 	}

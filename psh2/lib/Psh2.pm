@@ -558,43 +558,6 @@ sub glob {
 	@re= split /\//, $pattern;
     }
     return _glob( 0, $dir, 0, $opts, @re );
-    # Special recursion handling for **/anything globs
-#     if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
-# 	my $tlen= length($dir)+1;
-# 	my $prefix= $1||'';
-# 	$pattern= $2;
-# 	$prefix=~ s:/$::;
-# 	$dir= catdir_fast($dir, $prefix);
-# 	$pattern=_escape($pattern);
-# 	$pattern=~s/\*/[^\/]*/g;
-# 	$pattern=~s/\?/./g;
-# 	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
-# 	@result= map { substr($_,$tlen) } _recursive_glob($pattern,$dir);
-#     } elsif( index($pattern,'/')>-1 or
-# 	     index($pattern,'[')>-1) {
-# 	require File::Glob;
-# 	my $old=$ENV{PWD};
-# 	if ($old ne $dir) {
-# 	    CORE::chdir $dir;
-# 	}
-# 	$pattern=_escape($pattern);
-# 	@result= eval { File::Glob::glob($pattern, File::Glob::GLOB_QUOTE()); };
-# 	if ($old ne $dir) {
-# 	    CORE::chdir $old;
-# 	}
-#     } else {
-# 	# The fast variant for simple matches
-# 	$pattern=_escape($pattern);
-# 	$pattern=~s/\*/.*/g;
-# 	$pattern=~s/\?/./g;
-# 	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
-# 	$pattern= qr{^$pattern$};
-
-# 	opendir( DIR, $dir) || return ();
-# 	@result= grep { $_ =~ $pattern } readdir(DIR);
-# 	closedir( DIR);
-#     }
-#    return @result;
 }
 
 sub files_ending_with {
