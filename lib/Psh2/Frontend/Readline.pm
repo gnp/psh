@@ -124,16 +124,17 @@ sub tab_completion {
     my $attribs= $self->{term}->Attribs;
     my $buffer= $attribs->{line_buffer};
     my $caret= $attribs->{point};
-
-    $attribs->{line_buffer}='complete dummy';
-    $attribs->{point}=0;
+    my ($from, $to, $list)= $self->{psh}->completor->complete($buffer,$caret);
+    if ($list and @$list and @$list>1) {
+        $self->print_list(@$list);
+    }
     $self->{term}->redisplay();
     '';
 }
 
 # for the other completion functions like insert-completions
 sub tab_completion2 {
-    
+    return ();
 }
 
 1;

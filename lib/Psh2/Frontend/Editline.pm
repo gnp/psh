@@ -113,6 +113,9 @@ sub prompt {
 sub tab_completion {
     my $self= shift;
     my ($buffer, $caret, $length)= $self->{term}->line();
+    $buffer= substr($buffer,0,$length); # JIC
+    my ($pos,completions= $self->{psh}->completor->complete($buffer,$caret);
+
     $self->{term}->insertstr("Tab completion dummy");
     return Term::EditLine::CC_REFRESH();
 }
