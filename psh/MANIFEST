@@ -48,6 +48,7 @@ lib/Psh/Builtins/Jobs.pm
 lib/Psh/Builtins/Kill.pm
 lib/Psh/Builtins/Readline.pm
 lib/Psh/Builtins/Source.pm
+lib/Psh/Builtins/Set.pm
 lib/Psh/Builtins/Strategy.pm
 lib/Psh/Builtins/Symbols.pm
 lib/Psh/Builtins/Which.pm
