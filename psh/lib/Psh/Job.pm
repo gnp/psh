@@ -38,7 +38,7 @@ __END__
 
 =head1 NAME
 
-Psh::Job - Data structure reprenting a shell job
+Psh::Job - Data structure representing a shell job
 
 =head1 SYNOPSIS
 
