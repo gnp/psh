@@ -14,6 +14,9 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 $Psh::OS::PATH_SEPARATOR=':';
 $Psh::OS::FILE_SEPARATOR='/';
 
+$Psh::rc_file = ".pshrc";
+$Psh::history_file = ".psh_history";
+
 #
 # Returns the hostname of the machine psh is running on, preferrably
 # the full version
@@ -26,7 +29,7 @@ sub get_hostname() {
 #
 # Returns a list of well-known hosts (from /etc/hosts)
 #
-sub get_known_hosts { 
+sub get_known_hosts {
 	open(FILE,"< /etc/hosts") || return ();
 	my $text='';
 	while( <FILE>) { $text.=$_; }
@@ -91,7 +94,7 @@ sub get_path_extension { return (''); }
 
 
 #
-# void _give_terminal_to (int PID) 
+# void _give_terminal_to (int PID)
 #
 # Make pid the foreground process of the terminal controlling STDIN.
 #
@@ -171,7 +174,7 @@ sub _handle_wait_status {
 	my $command = $job->{call};
 	my $visindex= $Psh::joblist->get_job_number($pid);
 	my $verb='';
-  
+
 	if (&WIFEXITED($pid_status)) {
 		$verb= "\u$Psh::text{done}" if (!$quiet);
 		$Psh::joblist->delete_job($pid);
@@ -220,7 +223,7 @@ sub execute_complex_command {
 
 		my $line= join(' ',@$words);
 		($eval_thingie,@return_val)= &$coderef( \$line, $words,$how,$i>0);
-		
+
 		if( defined($eval_thingie)) {
 			if( $#array) {
 				pipe READ,WRITE;
@@ -264,7 +267,7 @@ sub execute_complex_command {
 
 sub _setup_redirects {
 	my $options= shift;
-	
+
 	return [] if ref $options ne 'ARRAY';
 
 	my @cache=();
@@ -545,7 +548,7 @@ sub _ttou_handler
 sub _signal_handler
 {
 	my ($sig) = @_;
-	
+
 	if ($Psh::currently_active > 0) {
 		Psh::Util::print_debug("Received signal SIG$sig, sending to $Psh::currently_active\n");
 
@@ -614,7 +617,7 @@ sub _resize_handler
 #  		eval 'use "ioctl.ph';
 #  		eval 'use "sys/ioctl.ph';
 #  		eval 'use "sgtty.ph';
-#		
+#
 #  		eval {
 #  			my $TIOCGWINSZ = &TIOCGWINSZ if defined(&TIOCGWINSZ);
 #  			my $TIOCGWINSZ = 0x40087468 if !defined($TIOCGWINSZ);

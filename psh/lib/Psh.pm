@@ -34,7 +34,7 @@ use Psh::Prompt;
 #
 # The use vars variables are intended to be accessible to the user via
 # explicit Psh:: package qualification. They are documented in the pod
-# page. 
+# page.
 #
 #
 # The other global variables are private, lexical variables.
@@ -46,6 +46,7 @@ use vars qw($bin $news_file $cmd $echo $host $debugging
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
+			$rc_file
 			@val @wday @mon @strategies @unparsed_strategies @history
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval);
@@ -255,8 +256,8 @@ sub matches_perl_binary
 		my $qPerlFunc = 0;
 		if ( exists($perl_builtins{$fnname})) {
 		        my $needArgs = $perl_builtins{$fnname};
-    		        if ($needArgs > 0 
-			    and ($parenthesized 
+    		        if ($needArgs > 0
+			    and ($parenthesized
 				 or scalar(@{$_[1]}) >= $needArgs)) {
 			        $qPerlFunc = 1;
 			}
@@ -303,7 +304,7 @@ sub matches_perl_binary
 				foreach (@args) {
 					if (&Psh::Parser::needs_double_quotes($_)) {
 	                    $_ = "\"$_\"";
-                    } 
+                    }
 				}
 
 				my $possible_proto = '';
@@ -364,7 +365,7 @@ sub matches_perl_binary
 			my $filename;
 			my $switches;
 
-			if (($filename,$switches) = 
+			if (($filename,$switches) =
 				($firstline =~ m|^\#!\s*(/.*perl)(\s+.+)?$|go)
 				and matches_perl_binary($filename)) {
 				my $possibleMatch = $script;
@@ -375,15 +376,15 @@ sub matches_perl_binary
 					local @ARGV = split(' ', $switches);
 
 					#
-					# All perl command-line options that take aruments as of 
+					# All perl command-line options that take aruments as of
 					# Perl 5.00503:
 					#
 
-					getopt('DeiFlimMx', \%bangLineOptions); 
+					getopt('DeiFlimMx', \%bangLineOptions);
 				}
 
-				if ($bangLineOptions{w}) { 
-					$possibleMatch .= " warnings"; 
+				if ($bangLineOptions{w}) {
+					$possibleMatch .= " warnings";
 					delete $bangLineOptions{w};
 				}
 
@@ -407,7 +408,7 @@ sub matches_perl_binary
 	'executable' => sub {
 		my $executable = which(${$_[1]}[0]);
 
-		if (defined($executable)) { 
+		if (defined($executable)) {
 			shift @{$_[1]}; # OK to destroy the command line because we're
                             # going to match this strategy
 			@newargs= $executable_expand_arguments?variable_expansion($_[1]):
@@ -515,7 +516,7 @@ sub matches_perl_binary
 			# TODO: Is it possible/desirable to put main in the pristine
 			# state that it typically is in when a script starts up,
 			# i.e. undefine all routines and variables that the user has set?
-			
+
 			local @ARGV = @arglist;
 			local $^W;
 
@@ -533,7 +534,7 @@ sub matches_perl_binary
 
 $strategy_eval{brace}= $strategy_eval{eval}= sub {
 	my $todo= ${$_[0]};
-    
+
 	if( $_[3]) { # we are second or later in a pipe
 		my $code;
 		$todo=~ s/\}([qg])\s*$/\}/;
@@ -589,7 +590,7 @@ sub handle_message
 				if( $ignore_die) {
 					print_error_i18n('internal_error');
 				} else {
-					die("Internal psh error."); 
+					die("Internal psh error.");
 				}
 			}
 		}
@@ -723,7 +724,7 @@ sub process
 		}
 
 		chomp $input;
-		
+
 		my @result = evl($input);
 
 		my $qEcho = 0;
@@ -743,7 +744,7 @@ sub process
 				my $what = ref($last_result_array);
 				if ($what eq 'ARRAY') {
 					$result_array_ref = $last_result_array;
-					$result_array_name = 
+					$result_array_name =
 						find_array_name($result_array_ref);
 					if (!defined($result_array_name)) {
 						$result_array_name = 'anonymous';
@@ -753,7 +754,7 @@ sub process
 					$result_array_ref = \@Psh::val;
 					$result_array_name = 'Psh::val';
 				} else { # Ordinary string
-					$result_array_name = $last_result_array;				        
+					$result_array_name = $last_result_array;
 					$result_array_name =~ s/^\@//;
 					$result_array_ref = (protected_eval("\\\@$result_array_name"))[0];
 				}
@@ -783,9 +784,9 @@ sub find_array_name {
 	if (!defined($pack)) { $pack = "::"; }
 	my @otherpacks = ();
 	for my $symb ( keys %{$pack} ) {
-		if ($symb =~ m/::$/) { 
+		if ($symb =~ m/::$/) {
 			push @otherpacks, $symb unless ($pack eq 'main::' and $symb eq 'main::');
-		}	     
+		}
 		elsif (\@{"$pack$symb"} eq $arref) { return "$pack$symb"; }
 	}
 	for my $subpack (@otherpacks) {
@@ -826,28 +827,28 @@ sub defined_and_nonempty
 sub process_file
 {
 	my ($path) = @_;
-	
+
 	print_debug("[[PROCESSING FILE $path]]\n");
-	
+
 	if (!-r $path) {
 		print_error_i18n('cannot_read_script',$path,$bin);
 		return;
 	}
-	
+
 	my $pfh = new FileHandle($path,'r');
-	
+
 	if (!$pfh) {
 		print_error_i18n('cannot_open_script',$path,$bin);
 		return;
 	}
-	
+
 	eval { flock($pfh, LOCK_SH); };
-	
+
 	process(0, sub { return <$pfh>; }); # don't prompt
-	
+
 	eval { flock($pfh, LOCK_UN); };
 	$pfh->close();
-	
+
 	print_debug("[[FINISHED PROCESSING FILE $path]]\n");
 }
 
@@ -893,7 +894,7 @@ sub iget
 	}
 
 	Psh::OS::setup_readline_handler();
- 
+
 	do {
 		$sigint= 0 if ($sigint);
 		# Trap ^C in an eval.  The sighandler will die which will be
@@ -936,13 +937,13 @@ sub iget
 #	$line =~ s/\s+$//;
 
 	if ($term and $line !~ m/^\s*$/) {
-		$term->addhistory($line); 
+		$term->addhistory($line);
 
 		if ($save_history && !$readline_saves_history) {
 			push(@history, $line);
 		}
 	}
-	
+
 	return $line . "\n";         # This is expected by other code.
 }
 
@@ -952,7 +953,7 @@ sub iget
 #
 # Return the news
 
-sub news 
+sub news
 {
 	if (-r $news_file) {
 		# Backticks replaced to be portable
@@ -1042,7 +1043,7 @@ sub finish_initialize
 		$host= $1 if( $longhost=~ /([^\.]+)\..*/);
 	}
 	if (!defined($history_file)) {
-		$history_file                = File::Spec->catfile(Psh::OS::get_home_dir(),".${bin}_history");
+		$history_file                = File::Spec->catfile(Psh::OS::get_home_dir(),$history_file);
 	}
 
 
@@ -1068,7 +1069,7 @@ sub finish_initialize
 		}
 		if( $term) {
 			$term->MinLine(10000);   # We will handle history adding
-			# ourselves (undef causes trouble). 
+			# ourselves (undef causes trouble).
 			$term->ornaments(0);
 			print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
 			if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
@@ -1087,7 +1088,7 @@ sub finish_initialize
 	eval "use Term::Size 'chars'";
 
 	if ($@) {
-		print_debug("Term::Size not available. Trying Term::ReadKey\n");   
+		print_debug("Term::Size not available. Trying Term::ReadKey\n");
 		eval "use Term::ReadKey";
 		if( $@) {
 			print_debug("Term::ReadKey not available - no resize handling!\n");
@@ -1127,16 +1128,15 @@ sub process_rc
 {
 	my $opt_r= shift;
 	my @rc;
-	my $rc_name = ".pshrc";
 
-	print_debug("[ LOOKING FOR .pshrc ]\n");
+	print_debug("[ LOOKING FOR $rc_file ]\n");
 
 	if ($opt_r) {
 		push @rc, $opt_r;
 	} else {
 		my $home= Psh::OS::get_home_dir();
-		if ($home) { push @rc, File::Spec->catfile($home,$rc_name) };
-		push @rc, "$rc_name" unless $home eq cwd;
+		if ($home) { push @rc, File::Spec->catfile($home,$rc_file) };
+		push @rc, "$rc_file" unless $home eq cwd;
 	}
 
 	foreach my $rc (@rc) {
