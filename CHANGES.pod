@@ -164,8 +164,7 @@ tree now only contains valid locales.
 
 =item *
 
-The C<@Psh::mon> and C<@Psh::wday> variables were removed. Please see the
-perldoc for Psh::Locale
+Many configuration variables have been removed. Please see README.upgrade and the new B<option> builtin.
 
 =item *
 

@@ -1,8 +1,9 @@
 package Psh::Prompt;
 
 use strict;
-use vars qw(%prompt_vars);
 require Psh::OS;
+require Psh::Util;
+require Psh::Options;
 
 #
 # string prompt_string(TEMPLATE)
@@ -12,7 +13,7 @@ require Psh::OS;
 
 my $default_prompt = '\s% ';
 
-%prompt_vars = (
+%Psh::Prompt::prompt_vars = (
 	'd' => sub {
 			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
 			$wday = (Psh::Locale::weekdays())[$wday];
@@ -60,7 +61,7 @@ my $default_prompt = '\s% ';
 
 sub prompt_helper {
 	my $code= shift;
-	my $var = $prompt_vars{$code};
+	my $var = $Psh::Prompt::prompt_vars{$code};
 	my $sub;
 
 	if (ref $var eq 'CODE') {
@@ -141,15 +142,13 @@ sub prompt_string
 }
 
 sub normal_prompt {
-	my $prompt= $Psh::prompt;
-	$prompt= $ENV{PS1} unless defined $prompt;
+	my $prompt= Psh::Options::get_option('ps1');
 	$prompt= $default_prompt unless defined $prompt;
 	return $prompt;
 }
 
 sub continue_prompt {
-	my $prompt= $Psh::prompt_cont;
-	$prompt= $ENV{PS2} unless defined $prompt;
+	my $prompt= Psh::Options::get_option('ps2');
 	$prompt= '> ' unless defined $prompt;
 	return $prompt;
 }
@@ -159,8 +158,7 @@ sub pre_prompt_hook {
 }
 
 sub change_title {
-	my $title= $Psh::window_title;
-	$title= $ENV{PSH_TITLE} unless defined $title;
+	my $title= Psh::Options::get_option('window_title');
 	return if !$title;
 	$title= prompt_string($title);
 	Psh::OS::set_window_title($title);

@@ -10,6 +10,7 @@ require Psh::Joblist;
 require Psh::Parser;
 require Psh::PerlEval;
 require Psh::Prompt;
+require Psh::Options;
 
 ##############################################################################
 ##############################################################################
@@ -34,7 +35,7 @@ require Psh::Prompt;
 
 use vars qw($bin $cmd $echo $host $debugging
 			$term @absed_path
-			$history_file $save_history $history_length
+			$history_file
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $window_title
@@ -516,10 +517,11 @@ sub add_history
 	my $line=shift;
 	return if !$line or $line =~ /^\s*$/;
 	if (!@history || $history[$#history] ne $line) {
+		my $len= Psh::Options::get_option('histsize');
 		$term->addhistory($line) if $term;
 		push(@history, $line);
-		if( @Psh::history>$Psh::history_length) {
-			splice(@Psh::history,0,-$Psh::history_length);
+		if( @Psh::history>$len) {
+			splice(@Psh::history,0,-$len);
 		}
 	}
 }
@@ -527,8 +529,9 @@ sub add_history
 sub save_history
 {
 	Psh::Util::print_debug_class('o',"[Saving history]\n");
-	if( $Psh::save_history) {
+	if( Psh::Options::get_option('save_history')) {
 		if ($Psh::readline_saves_history) {
+			$term->StifleHistory(Psh::Options::get_option('histsize'));
 			$Psh::term->WriteHistory($Psh::history_file);
 		} else {
 			if (open(F_HISTORY,">> $Psh::history_file")) {
@@ -578,19 +581,12 @@ sub minimal_initialize
 	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
 	$ENV{OLDPWD}= $ENV{PWD} = Psh::OS::getcwd_psh();
-	$ENV{PSH_TITLE} = $bin;
 
 	Psh::OS::inc_shlvl();
 	Psh::OS::setup_signal_handlers();
 
-	$Psh::window_title='\w';
-
 	# The following accessible variables are undef during the
 	# .pshrc file:
-	undef $prompt;
-	undef $prompt_cont;
-	undef $save_history;
-	undef $history_length;
 	undef $longhost;
 	undef $host;
 	undef $history_file;
@@ -611,9 +607,6 @@ sub minimal_initialize
 sub finish_initialize
 {
 	Psh::OS::setup_sigsegv_handler() if $Psh::handle_segfaults;
-
-	$save_history    = 1               if !defined($save_history);
-	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);
 
 	if (!defined($longhost)) {
 		$longhost                    = $ENV{HOSTNAME}||Psh::OS::get_hostname();
@@ -657,7 +650,7 @@ sub finish_initialize
 				Psh::Util::print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
 				if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
 					$readline_saves_history = 1;
-					$term->StifleHistory($history_length); # Limit history
+					$term->StifleHistory(Psh::Options::get_option('histsize'));
 				}
 				my $attribs= $term->Attribs;
 				$attribs->{completion_function} =
@@ -688,8 +681,9 @@ sub finish_initialize
 	}
 	setup_term_misc();
 
-	if (defined($term) and $save_history) {
+	if (defined($term) and Psh::Options::get_option('save_history')) {
 		if ($readline_saves_history) {
+			$term->StifleHistory(Psh::Options::get_option('histsize'));
 			$term->ReadHistory($history_file);
 		} else {
 			if (open(F_HISTORY,"< $history_file")) {
