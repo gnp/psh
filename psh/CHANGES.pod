@@ -20,12 +20,12 @@ A reverse-chronological ordered list of changes
 ###############################################################################
 ###############################################################################
 ##
-## CVS
+## 0.009
 ##
 ###############################################################################
 ###############################################################################
 
-=head1 CVS
+=head1 0.009 [2001-01-05]
 
 =head2 New Features
 
@@ -33,42 +33,44 @@ A reverse-chronological ordered list of changes
 
 =item *
 
-New builtin B<rename> - this does the same as Larry Wall's PPT program but
-profits from being integrated into B<psh> (it can use B<psh> subs and
-variables for the modification).
+New builtin B<rename> - this does the same as Larry Wall's PPT program
+but profits from being integrated into B<psh> (it can use B<psh> subs
+and variables for the modification).
 - warp [2000-05-01]
 
 =item *
 
-C<Psh::OS::backtick()> now can call and capture the output of B<psh> builtins
-on Unix.
+C<Psh::OS::backtick()> now can call and capture the output of
+B<psh> builtins on Unix.
 - warp [2000-05-01]
 
 =item *
 
-Added new builtin B<fc> which is similar to the command of the same name from
-B<bash> - inspired by a command on the SourceForge message board (and I
-finally start to like this command ;-).
+Added new builtin B<fc> which is similar to the command of the same
+name from B<bash> - inspired by a command on the SourceForge
+message board (and I finally start to like this command ;-).
 - warp [2000-05-03]
 
 =item *
 
-The builtin B<history> now also accepts a text as argument. In that case it
-will only print commands containing that text.
+The builtin B<history> now also accepts a text as argument. In that
+case it will only print commands containing that text.
 - warp [2000-07-08]
 
 =item *
 
-The builtin B<fc> now understands the switch C<-p>. Also it's more behaviour
-compatible with bash's fc
+The builtin B<fc> now understands the switch C<-p>. Also it's more
+behaviour compatible with B<bash>'s B<fc>.
 
 =item *
 
-New builtin B<bind> which does keybindings (similar to bash). - Andrew Turner [2000-08-11]
+New builtin B<bind> which does keybindings (similar to B<bash>).
+- Andrew Turner [2000-08-11]
 
 =item *
 
-New builtin B<drives> which shows the available drives on Windows - warp [2000-08-26]
+New builtin B<drives> which shows the available drives on Windows.
+- warp [2000-08-26]
 
 =head2 Internals
 
@@ -79,63 +81,74 @@ New sub C<Psh::Util::prompt()> for interactive prompting.
 
 =item *
 
-Cleanups in C<Psh::OS::Unix::_setup_redirects> and C<...::_remove_redirects>.
+Cleanups in C<Psh::OS::Unix::_setup_redirects> and
+C<...::_remove_redirects>.
 - warp [2000-05-01]
 
 =item *
 
-Added Psh::add_history so builtins etc. can modify history easily
+Added C<Psh::add_history> so builtins etc. can modify history
+easily.
 - warp [2000-07-08]
 
 =item *
 
-Quotes are removed from file names in redirections
+Quotes are removed from file names in redirections.
 - warp [2000-07-08]
 
 =item *
 
-Fixed variable substitution in Psh::PerlEval so that whitespace after a
-backslash does not split words anymore
+Fixed variable substitution in C<Psh::PerlEval> so that whitespace
+after a backslash does not split words anymore.
 - warp [2000-07-08]
 
 =item *
 
-Half-hearted attempt at getting whitespace and special characters in
-TAB completion right
+Half-hearted attempt at getting whitespace and special characters
+in TAB completion right.
 - warp [2000-07-08]
 
 =item *
 
-Psh::OS::exit renamed to Psh::OS::exit_psh due to problems with POSIX's exit
+C<Psh::OS::exit> renamed to C<Psh::OS::exit_psh> due to problems
+with POSIX's B<exit>.
 - warp [2000-08-26]
 
 =item *
 
-Removed/reduced usage of Cwd.pm due to partly strange behaviour on non-UNIX
-systems - warp [2000-08-26]
+Removed/reduced usage of F<Cwd.pm> due to partly strange behaviour
+on non-UNIX systems.
+ - warp [2000-08-26]
 
 =item *
 
-The help builtin cleans up the temp files it creates - warp [2000-08-26]
+The B<help> builtin cleans up the temp files it creates.
+- warp [2000-08-26]
+
+=back
+
 
 =head2 Fixes
 
 =item *
 
-The parser now allows usage of ->
+The parser now allows usage of ->.
 - warp [2000-07-27]
 
 =item *
 
-Should work on Perl 5.004 again - warp [2000-07-31]
+Should work on Perl 5.004 again.
+ - warp [2000-07-31]
 
 =item *
 
-Windows port works and tested on ActiveState Perl 5.6 - warp [2000-08-26]
+Windows port works and tested on ActiveState Perl 5.6.
+- warp [2000-08-26]
 
 =item *
 
-Removed some errors and problems with Windows in prompt package - warp [2000-07-31]
+Removed some errors and problems with Windows in prompt package.
+- warp [2000-07-31]
 
 =back
 

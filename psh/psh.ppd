@@ -1,4 +1,4 @@
-<SOFTPKG NAME="psh" VERSION="0,008,0,0">
+<SOFTPKG NAME="psh" VERSION="0,009,0,0">
 	<TITLE>psh</TITLE>
 	<ABSTRACT>Perl Shell</ABSTRACT>
 	<AUTHOR>Gregor N. Purdy (gregor@focusresearch.com)</AUTHOR>
