@@ -1,0 +1,29 @@
+<SOFTPKG NAME="psh" VERSION="0,007,0,0">
+	<TITLE>psh</TITLE>
+	<ABSTRACT>The Perl Shell</ABSTRACT>
+	<AUTHOR>Gregor N. Purdy (gregor@focusresearch.com)</AUTHOR>
+	<IMPLEMENTATION>
+		<DEPENDENCY NAME="GetOpt::Std">
+		<DEPENDENCY NAME="locale">
+		<DEPENDENCY NAME="Config">
+		<DEPENDENCY NAME="Cwd">
+		<DEPENDENCY NAME="FileHandle">
+		<DEPENDENCY NAME="DirHandle">
+		<DEPENDENCY NAME="File::Spec">
+		<DEPENDENCY NAME="File::Basename">
+		<DEPENDENCY NAME="vars">
+		<DEPENDENCY NAME="constant">
+		<DEPENDENCY NAME="Carp">
+		<DEPENDENCY NAME="POSIX">
+		<DEPENDENCY NAME="Sys::Hostname">
+		<DEPENDENCY NAME="User::pwent">
+		<DEPENDENCY NAME="Term::ReadLine">
+		<DEPENDENCY NAME="Term::ReadLine::GNU" VERSION="1,06,0,0">
+		<DEPENDENCY NAME="Term::ReadLine::Perl">
+		<DEPENDENCY NAME="Term::ReadKey">
+		<DEPENDENCY NAME="Term::Size">
+		<OS NAME="win32" />
+		<ARCHITECTURE NAME="win32" />
+		<CODEBASE HREF="psh-0.007.tar.gz" />
+	</IMPLEMENTATION>
+</SOFTPKG>
