@@ -13,4 +13,6 @@ test.pl
 lib/Psh/Job.pm
 lib/Psh/Joblist.pm
 lib/Psh/Completion.pm
-
+lib/Psh/Locale/Base.pm
+lib/Psh/Locale/Default.pm
+lib/Psh/Locale/German.pm

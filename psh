@@ -13,6 +13,7 @@
 
 package psh;
 
+use locale;
 use vars qw($VERSION);
 $VERSION   = '0.004pre2';
 
@@ -26,6 +27,7 @@ use POSIX qw(:sys_wait_h getpid setpgid tcgetpgrp tcsetpgrp);
 use Psh::Joblist;
 use Psh::Job;
 use Psh::Completion;
+use Psh::Locale::Base;
 
 ##############################################################################
 ##############################################################################
@@ -52,7 +54,7 @@ use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
 	    $perlfunc_expand_arguments $executable_expand_arguments
 	    $history_file $save_history $history_length
 	    $eval_preamble $currently_active
-	    @val @wday @mon @strategies 
+	    @val @wday @mon @strategies %text
 	    %prompt_vars %built_ins %strategy_which %strategy_eval);
 
 
@@ -70,7 +72,6 @@ my $term;                         # Term::ReadLine object.
 my %perl_builtins;
 my %perl_builtins_noexpand;
 my @absed_path    = ();
-my %signal_description;
 my $joblist;
 
 
@@ -110,10 +111,10 @@ getopts('dwr:', \%opt);
 #
 
 if ($opt{'w'}) {
-	print_out("Simulating -w switch and strict\n");
+	print_out_i18n('simulate_perl_w');
 
-	$^W = 1;    # Simulate the -w command-line switch
-	use strict; # Turned on when debugging
+	$^W = 1;
+	use strict;
 }
 
 #
@@ -402,11 +403,11 @@ sub builtin_cd
 			$last_dir = cwd;
 			chdir $dir;
 		} else {
-			print_error("psh: $in_dir: Permission denied\n");
+			print_error_i18n('perm_denied',$in_dir,$bin);
 			return 1;
 		}
 	} else  {
-		print_error("psh: $in_dir: No such directory\n");
+		print_error_i18n('no_such_dir',$in_dir,$bin);
 		return 1;
 	}
 
@@ -621,7 +622,10 @@ sub builtin_exit
 		$term->WriteHistory($psh::history_file);
 	}
 	
-	#TODO: should there be a .psh_logout file of commands?
+	my $file= "$ENV{HOME}/.${bin}_logout";
+	if( -r $file) {
+		process_file(abs_path($file));
+	}
 
 	exit $result;
 }
@@ -976,8 +980,10 @@ sub signal_name {
 
 sub signal_description {
 	my $signal_name= signal_name(shift);
-	if( exists $signal_description{$signal_name}) {
-		return "SIG$signal_name - $signal_description{$signal_name}";
+	my $desc= $text{sig_description}->{$signal_name};
+   	if( defined($desc) and $desc) {
+		
+		return "SIG$signal_name - $desc";
 	}
 	return "signal $signal_name";
 }
@@ -1202,6 +1208,11 @@ sub give_terminal_to
 	local $SIG{TTOU}  = 'IGNORE';
 	local $SIG{CHLD}  = 'IGNORE';
 
+	#
+	# Perl will always complain about the tcsetpgrp if warnings
+	# are enabled... so we switch it off here
+	# TODO: Find out if really something is wrong with this line
+	local $^W=0;
 	tcsetpgrp(STDIN,$_[0]);
 }
 
@@ -1691,7 +1702,7 @@ sub iget
  
 	do {
 		if ($sigint) {
-			print_out("\nInterrupted!\n");
+			print_out_i18n('readline_interrupted');
 			$sigint=0;
 		}
 		# Trap ^C in an eval.  The sighandler will die which will be
@@ -1797,30 +1808,9 @@ sub initialize
 
 	$joblist= new Psh::Joblist();
 
-	#
-	# TODO: Internationalize!
-	#
-	# Although, right now they can be overridden in the .pshrc file
-	# via @psh::wday = qw(Dom Lun Mar Mie Jue Vie Sab).
-	#
-
-	@wday      = qw(Sun Mon Tue Wed Thu Fri Sat);
-	@mon       = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
-
-	%signal_description = (
-						   'TTOU' => 'TTY output',
-						   'TTIN' => 'TTY input',
-						   'KILL' => 'killed',
-						   'FPE'  => 'floating point exception',
-						   'SEGV' => 'segmentation fault',
-						   'PIPE' => 'broken pipe',
-						   'BUS'  => 'bus error',
-						   'ABRT' => 'aborted',
-						   'ILL'  => 'illegal instruction',
-						   'TSTP' => 'stop typed at TTY'
-						   );
-
 	@val = ();
+
+	&Psh::Locale::Base::init;
 }
 
 
@@ -1846,7 +1836,7 @@ sub process_rc
 
 	foreach my $rc (@rc) {
 		if (-r $rc) {
-		        print_debug("[ PROCESSING $rc ]\n");
+			print_debug("[ PROCESSING $rc ]\n");
 			process_file($rc);
 		}
 	}
@@ -1855,14 +1845,14 @@ sub process_rc
 		if ($readline_saves_history) {
 			$term->ReadHistory($psh::history_file);
 		} else {
-		  my $fhist = new FileHandle($psh::history_file);
-		  if ($fhist) {
-               while (<$fhist>) {
-                   chomp;
-                   $term->addhistory($_);
-               }
-               $fhist->close();
-		  }
+			my $fhist = new FileHandle($psh::history_file);
+			if ($fhist) {
+				while (<$fhist>) {
+					chomp;
+					$term->addhistory($_);
+				}
+				$fhist->close();
+			}
 		}
 	}
 }
@@ -1880,7 +1870,7 @@ sub process_args
 
 	foreach my $arg (@ARGV) {
 		if (-r $arg) {
-		        print_debug("[ PROCESSING $arg ]\n");
+			print_debug("[ PROCESSING $arg ]\n");
 			process_file($arg);
 		}
 	}
@@ -1933,6 +1923,38 @@ sub print_debug
 sub print_error
 {
 	print STDERR @_;
+}
+
+#
+# print_i18n( stream, key, args)
+# print_out_i18n( key, args)
+# print_error_i18n( key, args)
+#
+# The print..._i18n suite of functions will fetch the
+# text from the %text hash, replace %1 with the first arg,
+# %2 with the second and so on and then print it out
+#
+
+sub print_i18n
+{
+	my( $stream, $text, @rest) = @_;
+	$text= $psh::text{$text};
+	for( my $i=0; $i<=$#rest; $i++)
+	{
+		$text=~ s/\%1/$rest[$i]/go;
+	}
+	print $stream $text;
+}
+
+
+sub print_error_i18n
+{
+	print_i18n(STDERR,@_);
+}
+
+sub print_out_i18n
+{
+	print_i18n(STDOUT,@_);
 }
 
 sub print_out
@@ -2121,7 +2143,7 @@ sub my_system
 
 	fork_process( sub {
 		exec $call;
-		print_error("Error (exec $call) failed.");
+		print_error_i18n(`exec_failed`,$call);
 		exit -1;
 	}, $fgflag, $call);
 }
@@ -2183,14 +2205,14 @@ sub handle_wait_status {
 	my $verb='';
   
 	if (&WIFEXITED($pid_status)) {
-		$verb= 'Done' if (!$quiet);
+		$verb= "\u$text{done}" if (!$quiet);
 		$joblist->delete_job($pid);
 	} elsif (&WIFSIGNALED($pid_status)) {
-		$verb = 'Terminated ( ' .
+		$verb = "\u$text{terminated} (" .
 			signal_description(WTERMSIG($pid_status)) . ')';
 		$joblist->delete_job($pid);
 	} elsif (&WIFSTOPPED($pid_status)) {
-		$verb = 'Stopped ( ' .
+		$verb = '\u$text{stopped} (' .
 			signal_description(WSTOPSIG($pid_status)) . ')';
 		$job->{running}= 0;
 	}
@@ -2228,10 +2250,10 @@ sub restart_job
 		my $command = $job->{call};
 
 		if ($command) {
-			my $verb = 'Restart';
+			my $verb = "\u$text{restart}";
 			my $qRunning = $job->{running};
 			if ($fg_flag) {
-			  $verb = 'Foreground';
+			  $verb = "\u$text{foreground}";
 			} elsif ($qRunning) {
 			  # bg request, and it's already running:
 			  return;
