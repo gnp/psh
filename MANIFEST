@@ -36,3 +36,5 @@ lib/Psh/OS/Unix.pm
 lib/Psh/OS/Win.pm
 t/locale.t
 t/parser.t
+t/unix.psh
+t/win32.psh
