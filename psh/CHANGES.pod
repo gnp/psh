@@ -8,7 +8,225 @@
 ###############################################################################
 ###############################################################################
 ##
-## 0.003
+## 0.005
+##
+###############################################################################
+###############################################################################
+
+
+=head1 0.005 [1999-12-28]
+
+A very functional release.
+
+
+=head2 New Evaluation Strategies
+
+=over 4
+
+=item *
+
+brace
+
+=item *
+
+fallback_builtin
+
+Builtins of this type (currently searched in package C<Psh::Builtins::Fallback>)
+will be executed AFTER no program of that name was found.
+This allows simulation of common commands like B<ls> and
+B<env> on systems not having such binaries.
+
+=item *
+
+auto_resume
+
+=back
+
+
+=head2 New Bultins
+
+=over 4
+
+=item *
+
+B<builtin>
+
+=item *
+
+B<env>
+
+On systems with an B<env> binary installed it will use the binary, on other
+systems (namely Win32) it will print a list of environment variables.
+
+=item *
+
+B<help>
+
+=item *
+
+B<unalias>
+
+=back
+
+
+
+=head2 Builtin Enhancements
+
+=over 4
+
+=item *
+
+B<alias>
+
+Changed builtin B<alias> so that 'C<alias name>' displays the
+alias definition for that name.
+
+=item *
+
+B<bg>
+
+It's now possible to do 'C<bg commandname>' (e.g. 'C<bg emacs>')
+B<fg> has the same behaviour for consistency.
+
+=item *
+
+B<cd>
+
+Respects C<CDPATH> now and sets C<OLDPWD>.
+
+=back
+
+
+=head2 Portability Enhancements
+
+=over 4
+
+=item *
+
+Added portability infrastructure.
+
+=item *
+
+Working Win32 port (though it has limited features).
+
+=back
+
+
+=head2 Completion Enhancements
+
+=over 4
+
+=item *
+
+Variables for bookmark completion are now
+C<@Psh::Completion::bookmarks> and C<@Psh::Completion::netprograms>.
+
+=item * 
+
+New Perl Hashkey completion will TAB complete the name
+of keys for Perl hashes (if they are not written in quotes).
+
+=item *
+
+Support for user defined completions by C<%Psh::Completion::custom_completions>.
+
+=item *
+
+Perl Symbol completion now supports package names and package name completion.
+
+=item *
+
+Support for TAB completions for builtins.
+
+=item *
+
+A C<custom_completions> entry may now also be code. If the
+value of a C<custom_completions> key/value pair is a C<sub>
+that C<sub> will be called and the result used as rules.
+
+=item *
+
+A rule for C<custom_completions> may now have an optional
+third argument. If that argument is true, the
+C<custom_completion> will replace the standard completions
+instead of adding to them.
+
+=item *
+
+Filename Completion respects the C<FIGNORE> environment
+variable now.
+
+=back
+
+
+=head2 Other Changes
+
+=over 4
+
+=item *
+
+Documentation updates.
+
+=item *
+
+Locales defined for: Default (English), French, German, Italian, Portuguese, and Spanish.
+
+=item *
+
+New fallback builtins: B<ls>
+
+=item *
+
+Prompt evaluation is now more B<bash> compatible and handles even
+more complex prompts.
+
+=item *
+
+Replaced C<Psh::OS::Unix::glob()> - now uses its own glob
+routine instead of C<CORE::glob()> - and is significantly faster
+(important for executable completion).
+
+=item *
+
+New variables: C<$Psh::Prompt_cont>, C<$Psh::result_array>.
+
+=item *
+
+Moved almost all code from C<psh> into C<Psh>, C<Psh::Builtins> and C<Psh::Util>.
+
+=item *
+
+Environment variable C<CURRENT_SHELL> is set to the path to B<psh>.
+
+=back
+
+
+=head2 Bug Fixes
+
+=over 4
+
+=item *
+
+Generation of weekday names.
+
+=item *
+
+Small fixes for B<setenv>, print_list and abs_path.
+
+=item *
+
+Fixed signal description generation.
+
+=back
+
+
+=cut
+
+
+###############################################################################
+###############################################################################
+##
+## 0.004
 ##
 ###############################################################################
 ###############################################################################
@@ -20,44 +238,69 @@ following features:
 
 =over 4
 
-=item * Background process management much more like B<bash>.
+=item *
 
-=item * Perl code in addition to executables may be put in the
-    background.
+Background process management much more like B<bash>.
 
-=item * Pipelines.
+=item *
 
-=item * Initial internationalization.
+Perl code in addition to executables may be put in the background.
 
-=item * New built-ins: C<alias>, C<export>, C<setenv>.
+=item *
 
-=item * A flexible set of evaluation strategies that can be
-    selected or reordered by setting a configuration
-    variable.
+Pipelines.
 
-=item * Prompt strings can have escapes like C<\07> (ASCII C<BEL>) or
-    C<\10> (ASCII C<LF>).
+=item *
 
-=item * avoided trying to save history if there wasn't even a
-    C<ReadLine> module.
+Initial internationalization.
 
-=item * added C<$psh::debugging> variable to hold the debugging
-    state, so it can be turned on and off in a running B<psh>.
+=item *
 
-=item * A C<$psh::echo> variable to control whether perl results of
-	evaluation are printed.
+New built-ins: C<alias>, C<export>, C<setenv>.
 
-=item * The C<which> builtin now shows which strategy will apply to
-	a given command line
+=item *
 
-=item * Grab more input automatically if C<E<lt>E<lt>BLOCK> appears
-	anywhere on the line, or if the line ends with an open
-	brace.
+A flexible set of evaluation strategies that can be
+selected or reordered by setting a configuration
+variable.
 
-=item * results of C<&psh::which()> searches are hashed.
+=item *
 
-=item * Thorough documentation of every user-accessible variable
-	and function
+Prompt strings can have escapes like C<\07> (ASCII C<BEL>) or
+C<\10> (ASCII C<LF>).
+
+=item *
+
+avoided trying to save history if there wasn't even a
+C<ReadLine> module.
+
+=item *
+
+added C<$psh::debugging> variable to hold the debugging
+state, so it can be turned on and off in a running B<psh>.
+
+=item *
+
+A C<$psh::echo> variable to control whether perl results of
+evaluation are printed.
+
+=item *
+
+The C<which> builtin now shows which strategy will apply to
+a given command line
+
+=item *
+
+Grab more input automatically if C<E<lt>E<lt>BLOCK> appears
+anywhere on the line, or if the line ends with an open brace.
+
+=item *
+
+results of C<&psh::which()> searches are hashed.
+
+=item *
+
+Thorough documentation of every user-accessible variable and function
 
 =back
 
@@ -78,18 +321,29 @@ Contributions from B<Markus Peter>:
 
 =over 4
 
-=item * Rudimentary background jobs handling and job management.
+=item *
 
-=item * Signal handling.
+Rudimentary background jobs handling and job management.
 
-=item * Filename completion.
+=item *
 
-=item * Updates to history handling.
+Signal handling.
 
-=item * Flexible C<%built_ins> mechanism for adding built-in
-    functions.
+=item *
 
-=item * Smart mode is on by default.
+Filename completion.
+
+=item *
+
+Updates to history handling.
+
+=item *
+
+Flexible C<%built_ins> mechanism for adding built-in functions.
+
+=item *
+
+Smart mode is on by default.
 
 =back
 
@@ -108,30 +362,44 @@ Contributions from B<Markus Peter>:
 
 =over 4
 
-=item * Changed prompting to pass prompt string into C<&iget()>,
-    which passes it on to C<&Term::ReadLine::readline()> or
-    prints it out if the C<ReadLine> module is not available.
-    Thanks to B<Sam Tregar> and B<tmb at lumo.com>.
+=item *
 
-=item * Changed history handling so that empty lines and those
-    consisting of entirely whitespace are not recorded.
+Changed prompting to pass prompt string into C<&iget()>,
+which passes it on to C<&Term::ReadLine::readline()> or
+prints it out if the C<ReadLine> module is not available.
+Thanks to B<Sam Tregar> and B<tmb at lumo.com>.
 
-=item * Fixed a couple of typos.
+=item *
 
-=item * Changed the regular expression for `smart mode' to
-    allow C<vi +3 psh> in addition to C<ls -l>.
+Changed history handling so that empty lines and those
+consisting of entirely whitespace are not recorded.
 
-=item * Now uses C<Getopt::Std> for option processing.
+=item *
 
-=item * Fixed the code that detects the presence of
-    C<Term::ReadLine>.
+Fixed a couple of typos.
 
-=item * Made more use of debug mode to print out advisory
-    information.
+=item *
 
-=item * Use zero instead of C<undef> to set C<Term::ReadLine::MinLine>
-    so that we don't get C<undef> usage trouble in the guts of
-    C<Term::ReadLine::Gnu>.
+Changed the regular expression for `smart mode' to
+allow C<vi +3 psh> in addition to C<ls -l>.
+
+=item *
+
+Now uses C<Getopt::Std> for option processing.
+
+=item *
+
+Fixed the code that detects the presence of C<Term::ReadLine>.
+
+=item *
+
+Made more use of debug mode to print out advisory information.
+
+=item *
+
+Use zero instead of C<undef> to set C<Term::ReadLine::MinLine>
+so that we don't get C<undef> usage trouble in the guts of
+C<Term::ReadLine::Gnu>.
 
 =back
 
@@ -150,16 +418,23 @@ Contributions from B<Markus Peter>:
 
 =over 4
 
-=item * Added a bunch of stuff to the C<TODO> file.
+=item *
 
-=item * Added parens around each part of the C<$interactive>
-    detection expression.
+Added a bunch of stuff to the C<TODO> file.
 
-=item * Prompt variables are now dealt with via C<%prompt_vars>,
-    which can be modified, so that custom prompt variables
-    can be created.
+=item *
 
-=item * Added C<%built_ins>.
+Added parens around each part of the C<$interactive> detection expression.
+
+=item *
+
+Prompt variables are now dealt with via C<%prompt_vars>,
+which can be modified, so that custom prompt variables
+can be created.
+
+=item *
+
+Added C<%built_ins>.
 
 =back
 
@@ -178,8 +453,10 @@ Contributions from B<Markus Peter>:
 
 =over 4
 
-=item * Fixed typo that caused a bug where prompt variable C<$>
-    didn't work. Thanks to B<John Labovitz>.
+=item *
+
+Fixed typo that caused a bug where prompt variable C<$>
+didn't work. Thanks to B<John Labovitz>.
 
 =back
 

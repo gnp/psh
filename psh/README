@@ -557,9 +557,7 @@ REQUIREMENTS
         functionality:
 
     Term::ReadLine::Gnu or Term::ReadLine::Perl for readline support
-    (command history, special editing chars etc.). Term::ReadLine::Gnu
-    support is by far more advanced currently than support for
-    Term::ReadLine::Perl
+    (command history, special editing chars etc.).
     Term::Size or Term::ReadKey to offer the ability to change the
     environment variables LINES and COLUMNS when the terminal window size
     changes while running as standard shell
@@ -669,8 +667,9 @@ CREDITS
 
     Prodigious Contributors
             Markus Peter <warp@spin.de> added job and signal
-            handling and filename completion, initial
-            internationalization code and some more minor updates.
+            handling, completion code, Win32 port, i18n code, bash
+            compatibility builtins and environment variables and
+            some more minor updates.
 
             Glen Whitney <gwhitney@post.harvard.edu> added
             evaluation strategies, improved interrupt/job handling,
