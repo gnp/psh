@@ -126,6 +126,7 @@ sub prompt_string
 			$sub=Psh::OS::backtick($code);
 			chomp $sub;
 		};
+		Psh::Util::print_debug_class('e',"Error: $@") if $@;
 		$sub='' if( $@);
 		$sub=~ s/\\/\0/g;
 		$temp=$save1 . $sub . $save2;

@@ -53,7 +53,7 @@ if (@ARGV) {
 	# -d is "debug mode":
 	#
 
-	if (exists($opt{'d'})) { $Psh::debugging = $opt{'d'}||'soi'; }
+	if (exists($opt{'d'})) { $Psh::debugging = $opt{'d'}||'soie'; }
 	else                   { $Psh::debugging = 0; }
 }
 

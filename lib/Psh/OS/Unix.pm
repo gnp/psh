@@ -74,6 +74,7 @@ sub display_pod {
 		require Pod::Text;
 		Pod::Text::pod2text($tmp,*STDOUT);
 	};
+	Psh::Util::print_debug_class('e',"Error: $@") if $@;
 	print $text if $@;
 
 	unlink($tmp);
@@ -519,6 +520,7 @@ sub restart_job
 
 			if($fg_flag) {
 				eval { _wait_for_system($pid, 0); };
+				Psh::Util::print_debug_class('e',"Error: $@") if $@;
 			} elsif( !$qRunning) {
 				$job->continue;
 			}

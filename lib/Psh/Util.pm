@@ -30,8 +30,9 @@ sub print_debug
 sub print_debug_class
 {
 	my $class= shift;
-	print STDERR @_ if $Psh::debugging =~ /$class/ ||
-	  $Psh::debugging==1;
+	print STDERR @_ if $Psh::debugging and
+	  ($Psh::debugging eq '1' or
+	   $Psh::debugging =~ /$class/);
 }
 
 sub print_error
@@ -149,6 +150,7 @@ sub abs_path {
 				eval {
 					$result= Cwd::abs_path($tmp);
 				};
+				print_debug_class('e',"(abs_path) Error: $@") if $@;
 			}
 			return undef unless $result;
 		}
@@ -182,7 +184,8 @@ sub abs_path {
 		eval {
 			$re1= qr{$re1}o;
 			$re2= qr{$re2}o;
-		}
+		};
+		print_debug_class('e',"(util::before which) Error: $@") if $@;
 	}
 
 	sub which
@@ -217,6 +220,7 @@ sub abs_path {
 					push @Psh::absed_path, Psh::Util::abs_path($dir);
 				}
 			};
+			print_debug_class('e',"(which) Error: $@") if $@;
 			# Without the eval Psh might crash if the directory
 			# does not exist
 		}

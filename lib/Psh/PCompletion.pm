@@ -127,7 +127,8 @@ sub pcomp_list {
     if ($cs->{action} & CA_BINDING) {
 	# only Term::ReadLine::Gnu 1.09 and later support funmap_names()
 	# use `eval' for other versions
-	eval { push(@l, grep { /^\Q$text/ } $Psh::term->funmap_names) };
+		eval { push(@l, grep { /^\Q$text/ } $Psh::term->funmap_names) };
+		Psh::Util::print_debug_class('e',"Error: $@") if $@;
     }
     if ($cs->{action} & CA_BUILTIN  || $cs->{action} & CA_HELPTOPIC) {
 		if (Psh::Strategy::active('built_in')) {
@@ -245,17 +246,17 @@ sub pcomp_list {
 
     # -F function
     if (defined $cs->{function}) {
-#	warn "[$text,$line,$start,$cmd]\n";
-	$__line = $line; $__start = $start; $__cmd = $cmd; # for compgen()
-	my @t = eval { package main;
-		       no strict 'refs';
-		       &{$cs->{function}}($text, $line, $start, $cmd);
-		   };
-	if ($@) {
-	    warn $@;
-	} else {
-	    push(@l, grep { /^\Q$text/ } @t);
-	}
+		#	warn "[$text,$line,$start,$cmd]\n";
+		$__line = $line; $__start = $start; $__cmd = $cmd; # for compgen()
+		my @t = eval { package main;
+					   no strict 'refs';
+					   &{$cs->{function}}($text, $line, $start, $cmd);
+				   };
+		if ($@) {
+			warn $@;
+		} else {
+			push(@l, grep { /^\Q$text/ } @t);
+		}
     }
 
     # -C command 

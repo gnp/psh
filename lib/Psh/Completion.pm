@@ -464,6 +464,7 @@ sub completion
 		grep { $_ eq $startword } Psh::Support::Builtins::get_builtin_commands() ) {
 		my $pkg= ucfirst($startword);
 		eval "require Psh::Builtins::$pkg";
+		Psh::Util::print_debug_class('e',"Error: $@") if $@;
 		my @tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext','$line')";
 		if( @tmp2 && $tmp2[0]) {
 			shift(@tmp2);

@@ -105,10 +105,11 @@ sub evl {
 		print STDERR "+ $line\n";
 	}
 	my @elements= eval { Psh::Parser::parse_line($line, @use_strats) };
+	Psh::Util::print_debug_class('e',"(evl) Error: $@") if $@;
 	return undef unless @elements;
 
 	my ($success,$result)= _evl(@elements);
-	Psh::Util::print_debug_class('i',"Success: $success\n");
+	Psh::Util::print_debug_class('s',"Success: $success\n");
 	return ($success,@$result);
 }
 
@@ -387,7 +388,7 @@ sub process_file
 	Psh::OS::lock(*FILE);
 
 	if ($Psh::debugging=~ /f/ or
-		$Psh::debugging==1) {
+		$Psh::debugging eq '1') {
 		process(0, sub {
 					my $txt=<FILE>;
 					Psh::Util::print_debug_class('f',$txt);
@@ -468,13 +469,15 @@ sub iget
 			&$prompt_hook if $prompt_hook;
 			print $prompt_pre if $prompt_pre;
 			eval { $line = $term->readline($prompt); };
+			Psh::Util::print_debug_class('e',"(iget) Error: $@") if $@;
 		} else {
 			eval {
 				&$prompt_hook if $prompt_hook;
 				print $prompt_pre if $prompt_pre;
 				print $prompt if $prompt;
 				$line = <STDIN>;
-			}
+			};
+			Psh::Util::print_debug_class('e',"(iget) Error: $@") if $@;
 		}
 		if( $@) {
 			if( $@ =~ /Signal INT/) {
@@ -557,7 +560,8 @@ sub minimal_initialize
 	if ($]>=5.005) {
 		eval {
 			$which_regexp= qr/$which_regexp/; # compile for speed reasons
-		}
+		};
+		Psh::Util::print_debug_class('e',"(minimal_init) Error: $@") if $@;
 	}
 
 	$cmd                         = 1;
@@ -658,7 +662,7 @@ sub finish_initialize
 		#
 		eval { require Term::Size; };
 		if ($@) {
-			Psh::Util::print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
+			Psh::Util::print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey]\n");
 			eval { require Term::ReadKey; };
 			if( $@) {
 				Psh::Util::print_debug_class('i',"[Term::ReadKey not available]\n");
