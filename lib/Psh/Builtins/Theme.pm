@@ -39,10 +39,15 @@ sub _set_theme {
 					} else {
 						return _parse_error($file);
 					}
+				} elsif ($line=~/^\s*PROMPT\s*\=\s*(.*)$/) {
+					$ps[1]= Psh::Parser::unquote($1);
 				} elsif ($line=~/^\s*TITLE\s*\=\s*(.*)$/) {
 					$title= Psh::Parser::unquote($1);
-				} elsif ($line=~/^\s*X[BF]GCOLOR/ or
+				} elsif ($line=~/^\s*X.*COLOR.*\=/ or
 						 $line=~/^\s*needmod\s+color/ or
+						 $line=~/^\s*THEME_.*\=/ or
+						 $line=~/^\s*SUPERPROMPT/ or
+						 $line=~/^\s*CURCOLOR/ or
 						 $line=~/^\s*$/) {
 					# ignore
 				} else {
