@@ -192,7 +192,7 @@ sub pcomp_list {
 
     # Perl Symbol completions
 #    printf "[$text,%08x]\n", $cs->{action};
-    my $pkg = '::';		# assume main package now.  cf. cmpl_symbol()
+	my $pkg = $Psh::PerlEval::current_package.'::';
     if ($cs->{action} & CA_VARIABLE and !$pretext) {
 		no strict 'refs';
 		push(@l, grep { /^\w+$/ && /^\Q$text/
@@ -250,10 +250,10 @@ sub pcomp_list {
 			my $package= $1;
 			eval "require $package;";
 		}
-		my @t = eval { package main;
-					   no strict 'refs';
-					   &{$cs->{function}}($text, $line, $start, $cmd);
-				   };
+		my @t = eval {
+			no strict 'refs';
+			&{$cs->{functionpackage}.'::'.$cs->{function}}($text, $line, $start, $cmd);
+		};
 		if ($@) {
 			warn $@;
 		} else {
@@ -342,6 +342,7 @@ sub pcomp_getopts {
 	    $cs{command}   = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-F/) {
 	    $cs{function}  = Psh::Parser::unquote(shift @{$ar});
+		$cs{function_package}= $Psh::PerlEval::current_package;
 	} elsif (/^-X/) {
 	    $cs{filterpat} = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-x/) {	# psh specific (at least now)

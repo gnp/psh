@@ -69,7 +69,7 @@ sub _escape {
 # is faster
 #
 sub fb_glob {
-	my( $pattern, $dir) = @_;
+	my( $pattern, $dir, $already_absed) = @_;
 
 	return () unless $pattern;
 
@@ -77,7 +77,7 @@ sub fb_glob {
 	if( !$dir) {
 		$dir=$ENV{PWD};
 	} else {
-		$dir=Psh::Util::abs_path($dir);
+		$dir=Psh::Util::abs_path($dir) unless $already_absed;
 	}
 	return unless $dir;
 

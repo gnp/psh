@@ -75,6 +75,7 @@ lib/Psh/Builtins/Jobs.pm
 lib/Psh/Builtins/Kill.pm
 lib/Psh/Builtins/Modules.pm
 lib/Psh/Builtins/Option.pm
+lib/Psh/Builtins/Package.pm
 lib/Psh/Builtins/Printenv.pm
 lib/Psh/Builtins/Readline.pm
 lib/Psh/Builtins/Rehash.pm

@@ -158,8 +158,6 @@ sub read_until
 # far is not an incomplete expression according to
 # incomplete_expr. Prompting is done with PROMPT_TEMPL.
 #
-# TODO: Undo any side effects of, e.g., m//.
-#
 
 sub read_until_complete
 {
@@ -242,19 +240,25 @@ sub process
 		next unless $input;
 		next if $input=~ m/^\s*$/;
 
-		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
-			my $terminator = $1;
+		if ($input =~ m/(.*)<<([a-zA-Z_0-9\-]*)(.*)/) {
+			my $pre= $1;
+			my $terminator = $2;
+			my $post= $3;
+
 			my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
-			$input = join('',$input,
+			$input = join('',$pre,'"',
 						  read_until($continuation, $terminator, $get),
-						  $terminator,"\n");
+						  $terminator,'"',$post,"\n");
 		} elsif (Psh::Parser::incomplete_expr($input) > 0) {
 			my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
 			$input = read_until_complete($continuation, $input, $get);
 		}
 
 		chomp $input;
+
 		my ($success,@result) = evl($input);
+
+        next unless $Psh::interactive;
 
 		my $qEcho = 0;
 		my $echo= Psh::Options::get_option('echo');
@@ -307,7 +311,7 @@ sub process
 				my $n = scalar(@{$result_array_ref});
 				my $res = $result[0];
 				push @{$result_array_ref}, $res;
-				Psh::Util::print_out("\$$result_array_name\[$n] = \"$res\"\n") if $Psh::interactive;
+				Psh::Util::print_out("\$$result_array_name\[$n] = \"$res\"\n");
 			}
 			if (@{$result_array_ref}>100) {
 				shift @{$result_array_ref};
@@ -555,7 +559,7 @@ sub minimal_initialize
 	# Set up accessible psh:: package variables:
 	#
 
-	$Psh::eval_preamble          = 'package main;';
+	$Psh::eval_preamble          = '';
 	$Psh::currently_active       = 0;
 	$Psh::result_array           = '';
 	$Psh::which_regexp           = '^[-a-zA-Z0-9_.~+]+$'; #'

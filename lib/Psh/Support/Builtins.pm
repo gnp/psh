@@ -20,7 +20,7 @@ sub build_autoload_list {
 		my $tmpdir= Psh::OS::catdir($tmp,'Psh','Builtins');
 		if (-r $tmpdir) {
 			$unshift=$tmp;
-			my @files= Psh::OS::glob('*.pm',$tmpdir);
+			my @files= Psh::OS::glob('*.pm',$tmpdir,1);
 			foreach( @files) {
 				s/\.pm$//;
 				$_= lc($_);

@@ -83,8 +83,9 @@ sub bi_complete {
 				my $tmp= $lines[1];
 				$tmp=~s/^\s*\#//;
 				my @commands= split /\s+/, $tmp;
-				require Psh::Completion;
-				Psh::Completion::add_module(\@commands,$file);
+				foreach (@commands) {
+					$Psh::Completion::modules{$_}= $file;
+				}
 				return (1,undef);
 			} else {
 				Psh::Util::print_error("Completion module '$file' is not in a valid format.\n");
