@@ -189,7 +189,7 @@ if (!$@) {
 		if ($cmd =~ m|\Q$FS\E|) {
 			$cmd =~ m|^(.*)\Q$FS\E([^\Q$FS\E]+)$|;
 			my $path_element= $1;
-			my $cmd_element= $2||'';;
+			my $cmd_element= $2||'';
 			my $try = abs_path($path_element).$FS.$cmd_element;
 			if ((-x $try) and (! -d _)) { return $try; }
 			return undef;
