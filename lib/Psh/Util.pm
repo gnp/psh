@@ -121,7 +121,7 @@ sub abs_path {
 		if ($dir eq '~') {
 			$result= Psh::OS::get_home_dir();
 		} elsif ( substr($dir,0,2) eq '~/') {
-			substr($dir,0,2)= Psh::OS::get_home_dir();
+			substr($dir,0,1)= Psh::OS::get_home_dir();
 		} elsif ( substr($dir,0,1) eq '~' ) {
 			my $fs= $Psh::OS::FILE_SEPARATOR;
 			my ($user)= $dir=~/^\~(.*?)$fs/;
@@ -215,8 +215,10 @@ sub abs_path {
 
 			eval {
 				foreach my $dir (@path) {
-					next unless $dir and -r $dir;
-					push @Psh::absed_path, Psh::Util::abs_path($dir);
+					next unless $dir;
+					my $dir= Psh::Util::abs_path($dir);
+					next unless -r $dir and -x _;
+					push @Psh::absed_path, $dir;
 				}
 			};
 			print_debug_class('e',"(which) Error: $@") if $@;
