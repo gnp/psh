@@ -210,6 +210,21 @@ If you want to ensure that "print" (for example) refers to the Perl
 function "print" and not "/usr/bin/print", try adding the "perlfunc"
 strategy before "executable".
 
+=head2 GLOBBING
+
+Globbing is used to expand filenames against patterns. Perl Shell
+understands the sh '*' and '?' globbing characters (where * matches
+any string and ? matches exactly one character).
+
+In addition, Perl Shell knows the very powerful '**' globbing,
+replacing many C<find>s in your daily work. '**' will be replaced
+by 'current directories and all sub directories'. For example:
+
+    grep foo lib/**/*.pm
+
+will search for foo in all *.pm files which are somewhere
+(recursivly) within the lib directory.
+
 
 =head2 PIPELINES
 
@@ -780,6 +795,7 @@ brief table indicating whether or not each has certain features.
          'exec'ing executables searched for in PATH
     CLE: command-line editing
     JC : job control
+    PL : pipelines 
 
   Key to symbols:
     * : feature present
@@ -788,15 +804,15 @@ brief table indicating whether or not each has certain features.
 
   The shells:
 
-    Shell Name         PE    SHE   CLE   JC
- psh (this one)         *     *     *     *            
- Larry Wall shell       *     -     -     -
- Perl debugger shell    *     -     *     -
- perlsh                 *     -     *     -
- Krynicky PSH.pm        *     *     ?     -
- SoftList               *     ?     *     ?
- timtosh                -     *     ?     *
- vbsh                   ?     ?     ?     ?
+    Shell Name         PE    SHE   CLE   JC    PL
+ psh (this one)         *     *     *     *     *            
+ Larry Wall shell       *     -     -     -     -
+ Perl debugger shell    *     -     *     -     -
+ perlsh                 *     -     *     -     ?
+ Krynicky PSH.pm        *     *     ?     -     ?
+ SoftList               *     ?     *     ?     ?
+ timtosh                -     *     *     *     *
+ vbsh                   ?     ?     ?     ?     -
 
 
 =head1 ENVIRONMENT VARIABLES
