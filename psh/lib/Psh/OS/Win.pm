@@ -96,6 +96,7 @@ sub execute_complex_command {
 	my $fgflag= shift @array;
 	my @return_val;
 	my $pgrp_leader=0;
+	my $success= 0;
 	my $pid;
 	my $string='';
 	my @tmp;
@@ -109,12 +110,13 @@ sub execute_complex_command {
 	for( my $i=0; $i<@array; $i++) {
 		my ($strategy, $how, $options, $words, $text)= @{$array[$i]};
 		my $line= join(' ',@$words);
-		my ($eval_thingie,$words,$bgflag,@return_val)= $strategy->execute( \$line, $words, $how, 0);
+		my ($eval_thingie,$bgflag);
+		($success,$eval_thingie,$words,$bgflag,@return_val)= $strategy->execute( \$line, $words, $how, 0);
 
 		my @tmp;
 
 		if( defined($eval_thingie)) {
-			($obj,@tmp)= _fork_process($eval_thingie,$fgflag,$text,undef,$words);
+			($obj,$success,@tmp)= _fork_process($eval_thingie,$fgflag,$text,undef,$words);
 		}
 		if( @return_val < 1 ||
 			!defined($return_val[0])) {
@@ -132,7 +134,7 @@ sub execute_complex_command {
 			Psh::Util::print_out("[$visindex] Background $pid $string\n");
 		}
 	}
-	return @return_val;
+	return ($success,@return_val);
 }
 
 sub _fork_process {

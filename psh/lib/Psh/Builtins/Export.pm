@@ -37,8 +37,9 @@ sub bi_export
 		}
 	} else {
 		Psh::Util::print_error_i18n('usage_export');
+		return (0,undef);
 	}
-	return undef;
+	return (1,undef);
 }
 
 1;

@@ -105,8 +105,10 @@ sub evl {
 	my @elements= eval { Psh::Parser::parse_line($line, @use_strats) };
 	return undef unless @elements;
 
-	my @result= _evl(@elements);
-	return @result;
+	my ($success,$result)= _evl(@elements);
+	print_debug_class('i',"Success: $success\n");
+
+	return ($success,@$result);
 }
 
 sub _evl {
@@ -121,7 +123,11 @@ sub _evl {
 			};
 			handle_message($@);
 		} elsif ($type == Psh::Parser::T_OR()) {
+			return @result if @result and $result[0]; # we already had success
 		} elsif ($type == Psh::Parser::T_AND()) {
+			return (0) unless @result;
+			next if ($result[0]); # we last had success
+			return (0);
 		} else {
 			Psh::Util::print_error("evl: Don't know type $type\n");
 		}
@@ -258,7 +264,7 @@ sub process
 
 		chomp $input;
 
-		my @result = evl($input);
+		my ($success,@result) = evl($input);
 
 		my $qEcho = 0;
 
@@ -780,7 +786,7 @@ sub main_loop
 sub is_number
 {
 	my $test = shift;
-	return defined($test) && $test &&
+	return defined($test) &&
 		$test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
 }
 

@@ -38,6 +38,7 @@ sub protected_eval
 		if ( !$@ && @Psh::result &&
 			 $#Psh::result==0 &&
 			 $Psh::result[0] eq $Psh::string &&
+			 !Psh::is_number($Psh::string) &&
 			 $Psh::string=~ /^\s*\S+\s*$/ &&
 			 $Psh::string!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {
 			#
@@ -49,6 +50,7 @@ sub protected_eval
 			#
 
 			Psh::Util::print_error_i18n('no_command',$Psh::string);
+			return undef;
 		}
 		else {
 			Psh::handle_message($@, $Psh::from);

@@ -104,7 +104,8 @@ sub decompose
 		    $startNewPiece = 0;
 		    $freshPiece = 1;
 	    }
-	    if (scalar(@pieces) == $num) { last; }
+	    if (@pieces == $num) { last; }
+
 	    # $delimexp is unparenthesized below because we have
 	    # already arranged for it to contain exactly one backref ()
 		my ($prefix,$delimiter,$quote,$meta,$rest) =
@@ -175,22 +176,25 @@ sub std_tokenize
 sub incomplete_expr
 {
     my ($line) = @_;
-	return 0 unless $line=~/[\[\]{}()]/;
+	return 0 unless $line=~/[\[{(]/;
 
     my $unmatch = 0;
     my @words = @{scalar(decompose(' ',$line,undef,1,undef,$def_metaexp, \$unmatch))};
     if ($unmatch) { return 2; }
     my @openstack = (':'); # : is used as a bottom marker here
     my %open_of_close = qw|) ( } { ] [|;
+
     foreach my $word (@words) {
-            if ($word =~ m/^[{([]$/) { push @openstack, $word; }
-            elsif ($word =~ m/^[])}]$/) {
-	            my $open = $open_of_close{$word};
-		    my $curopen = pop @openstack;
-		    if ($open ne $curopen) {
-		            return -1;
-		    }
-	    }
+		next if length($word)!=1;
+		if ($word eq '[' or $word eq '{' or $word eq '(') {
+			push @openstack, $word;
+		} elsif ($word eq ')' or $word eq '}' or $word eq ']') {
+			my $open= $open_of_close{$word};
+			my $curopen = pop @openstack;
+			if ($open ne $curopen) {
+				return -1;
+			}
+		}
     }
     if (scalar(@openstack) > 1) { return 1; }
     return 0;
@@ -291,10 +295,12 @@ sub make_tokens {
 	my $nestlevel=0;
 	my @tmp=();
 	foreach (@tmpparts) {
-		if (/^[\[\(\{]$/) {
-			$nestlevel++;
-		} elsif (/^[\]\)\}]$/) {
-			$nestlevel--;
+		if (length($_)==1) {
+			if ($_ eq '[' or $_ eq '(' or $_ eq '{') {
+				$nestlevel++;
+			} elsif ($_ eq '}' or $_ eq ')' or $_ eq ']') {
+				$nestlevel--;
+			}
 		}
 		if ($nestlevel) {
 			push @tmp, $_;
@@ -307,12 +313,13 @@ sub make_tokens {
 	}
 
 	my @tokens= ();
-	my $previous_token='';
-	while( my $tmp= shift @parts) {
+	my $previous_token= '';
+	my $tmp;
+	while( defined($tmp= shift @parts)) {
 		if( $tmp =~ /^\s*\|\s*$/ ) {
 			if( $previous_token eq '|') {
 				pop @tokens;
-				push @tokens, [T_OR];
+				push @tokens, [T_END],[T_OR];
 				$previous_token= '';
 			} elsif( $previous_token eq "\\") {
 				pop @tokens;
@@ -379,7 +386,7 @@ sub make_tokens {
 			if( $previous_token eq '&') {
 				pop @tokens;
 				pop @tokens; # pop T_END and T_BACKGROUND
-				push @tokens, [T_AND];
+				push @tokens, [T_END],[T_AND];
 				$previous_token='';
 			} elsif( $previous_token eq "\\") {
 				pop @tokens;
@@ -452,10 +459,15 @@ sub parse_line {
 			if (@tokens > 0) {
 				if ($tokens[0][0] == T_END) {
 					shift @tokens;
-				} elsif ($tokens[0][0] == T_AND) {
-					push @elements, [ T_AND ];
-				} elsif ($tokens[0][0] == T_OR) {
-					push @elements, [ T_OR ];
+				}
+				if (@tokens > 0) {
+					if ($tokens[0][0] == T_AND) {
+						shift @tokens;
+						push @elements, [ T_AND ];
+					} elsif ($tokens[0][0] == T_OR) {
+						shift @tokens;
+						push @elements, [ T_OR ];
+					}
 				}
 			}
 		}

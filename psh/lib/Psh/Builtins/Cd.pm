@@ -80,15 +80,15 @@ sub bi_cd
 				unshift @Psh::Support::Dirs::stack, $dir if $explicit;
 				CORE::chdir $dir;
 				$ENV{PWD}=$dir;
-				return 0;
+				return (1,undef);
 			} else {
 				Psh::Util::print_error_i18n('perm_denied',$in_dir,$Psh::bin);
-				return 1;
+				return (0,undef);
 			}
 		}
 	}
 	Psh::Util::print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
-	return 1;
+	return (0,undef);
 }
 
 sub cmpl_cd {

@@ -34,7 +34,7 @@ sub bi_modules
 	print_out('Builtins:   '.join(', ',@builtins)."\n\n");
 	print_out('Strategies: '.join(', ',@strategies)."\n\n");
 	print_out('Psh:        '.join(', ',@psh)."\n\n");
-	return undef;
+	return (0,undef);
 }
 
 1;

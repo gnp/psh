@@ -13,6 +13,7 @@ sub bi_rehash
 {
 	%Psh::Util::command_hash=();
 	%Psh::Util::path_hash=();
+	return (1,undef);
 }
 
 1;

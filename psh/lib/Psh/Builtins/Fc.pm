@@ -52,7 +52,7 @@ sub bi_fc
 	my $opt={};
 	getopts('splre:',$opt);
 
-	return undef unless $#Psh::history;
+	return (0,undef) unless $#Psh::history;
 	if ($opt->{'l'}) {
 		my $num=@Psh::history;
 		$num=15 if $num>15;
@@ -70,7 +70,7 @@ sub bi_fc
 			$command.=$_;
 		}
 		my $comnum= _locate_command($command);
-		return undef unless defined $comnum;
+		return (0,undef) unless defined $comnum;
 		my $comtext=$Psh::history[$comnum];
 		if ($subst) {
 			my ($old,$new)=$subst=~/^(.*?[^\\])\=(.*)$/;
@@ -83,7 +83,7 @@ sub bi_fc
 		my $prepend= shift @ARGV;
 		my $command= join ' ',@ARGV;
 		my $comnum= _locate_command($command);
-		return undef unless defined $comnum;
+		return (0,undef) unless defined $comnum;
 		my $comtext="$prepend $Psh::history[$comnum]";
 		print_out($comtext."\n");
 		Psh::add_history($comtext);
@@ -102,7 +102,7 @@ sub bi_fc
 		system("$editor $file");
 		Psh::process_file($file);
 	}
-	return undef;
+	return (1,undef);
 }
 
 

@@ -18,7 +18,7 @@ sub bi_function
 		Psh::Support::Functions::add_function($name,$def);
 		Psh::PerlEval::protected_eval(qq[sub $name { Psh::Support::Functions::call_function($name); }], 'eval');
 	}
-	return undef;
+	return (1,undef);
 }
 
 1;

@@ -44,7 +44,7 @@ sub execute {
 	no strict 'refs';
 	$coderef= *{join('','Psh::Builtins::',ucfirst($command),
 					 '::bi_',$command)};
-	return (sub { &{$coderef}($rest,\@words); }, [], 0, undef );
+	return (1,sub { &{$coderef}($rest,\@words); }, [], 0, undef );
 }
 
 1;

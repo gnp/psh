@@ -59,7 +59,9 @@ sub applies {
 
 sub execute {
 	my $executable= $_[3];
-	return (undef, undef, undef, CORE::system("/usr/bin/open $executable"));
+	my $tmp= CORE::system("/usr/bin/open $executable");
+	$tmp= $tmp/256;
+	return ($tmp==0, undef, undef, $tmp);
 }
 
 1;

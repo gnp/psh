@@ -36,7 +36,7 @@ sub bi_ulimit {
 	};
 	if ($@) {
 		Psh::Util::print_error_i18n('bi_bsdresource');
-		return undef;
+		return (0,undef);
 	}
 	eval {
 		require Getopt::Std;
@@ -63,7 +63,7 @@ sub bi_ulimit {
 			Psh::Util::print_out(sprintf("%-50s %s\n",$desc{$_},$val));
 		}
 	}
-	return undef;
+	return (1,undef);
 }
 
 1;

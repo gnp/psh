@@ -215,7 +215,7 @@ sub bi_bind {
         $status = 1;
     }
     
-    return $status;
+    return ($status,undef);
 }
 
 1;

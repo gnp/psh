@@ -196,10 +196,8 @@ sub applies {
 }
 
 sub execute {
-	my $todo= $_[3];
-	return (sub {
-		return Psh::PerlEval::protected_eval($todo,'eval');
-	}, [], 0, undef);
+	$_[4]=undef;
+	return Psh::Strategy::Eval(@_);
 }
 
 1;

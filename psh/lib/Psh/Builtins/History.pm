@@ -21,7 +21,7 @@ sub bi_history
 	my $num = @Psh::history;
 	my $grep= undef;
 
-	return undef unless $num;
+	return (0,undef) unless $num;
 
 	if ($_[1]) {
 		my @args=@{$_[1]};
@@ -35,11 +35,17 @@ sub bi_history
 		}
 	}
 
-	for ($i=@Psh::history-$num; $i<@Psh::history; $i++) {
+	my $success=0;
+	my $max= @Psh::history;
+	if ($grep) {
+		$max--;
+	}
+	for ($i=@Psh::history-$num; $i<$max; $i++) {
 		next if $grep and $Psh::history[$i]!~/\Q$grep\E/;
 		print_out(' '.sprintf('%3d',$i+1).'  '.$Psh::history[$i]."\n");
+		$success=1;
 	}
-	return undef;
+	return ($success,undef);
 }
 
 

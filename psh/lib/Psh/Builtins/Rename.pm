@@ -27,11 +27,10 @@ sub bi_rename
 	$op= Psh::Parser::unquote($op);
 	@words = Psh::Parser::glob_expansion(\@words);
 	@words = map { Psh::Parser::unquote($_)} @words;
-	my $status=0;
+	my $count=0;
 	for (@words) {
 		unless (-e) {
 			print STDERR "$Psh::bin: $_: $!\n";
-			$status= 1;
 			next;
 		}
 		my $was= $_;
@@ -43,13 +42,14 @@ sub bi_rename
 				print STDERR "$_ exists. $was not renamed\n";
 				next
 			}
-			unless (rename($was,$_)) {
+			if (CORE::rename($was,$_)) {
+				$count++;
+			} else {
 				print STDERR "$Psh::bin: can't rename $was to $_: $!\n";
-				$status= 1;
 			}
 		}
 	}
-	return $status;
+	return ($count>0,$count);
 }
 
 

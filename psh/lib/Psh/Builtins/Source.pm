@@ -19,7 +19,7 @@ sub bi_source
 		Psh::process_file(Psh::Util::abs_path($file));
 	}
 
-	return undef;
+	return (1,undef);
 }
 
 1;

@@ -193,7 +193,7 @@ sub _wait_for_system
 	_give_terminal_to($term_pid);
 
 	my $output='';
-
+	my $status=1;
 	my $returnpid;
 	while (1) {
 		if (!$job->{running}) { $job->continue; }
@@ -217,10 +217,14 @@ sub _wait_for_system
 		# Collect output here - we cannot print it while another
 		# process might possibly be in the foreground;
 		$output.=_handle_wait_status($returnpid, $pid_status, $quiet, 1);
-		last if $returnpid == $pid;
+		if ($returnpid == $pid) {
+			$status=&WEXITSTATUS($pid_status);
+			last;
+		}
 	}
 	_give_terminal_to($psh_pgrp);
 	Psh::Util::print_out($output) if length($output);
+	return $status==0;
 }
 
 #
@@ -285,6 +289,7 @@ sub execute_complex_command {
 	my @array= @{shift()};
 	my $fgflag= shift @array;
 	my @return_val;
+	my $success= 0;
 	my $eval_thingie;
 	my $pgrp_leader= 0;
 	my $pid;
@@ -298,7 +303,7 @@ sub execute_complex_command {
 
 		my $line= join(' ',@$words);
 		my $forcefork;
-		($eval_thingie,$words,$forcefork, @return_val)= $strategy->execute( \$line, $words, $how, $i>0);
+		($success, $eval_thingie,$words,$forcefork, @return_val)= $strategy->execute( \$line, $words, $how, $i>0);
 
 		$forcefork||=$i<$#array;
 
@@ -314,10 +319,10 @@ sub execute_complex_command {
 			}
 			my $termflag=!($i==$#array);
 
-			($pid,@tmp)= _fork_process($eval_thingie,$words,
-									   $fgflag,$text,$options,
-									   $pgrp_leader,$termflag,
-									   $forcefork);
+			($pid,$success,@tmp)= _fork_process($eval_thingie,$words,
+												$fgflag,$text,$options,
+												$pgrp_leader,$termflag,
+												$forcefork);
 
 			if( !$i && !$pgrp_leader) {
 				$pgrp_leader=$pid;
@@ -340,13 +345,13 @@ sub execute_complex_command {
 		my $job= Psh::Joblist::create_job($pid,$string);
 		$job->{pgrp_leader}=$pgrp_leader;
 		if( $fgflag) {
-			_wait_for_system($pid, 1);
+			$success=_wait_for_system($pid, 1);
 		} else {
 			my $visindex= Psh::Joblist::get_job_number($job->{pid});
 			Psh::Util::print_out("[$visindex] Background $pgrp_leader $string\n");
 		}
 	}
-	return @return_val;
+	return ($success,\@return_val);
 }
 
 sub _setup_redirects {
@@ -436,7 +441,7 @@ sub _fork_process {
 	unless ($pid = fork) { #child
 		unless (defined $pid) {
 			Psh::Util::print_error_i18n('fork_failed');
-			return (-1,undef);
+			return (-1,0,undef);
 		}
 
 		$Psh::OS::Unix::forked_already=1;
@@ -447,8 +452,11 @@ sub _fork_process {
 		remove_signal_handlers();
 
 		if( ref($code) eq 'CODE') {
-			&{$code};
-			CORE::exit(0);
+			my @tmp=&{$code};
+			if (!@tmp or $tmp[0]) {
+				CORE::exit(0);
+			}
+			CORE::exit(1);
 		} else {
 			{
 				if( ! ref $options) {
@@ -464,12 +472,12 @@ sub _fork_process {
 	}
 	setpgid($pid,$pgrp_leader||$pid);
 	_give_terminal_to($pgrp_leader||$pid) if $fgflag && !$termflag;
-	return ($pid,undef);
+	return ($pid,0,undef);
 }
 
 sub fork_process {
     my( $code, $fgflag, $string, $options) = @_;
-	my ($pid,@result)= _fork_process($code,undef,$fgflag,$string,$options);
+	my ($pid,$sucess,@result)= _fork_process($code,undef,$fgflag,$string,$options);
 	return @result if !$pid;
 	my $job= Psh::Joblist::create_job($pid,$string);
 	if( !$fgflag) {
@@ -535,8 +543,8 @@ sub backtick {
 	unless(my $pid=fork) {
 		close(READ);
 		open(STDOUT,">&WRITE");
-		Psh::evl($com);
-		CORE::exit;
+		my ($success)= Psh::evl($com);
+		CORE::exit(!$success);
 	}
 	close(WRITE);
 	my $result='';

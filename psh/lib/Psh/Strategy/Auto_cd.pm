@@ -30,7 +30,7 @@ sub applies {
 sub execute {
 	my $dir= ${$_[2]}[0];
 	Psh::Builtins::Cd::bi_cd($dir);
-	return undef;
+	return (1,undef);
 }
 
 sub runs_before {

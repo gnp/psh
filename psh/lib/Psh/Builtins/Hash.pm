@@ -38,6 +38,7 @@ sub bi_hash {
 			Psh::Util::print_out("$key=$val\n");
 		}
 	}
+	return (1,undef);
 }
 
 1;

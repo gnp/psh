@@ -11,6 +11,7 @@ perlfunc_heavy
 =cut
 
 require Psh::Strategy;
+require Psh::Strategy::Eval;
 
 use vars qw(@ISA);
 @ISA=('Psh::Strategy');
@@ -71,10 +72,9 @@ sub applies {
 }
 
 sub execute {
-	my $todo= $_[3];
-	return (sub {
-		return Psh::PerlEval::protected_eval($todo,'eval');
-	}, [], 0, undef);
+	my @args= @_;
+	$args[4]=undef;
+	return Psh::Strategy::Eval::execute(@args);
 }
 
 1;

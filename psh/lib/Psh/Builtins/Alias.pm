@@ -41,10 +41,11 @@ sub bi_alias
 		Psh::Util::print_out("alias $command='$aliasrhs'\n");
 	} elsif ($text eq '-a') {
 		Psh::Util::print_error_i18n('bi_alias_cant_a');
+		return (0,undef);
 	} else {
 		$Psh::Support::Alias::aliases{$command} = $text;
 	}
-	return 0;
+	return (1,undef);
 }
 
 

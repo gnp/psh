@@ -25,7 +25,7 @@ sub bi_dirs {
 		print $Psh::Support::Dirs::stack[$i]."\n";
 	}
 
-	return undef;
+	return (1,undef);
 }
 
 1;

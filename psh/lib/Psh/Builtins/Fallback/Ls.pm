@@ -16,7 +16,7 @@ sub bi_ls
 		    return $1 if( m:\Q$ps\E([^\Q$ps\E]+)$:); $_
 		} Psh::OS::glob($pattern);
 	Psh::Util::print_list(sort @files);
-	return undef;
+	return (1,undef);
 }
 
 1;

@@ -38,10 +38,11 @@ sub execute {
 		} else {
 			$code='while(<STDIN>) { @_= split /\s+/; '.$todo.' ; print $_ if $_; }';
 		}
-		return (sub {return Psh::PerlEval::protected_eval($code,'eval'); }, [], 0, undef);
+		return (1,sub {return 1,Psh::PerlEval::protected_eval($code,'eval'); }, [], 0, undef);
     } else {
-		return (sub {
-			return Psh::PerlEval::protected_eval($todo,'eval');
+		return (1,sub {
+					local @Psh::tmp= Psh::PerlEval::protected_eval($todo,'eval');
+					return ((@Psh::tmp && $Psh::tmp[0])?1:0, @Psh::tmp);
 		}, [], 0, undef);
 	}
 }

@@ -22,7 +22,7 @@ sub bi_drives
 		print_out($_."\n") foreach @result;
 	} else {
 	}
-	return undef;
+	return (1,undef);
 }
 
 1;

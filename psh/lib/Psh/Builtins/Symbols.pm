@@ -46,6 +46,7 @@ sub bi_symbols
 	print_out("Hash:      ", join(' ', @hash),   "\n");
 	print_out("Code:      ", join(' ', @code),   "\n");
 	print_out("Handle:    ", join(' ', @handle), "\n");
+	return (1,undef);
 }
 
 1;

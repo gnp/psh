@@ -17,15 +17,14 @@ sub bi_fg
 
 	if( ! Psh::OS::has_job_control()) {
 		print_error_i18n('no_jobcontrol');
-		return undef;
+		return (0,undef);
 	}
 
 	if (!defined($arg) || $arg eq '') {
 		($arg)= Psh::Joblist::find_job();
 	} else {
 		if( $arg !~ /^\%/) {
-			Psh::evl($arg.' &');
-			return undef;
+			return Psh::evl($arg.' &');
 		}
 		$arg =~ s/\%//;
 
@@ -34,11 +33,11 @@ sub bi_fg
 		}
 		$arg-- if defined($arg);
 	}
-	return undef unless defined($arg);
+	return (0,undef) unless defined($arg);
 
 	Psh::OS::restart_job(1, $arg );
 
-	return undef;
+	return (1,undef);
 }
 
 1;

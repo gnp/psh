@@ -14,7 +14,7 @@ sub bi_delenv
 	my @args= split(' ',$_[0]);
 	if( !@args) {
 		Psh::Util::print_error_i18n('usage_delenv');
-		return undef;
+		return (0,undef);
 	}
 	foreach my $var ( @args) {
 		my @result = Psh::PerlEval::protected_eval("tied(\$$var)");
@@ -22,7 +22,9 @@ sub bi_delenv
 		if (defined($oldtie)) {
 			Psh::PerlEval::protected_eval("untie(\$$var)");
 		}
+		my $oldval= $ENV{$var};
 		delete($ENV{$var});
+		return (1,$oldval);
 	}
 }
 
