@@ -1,5 +1,12 @@
 
+This file contains the most important things to know if you're upgrading
+from an earlier version. For a more complete listing of changes, please
+see CHANGES.pod
+
 Upgrading from version 0.009 or earlier:
+
+- There's no comment strategy anymore. A line starting with # will now
+  already be ignored by the parser, so comments are mandatory.
 
 - The variables @Psh::mon and @Psh::wday were removed - please use
   Psh::Locale::months() and Psh::Locale::weekdays() instead.

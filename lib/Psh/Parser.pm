@@ -374,6 +374,8 @@ sub parse_line {
 	my $line= shift;
 	my (@use_strats) = @_;
 
+	return () if substr($line,0,1) eq '#';
+
 	my ($lvl1,$lvl2,$lvl3);
 	if (@use_strats) {
 		($lvl1,$lvl2,$lvl3)= Psh::Strategy::parser_return_objects(@use_strats);
