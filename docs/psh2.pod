@@ -200,6 +200,37 @@ language blocks, simply wrap the code in { }:
 
     perl: { print "Hello"; print " world!" }
 
+=head2 VARIABLES
+
+psh2 has full variable support. All variables are arrays, but can also
+disguise as scalar variables.
+
+Setting variables is done by simply assigning to them:
+
+    variable=value
+
+Setting certain array elements is done by subscripting:
+
+    variable[index]=value
+
+Reading/interpolating variables is possible through C<$variable> or
+C<$(variable)>. Of course, here subscripting is possible, too.
+
+If no subscript is specified the variable is handled in "flat mode".
+Flat mode means, that all subscripts are set or read. This is done
+by joining all elements of the array by the flatting string of
+that variable (which is usually "", but ":" in case of the PATH
+variable for example) for output. Builtins will be available to modify
+the flattening string. If the flattening string is empty, as is the
+default for most variables, a flat assignment to a variable will simply
+assign subscript 0.
+
+psh2 also has sh-like support for setting up environment variables just
+for a single command, which leave the shell environment unaffected:
+
+     variable=value command
+
+
 =head1 COPYRIGHT
 
 Copyright (C) 1999-2004 psh2 Core Team. All rights reserved.
