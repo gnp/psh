@@ -5,7 +5,7 @@ use vars qw($VERSION);
 
 use Cwd;
 use Cwd 'chdir';
-use Psh::Util ':all';
+use Psh::Util qw(:all print_list);
 use Psh::OS;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
@@ -51,7 +51,7 @@ sub _do_setenv
 # Allows to set environment variables without needing to use
 # $ENV{..}
 
-sub setenv
+sub bi_setenv
 {
 	my $var = _do_setenv(@_);
 	if (!$var) {
@@ -68,7 +68,7 @@ sub setenv
 # the environment
 #
 
-sub export
+sub bi_export
 {
 	my $var = _do_setenv(@_);
 	if ($var) {
@@ -108,7 +108,7 @@ sub export
 	my $last_dir= '.'; # By default 'cd -' won't change directory at all.
 	$ENV{OLDPWD}= $last_dir;
 
-	sub cd
+	sub bi_cd
 	{
 		my $in_dir = shift;
 		my $dirpath= $ENV{CDPATH} || '.';
@@ -145,7 +145,7 @@ sub export
 # int kill(string COMMAND)
 #
 
-sub kill
+sub bi_kill
 {
 	if( ! Psh::OS::has_job_control()) {
 		print_error_i18n('no_jobcontrol');
@@ -205,7 +205,7 @@ sub kill
 # int which(string COMMAND)
 #
 
-sub which
+sub bi_which
 {
 	my $cmd   = shift;
 
@@ -246,7 +246,7 @@ sub which
 # lookup the function otherwise
 my %aliases = ();
 	
-sub alias
+sub bi_alias
 {
 	my $line = shift;
 	my ($command, $firstDelim, @rest) = Psh::Parser::decompose('([ \t\n=]+)', $line, undef, 0);
@@ -278,7 +278,7 @@ sub alias
 	return 0;
 }
 
-sub unalias {
+sub bi_unalias {
 	my $name= shift;
 	if( $name eq '-a' || $name eq 'all' ) {
 		%aliases= ();
@@ -297,7 +297,7 @@ sub unalias {
 # void fg(int JOB_NUMBER)
 #
 
-sub fg
+sub bi_fg
 {
 	my $arg = shift;
 
@@ -323,7 +323,7 @@ sub fg
 # int bg(string JOB | command)
 #
 
-sub bg
+sub bi_bg
 {
 	my $arg = shift;
 
@@ -354,7 +354,7 @@ sub bg
 # all at once so it's readable.
 #
 
-sub jobs {
+sub bi_jobs {
 	if( ! Psh::OS::has_job_control()) {
 		print_error_i18n('no_jobcontrol');
 		return undef;
@@ -392,7 +392,7 @@ sub jobs {
 # TODO: What if a string is passed in?
 #
 
-sub exit
+sub bi_exit
 {
 	my $result = shift;
 	$result = 0 unless defined($result) && $result;
@@ -414,7 +414,7 @@ sub exit
 # void source(string LIST_OF_FILES)
 #
 
-sub source
+sub bi_source
 {
 	local $Psh::echo = 0;
 
@@ -434,7 +434,7 @@ sub source
 # of keys if Readline interface allows it, etc.
 #
 
-sub readline
+sub bi_readline
 {
 	print_out_i18n('builtin_readline_header',$Psh::term->ReadLine());
 
@@ -445,6 +445,38 @@ sub readline
 	}
 
 	return undef;
+}
+
+#
+# void help
+# prints a list of builtin commands
+#
+sub bi_help
+{
+	my $arg= shift;
+	if( $arg) {
+		# This type of help is for builtins which are simply 'use'd
+		# into psh as they cannot modify the pod
+		my $tmp= eval '$Psh::Builtins::help_'.$arg;
+		if( $tmp ) {
+		    print $tmp."\n";
+		} else {
+			# TODO: Actually we should now parse the psh.pod for the
+			# builtin
+			print_error_i18n('no_help',$arg);
+		}
+	} else {
+		print_out_i18n('help_header');
+		no strict 'refs';
+		my @list= ();
+		my @sym = keys %{*{'Psh::Builtins::'}};
+		for my $sym (sort @sym) {
+			push @list, substr($sym,3) if substr($sym,0,3) eq 'bi_' &&
+				ref *{'Psh::Builtins::'.$sym}{CODE} eq 'CODE';
+		}
+		print_list(@list);
+	}
+    return undef;
 }
 
 #####################################################################
@@ -465,7 +497,7 @@ package Psh::Builtins::Fallback;
 # the system
 #
 
-sub env
+sub bi_env
 {
 	foreach my $key (keys %ENV) {
 		print_out("$key=$ENV{$key}\n");

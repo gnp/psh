@@ -52,6 +52,8 @@ sub remove_signal_handlers {}
 sub setup_signal_handlers {}
 sub setup_sigsegv_handler {}
 sub setup_readline_handler {}
+sub reinstall_resize_handler {}
+
 sub get_home_dir {}
 
 sub is_path_absolute {

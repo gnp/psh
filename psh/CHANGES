@@ -6,6 +6,9 @@ CVS HEAD
 
 
 1999-12-14 warp:
+ Sorry for the rather unordered list - I did a lot of work
+ that day
+
  Internal:
   * The builtin eval strategy now checks the Psh::Builtins
     namespace for a function with the name of the builtin
@@ -28,6 +31,7 @@ CVS HEAD
 	help either. Commands like mkdir, rmdir, chmod etc. MUST
 	be accessible without escape in the default settings I
 	think
+  * Fixed signal description generation
 
  Features:
   * Changed builtin alias so that 'alias name' displays the
@@ -50,6 +54,7 @@ CVS HEAD
     @Psh::Completion::bookmarks and @Psh::Completion::netprograms
   * Support for user defined completions by
     %Psh::Completion::custom_completions
+  * New builtin 'help'
 
 ------------------------------------------------------------
 0.004                                           [1999-12-13]

@@ -17,7 +17,8 @@ BEGIN {
 						   'BUS'  => 'bus error',
 						   'ABRT' => 'aborted',
 						   'ILL'  => 'illegal instruction',
-						   'TSTP' => 'stop typed at TTY'
+						   'TSTP' => 'stop typed at TTY',
+						   'INT'  => 'interrupt character typed'
 						   );
 	$Psh::text{sig_description}=\%sig_description;
 	$Psh::text{done}='done';
@@ -34,6 +35,8 @@ BEGIN {
 	$Psh::text{unalias_noalias}="unalias: `%1' not an alias\n";
 	$Psh::text{builtin_readline_header}="Using Readline: %1, with features:\n";
 	$Psh::text{no_jobcontrol}="Your system does not support job control\n";
+	$Psh::text{help_header}="psh supports following built in commands\n";
+	$Psh::text{no_help}="Sorry, help for builtin %1 is not available\n";
 }
 
 

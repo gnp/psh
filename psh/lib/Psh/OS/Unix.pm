@@ -128,24 +128,20 @@ sub _wait_for_system
 	my $job= $Psh::joblist->get_job($pid);
 
 	while (1) {
-	  print_debug("[[About to give the terminal to $pid.]]\n");
-	  _give_terminal_to($pid);
-	  #
-	  # TODO: Is the following line necessary? Should we check to
-	  # make sure te job exists after we do it? This is tricky
-	  # stuff.
-	  #
-	  if (!$job->{running}) { $job->continue; }
-	  my $returnpid;
-	  {
-	    local $Psh::currently_active = $pid;
-	    $returnpid = waitpid($pid, &WUNTRACED);
-	    $pid_status = $?;
-	  }
-	  _give_terminal_to($psh_pgrp);
-	  print_debug("[[Just gave myself back the terminal. $pid $returnpid $pid_status]]\n");
-	  _handle_wait_status($returnpid, $pid_status, $quiet);
-	  if ($returnpid == $pid) { last; }
+		print_debug("[[About to give the terminal to $pid.]]\n");
+		_give_terminal_to($pid);
+		if (!$job->{running}) { $job->continue; }
+		my $returnpid;
+		{
+			local $Psh::currently_active = $pid;
+			$returnpid = waitpid($pid, &WUNTRACED);
+			$pid_status = $?;
+		}
+		_give_terminal_to($psh_pgrp);
+		print_debug("[[Just gave myself back the terminal. $pid $returnpid $pid_status]]\n");
+		last if $returnpid<0;
+		_handle_wait_status($returnpid, $pid_status, $quiet);
+		last if $returnpid == $pid;
 	}
 }
 
@@ -303,7 +299,7 @@ sub setup_signal_handlers
 	$SIG{'TTIN'}  = \&_signal_handler;
 	$SIG{'TTOU'}  = \&_signal_handler;
 	$SIG{'CHLD'}  = \&_ignore_handler;
-	$SIG{'WINCH'} = \&_resize_handler;
+	reinstall_resize_handler();
 }
 
 #
@@ -320,6 +316,11 @@ sub setup_sigsegv_handler
 sub setup_readline_handler
 {
 	$SIG{INT}= \&_readline_handler;
+}
+
+sub reinstall_resize_handler
+{
+	&_resize_handler('WINCH');
 }
 
 
@@ -388,7 +389,7 @@ sub _error_handler
 sub _resize_handler
 {
 	my ($sig) = @_;
-	my ($cols, $rows) = (0, 0);
+	my ($cols, $rows) = (80, 24);
 
 	eval {
 		($cols,$rows)= &Term::Size::chars();
@@ -426,6 +427,10 @@ sub _resize_handler
 	if(($cols > 0) && ($rows > 0)) {
 		$ENV{COLUMNS} = $cols;
 		$ENV{LINES}   = $rows;
+		if( $Psh::term) {
+			$Psh::term->Attribs->{screen_width}=$cols-1;
+		}
+		# for ReadLine::Perl
 	}
 
 	$SIG{$sig} = \&_resize_handler;
