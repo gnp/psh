@@ -95,6 +95,7 @@ sub variable_expansion
 			if ($@) { push @Psh::retval, $Psh::word; }
 			else    {
 				if ($]<5.005) {
+					# TODO: Skip backslashes
 					push @Psh::retval, split( /\s+/, $Psh::val);
 				} else {
 					push @Psh::retval, split(/(?<!\\)\s+/,$Psh::val);
