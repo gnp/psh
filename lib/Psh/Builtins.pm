@@ -328,6 +328,20 @@ sub get_builtin_commands {
 	return @list;
 }
 
+sub build_autoload_list {
+	%Psh::built_ins= ();
+
+	foreach my $tmp (@INC) {
+		my $tmpdir= File::Spec->catdir($tmp,'Psh','Builtins');
+		my @files= Psh::OS::glob('*.pm',$tmpdir);
+		foreach( @files) {
+			s/\.pm$//;
+			$_= lc($_);
+			$Psh::built_ins{$_}= 1;
+		}
+	}
+}
+
 1;
 
 __END__

@@ -1,7 +1,10 @@
 {
 	print "Welcome to the Perl Shell (psh Version $Psh::VERSION)!\n";
 	print "\n";
-	print &Psh::news;
+	open( NEWS, "psh.NEWS");
+	while( <NEWS>) {
+		print $_;
+	}
 }
 
 $Psh::prompt = '[\u@\h \W]{TESTING psh}$ ';

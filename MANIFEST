@@ -30,6 +30,8 @@ lib/Psh/Prompt.pm
 lib/Psh/Strategy/Auto_resume.pm
 lib/Psh/Strategy/Perlscript.pm
 lib/Psh/Strategy/Auto_cd.pm
+lib/Psh/Strategy/Fallback_builtin.pm
+lib/Psh/Strategy/Perlfunc.pm
 lib/Psh/Util.pm
 lib/Psh/Builtins.pm
 lib/Psh/Builtins/Fallback/Ls.pm

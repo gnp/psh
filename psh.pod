@@ -145,9 +145,9 @@ input line exactly as entered.
 =item * C<perlfunc>
 
 If the first word of the input line matches the name of a defined
-Perl subroutine - or - if $Psh::perlfunc_builtins is set a built-in
-Perl function (as determined by the %Psh::perl_builtins hash),
-pass the line to eval. If C<$Psh::perlfunc_expand_arguments> is
+Perl subroutine - or - if $Psh::Strategy::Perlfunc::builtins is set a built-in
+Perl function (as determined by the %Psh::Strategy::Perlfunc::perl_builtins hash),
+pass the line to eval. If C<$Psh::Strategy::Perlfunc::expand_arguments> is
 true and the line
 contains no parens, or braces or commas (except for {a,b,c} as in
 shell brace-expansion), then this strategy tries to
@@ -404,31 +404,6 @@ does not apply, set to true unless called from another instance of B<psh>.
 
 The fully qualified host name of the machine B<psh> is running on.
 
-=item I<$Psh::news_file> ("F<$Psh::bin.NEWS>")
-
-A file giving news for the shell.
-
-=item I<$Psh::perlfunc_builtins> (0)
-
-If this variable is true, the perlfunc evaluation strategy will
-also match those Perl builtins determined by %Psh::perl_builtins
-
-=item I<$Psh::perlfunc_packages> (1)
-
-If this variable is true, the perlfunc evaluation strategy will
-also match functions with full package specification
-
-=item I<$Psh::perlfunc_expand_arguments> (0)
-
-If this variable is true, then command lines interpreted by the
-perlfunc strategy which contain no parens, or  braces or commas except 
-in bash-like brace-expansion expressions, will not
-be simply evaluated. Rather, they will be interpreted much like
-traditional shells do: the line will be spilt into words, which
-undergo globbing, brace expansion, and variable expansion, and the
-resulting array of words is passed to the specified function as its
-arguments. 
-
 =item I<$Psh::prompt> ('\s\$') [late]
 
 Controls the prompt string in interactive use, see below.
@@ -459,6 +434,27 @@ from one invocation of B<psh> to the next.
 When C<Psh::Util::which> is asked to locate a filename in the current
 PATH, it will only look for filenames which match this regexp. Names
 that do not match this regexp will automatically come back "not found".
+
+=item I<$Psh::Strategy::Perlfunc::builtins> (0)
+
+If this variable is true, the perlfunc evaluation strategy will
+also match those Perl builtins determined by %Psh::perl_builtins
+
+=item I<$Psh::Strategy::Perlfunc::packages> (1)
+
+If this variable is true, the perlfunc evaluation strategy will
+also match functions with full package specification
+
+=item I<$Psh::Strategy::Perlfunc::expand_arguments> (0)
+
+If this variable is true, then command lines interpreted by the
+perlfunc strategy which contain no parens, or  braces or commas except 
+in bash-like brace-expansion expressions, will not
+be simply evaluated. Rather, they will be interpreted much like
+traditional shells do: the line will be spilt into words, which
+undergo globbing, brace expansion, and variable expansion, and the
+resulting array of words is passed to the specified function as its
+arguments. 
 
 =back
 
@@ -521,15 +517,15 @@ LD_LIBRARY_PATH, FIGNORE and CDPATH.
 
 =item I<%Psh::built_ins>
 
-The keys are command names, the values are subroutine references which
-are called with the remainder of the line exactly as input.
+The keys are command names, the values do not matter. Builtins on this
+list may be autoloaded. This is initialized on startup by &Psh::Builtins::built_autoload_list();
 
 =item I<%Psh::fallback_builtins>
 
 A list of fallback builtins Psh should provide. This currently defaults
 to ls and env.
 
-=item I<%Psh::perl_builtins> (by default, all Perl builtins and keywords)
+=item I<%Psh::Strategy::Perlfunc::perl_builtins> (by default, all Perl builtins and keywords)
 
 The perlfunc evaluation strategy uses this hash on the first word of a 
 command line to determine whether it should handle that command
@@ -546,7 +542,7 @@ Note that the perlfunc strategy will also handle the line if the first
 word is not present as a key in this hash but a
 Perl subroutine of that name is defined.
 
-=item I<%Psh::perl_builtins_noexpand> (by default, Perl flow-control
+=item I<%Psh::Strategy::Perlfunc::perl_builtins_noexpand> (by default, Perl flow-control
 keywords)
 
 The keys of this hash never have their arguments expanded in a
