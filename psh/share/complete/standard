@@ -1,5 +1,5 @@
 #!pshcomplete
-# gzip compress zcat zmore gunzip uncompress gzcat strip mkdir rmdir chown ln more less cat su nohup exec nice eval trace truss strace sotruss gdb sudo make gmake pmake configure umount mount
+# gzip compress zcat zmore gunzip uncompress gzcat strip mkdir rmdir chown ln more less cat su nohup exec nice eval trace truss strace sotruss gdb make gmake pmake configure umount mount
 
 sub _make_targets {
     my ($cur, $line, $start, $cmd) = @_;
@@ -59,7 +59,7 @@ complete -f strip
 complete -d mkdir rmdir
 complete -f chown ln more cat less
 complete -u su
-complete -c nohup exec nice eval trace truss strace sotruss gdb sudo
+complete -c nohup exec nice eval trace truss strace sotruss gdb
 complete -e printenv
 
 complete -F _make_targets -X '+($*|*.[cho])' make gmake pmake
