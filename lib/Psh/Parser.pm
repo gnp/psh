@@ -13,26 +13,48 @@ sub T_PIPE() { 2; }
 sub T_REDIRECT() { 3; }
 sub T_BACKGROUND() { 4; }
 
+# ugly, ugly, but makes things faster
+
 my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
+my $def_quoteexp;
+my %def_qhash;
+my $def_metaexp= '[\[\]{}()]';
+my $def_tokenizer='(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)';
+my $nevermatches = "(?!a)a";
+
+%def_qhash = %perlq_hash;
+$def_quoteexp = $nevermatches;
+foreach my $opener (keys %def_qhash) {
+	$def_quoteexp .= '|' . quotemeta($opener);
+	$def_qhash{$opener} = quotemeta($def_qhash{$opener});
+}
+
+if ($]>=5.005) {
+	eval {
+		$def_quoteexp= qr{$def_quoteexp};
+		$def_metaexp= qr{$def_metaexp};
+		$def_tokenizer= qr{$def_tokenizer};
+	};
+}
 
 sub decompose
 {
     my ($delimexp,$line,$num,$keep,$quotehash,$metaexp,$unmatched) = @_;
+	my @matches;
 
-    my $nevermatches = "(?!a)a"; # Anyone have other ideas?
     if (!defined($delimexp) or $delimexp eq ' ') { $delimexp = '\s+'; }
     if (!defined($num)) { $num = -1; }
     if (!defined($keep)) { $keep = 1; }
-    if (!defined($quotehash)) { $quotehash = { "'" => "'", "\"" => "\"" }; }
     if (!defined($metaexp)) { $metaexp = $nevermatches; }
-
-    # See if metacharacters has any parenthesized subexpressions:
-    my @matches = ('x' =~ m/$metaexp|(.)/);
-    if (scalar(@matches) > 1) {
-		require Carp;
-		Carp::carp "Metacharacter regexp '$metaexp' in decompose may not contain ().";
-		return undef;
-    }
+	else {
+		# See if metacharacters has any parenthesized subexpressions:
+		my @matches = ('x' =~ m/$metaexp|(.)/);
+		if (@matches > 1) {
+			require Carp;
+			Carp::carp "Metacharacter regexp '$metaexp' in decompose may not contain ().";
+			return undef;
+		}
+	}
 
     # Remember if delimexp came with any parenthesized subexpr, and
     # arrange for it to have exactly one so we know what each piece in
@@ -40,13 +62,13 @@ sub decompose
 
     my $saveDelimiters = 0;
     @matches = ('x' =~ m/$delimexp|(.)/);
-    if (scalar(@matches) > 2) {
+    if (@matches > 2) {
 		require Carp;
 		Carp::carp "Delimiter regexp '$delimexp' in decompose may " .
 		  "contain at most 1 ().";
 		return undef;
     }
-    if (scalar(@matches) == 2) {
+    if (@matches == 2) {
       $saveDelimiters = 1;
     } else {
       $delimexp = "($delimexp)";
@@ -57,13 +79,20 @@ sub decompose
     my $freshPiece = 1;
     my $uquote = 0;
 
-    my %qhash = %{$quotehash};
-    #generate $quoteexp and fix up the closers:
-    my $quoteexp = $nevermatches;
-    for my $opener (keys %qhash) {
-		$quoteexp .= '|' . quotemeta($opener);
-	    $qhash{$opener} = quotemeta($qhash{$opener});
-    }
+	my %qhash;
+	my $quoteexp;
+	if ($quotehash) {
+		%qhash = %{$quotehash};
+		$quoteexp = $nevermatches;
+		for my $opener (keys %qhash) {
+			$quoteexp .= '|' . quotemeta($opener);
+			$qhash{$opener} = quotemeta($qhash{$opener});
+		}
+	} else {
+		$quotehash=\%perlq_hash;
+		%qhash= %def_qhash;
+		$quoteexp= $def_quoteexp;
+	}
 
     while ($line) {
 		if ($startNewPiece) {
@@ -81,15 +110,15 @@ sub decompose
 			$prefix =~ s/\\(.)/$1/g;
 	    }
 	    if (defined($delimiter)) {
-		    $pieces[scalar(@pieces)-1] .= $prefix;
+		    $pieces[$#pieces] .= $prefix;
 		    if ($saveDelimiters) {
-				if (length($pieces[scalar(@pieces)-1]) or !$freshPiece) {
+				if (length($pieces[$#pieces]) or !$freshPiece) {
 					push @pieces, $delimiter;
 				} else {
-					$pieces[scalar(@pieces)-1] = $delimiter;
+					$pieces[$#pieces] = $delimiter;
 				}
 			    $startNewPiece = 1;
-		    } elsif (scalar(@pieces) > 1 or $pieces[0]) {
+		    } elsif (@pieces > 1 or $pieces[0]) {
 		  	    $startNewPiece = 1;
 		    }
 		    $line = $rest;
@@ -98,11 +127,13 @@ sub decompose
 		      ($rest =~ m/^((?:[^\\]|\\.)*?)$qhash{$quote}(.*)$/s);
 		    if (defined($restOfQuote)) {
 			    if ($keep) {
-				    $pieces[scalar(@pieces)-1] .= "$prefix$quote$restOfQuote${$quotehash}{$quote}";
+				    $pieces[$#pieces] .= "$prefix$quote$restOfQuote${$quotehash}{$quote}";
 			    } else { #Not keeping, so remove backslash
 					     #from backslashed $quote occurrences
-					$restOfQuote =~ s/\\$quote/$quote/g;
-				    $pieces[scalar(@pieces)-1] .= "$prefix$restOfQuote";
+					if (substr($restOfQuote,0,1) eq "\\") {
+						$restOfQuote= substr($restOfQuote,1);
+					}
+				    $pieces[$#pieces] .= "$prefix$restOfQuote";
 			    }
 			    $line = $remainder;
 			    $freshPiece = 0;
@@ -111,11 +142,11 @@ sub decompose
 				last;
 		    }
 	    } elsif (defined($meta)) {
-			$pieces[scalar(@pieces)-1] .= $prefix;
-		    if (length($pieces[scalar(@pieces)-1]) or !$freshPiece) {
+			$pieces[$#pieces] .= $prefix;
+		    if (length($pieces[$#pieces]) or !$freshPiece) {
 			    push @pieces, $meta;
 		    } else {
-			    $pieces[scalar(@pieces)-1] = $meta;
+			    $pieces[$#pieces] = $meta;
 		    }
 		    $line = $rest;
 		    $startNewPiece = 1;
@@ -126,9 +157,9 @@ sub decompose
 		    last;
 	    }
     }
-    if (length($line)) { $pieces[scalar(@pieces)-1] .= $line; }
+    if (length($line)) { $pieces[$#pieces] .= $line; }
     if (defined($unmatched)) { ${$unmatched} = $uquote; }
-    return @pieces;
+    return wantarray?@pieces:\@pieces;
 }
 
 sub std_tokenize
@@ -140,8 +171,10 @@ sub std_tokenize
 sub incomplete_expr
 {
     my ($line) = @_;
+	return 0 unless $line=~/[\[\]{}()]/;
+
     my $unmatch = 0;
-    my @words = decompose(' ',$line,undef,1,\%perlq_hash,'[\[\]{}()]', \$unmatch);
+    my @words = @{scalar(decompose(' ',$line,undef,1,undef,$def_metaexp, \$unmatch))};
     if ($unmatch) { return 2; }
     my @openstack = (':'); # : is used as a bottom marker here
     my %open_of_close = qw|) ( } { ] [|;
@@ -232,25 +265,27 @@ sub glob_expansion
 sub unquote {
 	my $text= shift;
 
-	if( $text=~ /^\'(.*)\'$/) {
-		$text= $1;
-	} elsif( $text=~ /^\"(.*)\"$/) {
-		$text= $1;
-	} else {
-		$text=~ s/\\(.)/$1/g;
+	if (substr($text,0,1) eq '\'' and
+	    substr($text,-1,1) eq '\'') {
+		$text= substr($text,1,-1);
+	} elsif ( substr($text,0,1) eq "\"" and
+			 substr($text,-1,1) eq "\"") {
+		$text= substr($text,1,-1);
+	} elsif (substr($text,0,1) eq "\\") {
+		$text= substr($text,1);
 	}
 	return $text;
 }
 
 sub make_tokens {
 	my $line= shift;
-	my @tmpparts= decompose('(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)',
-							$line, undef, 1,\%perlq_hash, '[\[\]{}()]');
+	my @tmpparts= @{scalar(decompose($def_tokenizer,
+									 $line, undef, 1,undef, $def_metaexp))};
 
 	# Walk through parts and combine parenthesized parts properly
 	my @parts=();
 	my $nestlevel=0;
-	my $tmp='';
+	my @tmp=();
 	foreach (@tmpparts) {
 		if (/^[\[\(\{]$/) {
 			$nestlevel++;
@@ -258,10 +293,10 @@ sub make_tokens {
 			$nestlevel--;
 		}
 		if ($nestlevel) {
-			$tmp.=$_;
-		} elsif (length($tmp)) {
-			push @parts,$tmp.$_;
-			$tmp='';
+			push @tmp, $_;
+		} elsif (@tmp) {
+			push @parts,join('',@tmp,$_);
+			@tmp=();
 		} else {
 			push @parts, $_;
 		}
