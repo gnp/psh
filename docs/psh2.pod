@@ -200,19 +200,6 @@ language blocks, simply wrap the code in { }:
 
     perl: { print "Hello"; print " world!" }
 
-=head1 SPEED AND LIMITATIONS
-
-Depending on the exact commands, B<psh2> is between 2-5 times as fast as
-B<psh1> and between 3-10 times slower than B<bash>. Startup time of B<psh2>
-is largely determined by the time B<perl> needs to read in the
-files belonging to B<psh2>.
-
-All versions of B<psh> are designed for interactive use. We believe that
-in an interactive environment, neither the large memory usage of B<psh>
-(between 2 and 6 MB, depending on your system, perl version and psh
-configuration) nor the slower speed compared to pure perl or the
-different other shells are that important.
-		
 =head1 COPYRIGHT
 
 Copyright (C) 1999-2004 psh2 Core Team. All rights reserved.

@@ -27,8 +27,23 @@ install an additional dependancy.
 Windows support was temporarily dropped but could be added again. As I do
 not use Windows regularly, the port of psh1 was usually broken anyway.
 
-Components
-----------
+
+
+SPEED AND LIMITATIONS
+
+Depending on the exact commands, psh2 is between 2-5 times as fast as
+psh1 and between 3-10 times slower than bash. Startup time of psh2
+is largely determined by the time perl needs to read in the
+files belonging to psh2.
+
+All versions of psh are designed for interactive use. We believe that
+in an interactive environment, neither the large memory usage of B<psh>
+(between 2 and 6 MB, depending on your system, perl version and psh
+configuration) nor the slower speed compared to pure perl or the
+different other shells are that important.
+		
+
+COMPONENTS
 
 - the Psh2 main object - containing basic infrastructur and accessors
 - the Psh2::Parser module (no object) which tokenizes input. Tokenization
@@ -40,8 +55,9 @@ is handling filesystem, jobs creation and management
 - Language modules: every "sublanguage" which is accessible from psh2 (initially Perl and C) has an own language module implementing support for that language.
 - the Completer object is responsible for calculating possible completions for input. The wiring of tab completion itself is done in the frontends.
 
-Syntax
-------
+
+
+SYNTAX
 
 Syntax in Pseudo-EBNF.
 
@@ -64,8 +80,7 @@ Support missing currently for: << (here-docs used as STDIN) <{ } and >{ }
 <{ } and >{ } use named pipes
 
 
-Influences and other shells
----------------------------
+INFLUENCES AND OTHER SHELL
 
 * rc - the Plan 9 shell (http://www.star.le.ac.uk/~tjg/rc/misc/td and "man rc")
 * aibash - http://aibash.sourceforge.net/
