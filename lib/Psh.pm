@@ -645,8 +645,9 @@ sub finish_initialize
 		else    { print_debug_class('i',"[Using Term::Size::chars().]\n"); }
 
 		Psh::OS::reinstall_resize_handler();
+		# ReadLine objects often mess with the SIGWINCH handler
 	}
-	# ReadLine objects often mess with the SIGWINCH handler
+	setup_term_misc();
 
 	if (defined($term) and $save_history) {
 		if ($readline_saves_history) {
@@ -680,6 +681,18 @@ sub completion_dummy {
 	return Psh::Completion::completion(@_);
 }
 
+sub setup_term_misc {
+	if ($term->can('add_defun')) { # Term::ReadLine::Gnu
+		$term->add_defun('run-help', \&run_help);
+		$term->parse_and_bind("\"\eh\":run-help"); # bind to ESC-h
+	}
+}
+
+sub run_help {
+	require Psh::Builtins::Help;
+	my $line= substr($term->Attribs->{line_buffer},0,$term->Attribs->{end});
+	Psh::Builtins::Help::any_help($line);
+}
 
 #
 # void process_rc()
@@ -804,17 +817,3 @@ sub my_system
 #
 
 1;
-
-
-# The following is for Emacs - I hope it won't annoy anyone
-# but this could solve the problems with different tab widths etc
-#
-# Local Variables:
-# tab-width:4
-# indent-tabs-mode:t
-# c-basic-offset:4
-# perl-label-offset:0
-# perl-indent-level:4
-# End:
-
-

@@ -503,6 +503,8 @@ sub parse_simple_command {
 		$alias_disabled->{$words[0]}=1;
 		unshift @savetokens, make_tokens($alias);
 		return _subparse_complex_command(\@savetokens,$use_strats,$piped,$foreground,$alias_disabled);
+	} elsif (substr($words[0],0,1) eq "\\") {
+		$words[0]=substr($words[0],1);
 	}
 
 	my $line= join ' ', @words;

@@ -1,5 +1,7 @@
 package Psh::Builtins::Help;
 
+require Psh::Support::Builtins;
+
 sub get_pod_from_file {
 	my $tmpfile= shift;
 	my $arg= shift;
@@ -57,6 +59,19 @@ sub bi_help
 		Psh::Util::print_list(Psh::Support::Builtins::get_builtin_commands());
 	}
     return undef;
+}
+
+sub any_help {
+	my $text= shift;
+	my ($com)= $text=~/^\s*(\S+)/;
+	$com||=$text;
+	print "\n";
+	if (Psh::Support::Builtins::is_builtin($com)) {
+		bi_help($com);
+	} else {
+		system("man $com");
+	}
+	$Psh::term->on_new_line();
 }
 
 sub cmpl_help {
