@@ -12,6 +12,8 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 # Construct a prompt string from TEMPLATE.
 #
 
+my $default_prompt = '\s% ';
+
 %prompt_vars = (
 	'd' => sub {
 			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
@@ -141,7 +143,7 @@ sub prompt_string
 sub normal_prompt {
 	my $prompt= $Psh::prompt;
 	$prompt= $ENV{PS1} unless defined $prompt;
-	$prompt= '\s% ' unless defined $prompt;
+	$prompt= $default_prompt unless defined $prompt;
 	return $prompt;
 }
 
