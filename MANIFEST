@@ -41,6 +41,7 @@ lib/Psh/Builtins.pm
 lib/Psh/Builtins/Fallback/Ls.pm
 lib/Psh/Builtins/Fallback/Env.pm
 lib/Psh/Builtins/Bg.pm
+lib/Psh/Builtins/Bind.pm
 lib/Psh/Builtins/Builtin.pm
 lib/Psh/Builtins/Complete.pm
 lib/Psh/Builtins/Exit.pm
