@@ -389,6 +389,7 @@ sub process_variable {
 		@lines=@$var;
 	} else {
 		@lines= split /\n/, $var;
+		@lines= map { $_."\n" } @lines;
 	}
 	process(0, sub { shift @lines });
 }
