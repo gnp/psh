@@ -297,8 +297,11 @@ sub read_until
 
 	while (1) {
 		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),
-					  0,\&Psh::Prompt::pre_prompt_hook);
-		last unless defined($temp);
+					  1,\&Psh::Prompt::pre_prompt_hook);
+		if (!defined($temp)) {
+			print_error_i18n('input_incomplete',$sofar,$bin);
+			return '';
+		}
 		last if $temp =~ m/^$terminator$/;
 		$input .= $temp;
 	}
@@ -500,7 +503,7 @@ sub process_file
 {
 	my ($path) = @_;
 
-	print_debug("[[PROCESSING FILE $path]]\n");
+	print_debug("[PROCESSING FILE $path]\n");
 
 	if (!-r $path) {
 		print_error_i18n('cannot_read_script',$path,$bin);
@@ -516,12 +519,16 @@ sub process_file
 
 	eval { flock($pfh, LOCK_SH); };
 
-	process(0, sub { return <$pfh>; }); # don't prompt
+	process(0, sub {
+				my $txt=<$pfh>;
+				print_debug_class('f',$txt);
+				return $txt;
+			}); # don't prompt
 
 	eval { flock($pfh, LOCK_UN); };
 	$pfh->close();
 
-	print_debug("[[FINISHED PROCESSING FILE $path]]\n");
+	print_debug("[FINISHED PROCESSING FILE $path]\n");
 }
 
 #
@@ -734,7 +741,7 @@ sub finish_initialize
 			$term->MinLine(10000);   # We will handle history adding
 			# ourselves (undef causes trouble).
 			$term->ornaments(0);
-			print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
+			print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
 			if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
 				$readline_saves_history = 1;
 				$term->StifleHistory($history_length); # Limit history
@@ -751,13 +758,13 @@ sub finish_initialize
 	eval "use Term::Size 'chars'";
 
 	if ($@) {
-		print_debug("Term::Size not available. Trying Term::ReadKey\n");
+		print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
 		eval "use Term::ReadKey";
 		if( $@) {
-			print_debug("Term::ReadKey not available - no resize handling!\n");
+			print_debug_class('i',"[Term::ReadKey not available - no resize handling!]\n");
 		}
 	}
-	else    { print_debug("Using &Term::Size::chars().\n"); }
+	else    { print_debug_class('i',"[Using &Term::Size::chars().]\n"); }
 
 	Psh::OS::reinstall_resize_handler();
 	# ReadLine objects often mess with the SIGWINCH handler
@@ -800,7 +807,7 @@ sub process_rc
 
 	foreach my $rc (@rc) {
 		if (-r $rc) {
-			print_debug("[ PROCESSING $rc ]\n");
+			print_debug_class('i',"[PROCESSING $rc]\n");
 			process_file($rc);
 		}
 	}
@@ -815,11 +822,11 @@ sub process_rc
 
 sub process_args
 {
-	print_debug("[ PROCESSING @ARGV FILES ]\n");
+	print_debug_class('i',"[PROCESSING @ARGV FILES]\n");
 
 	foreach my $arg (@ARGV) {
 		if (-r $arg) {
-			print_debug("[ PROCESSING $arg ]\n");
+			print_debug('i',"[PROCESSING $arg]\n");
 			process_file($arg);
 		}
 	}
@@ -839,7 +846,7 @@ sub main_loop
 	my $interactive = (-t STDIN) and (-t STDOUT);
 	my $get;
 
-	print_debug("[[STARTING MAIN LOOP]]\n");
+	print_debug('i',"[STARTING MAIN LOOP]\n");
 
 	if ($interactive) { $get = \&iget;                  }
 	else              { $get = sub { return <STDIN>; }; }

@@ -21,7 +21,9 @@ WriteMakefile (
 	AUTHOR       => 'Gregor N. Purdy (gregor@focusresearch.com)',
 	ABSTRACT     => 'Perl Shell',
 	EXE_FILES    => [ qw(psh) ],
-	MAN1PODS     => { 'psh.pod' => '$(INST_MAN1DIR)/psh.$(MAN1EXT)' },
+	MAN1PODS     => {
+		   'doc/psh.pod' => '$(INST_MAN1DIR)/psh.$(MAN1EXT)',
+		   'doc/pshdevel.pod' => '$(INST_MAN1DIR)/pshdevel.$(MAN1EXT)'},
     PM           => $pms,
 	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
 );

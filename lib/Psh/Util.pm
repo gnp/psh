@@ -16,8 +16,8 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 
 @EXPORT= qw( );
 @EXPORT_OK= qw( starts_with ends_with print_list);
-%EXPORT_TAGS = ( all => [qw(print_warning print_debug print_error
-							print_warning_i18n
+%EXPORT_TAGS = ( all => [qw(print_warning print_debug print_debug_class
+							print_warning_i18n print_error
 							print_out print_error_i18n print_out_i18n
 							which abs_path)] );
 
@@ -28,9 +28,22 @@ sub print_warning
 	print STDERR @_;
 }
 
+#
+# Print unclassified debug output
+#
 sub print_debug
 {
-	print STDERR @_ if $Psh::debugging;
+	print STDERR @_ if $Psh::debugging =~ /o/;
+}
+
+#
+# Print classified debug output
+#
+sub print_debug_class
+{
+	my $class= shift;
+	print STDERR @_ if $Psh::debugging =~ /$class/ ||
+	  $Psh::debugging==1;
 }
 
 sub print_error
