@@ -21,13 +21,60 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 
 my $term;
 my $absed_path;
-
-my @completion_buffer      = ();
+my @user_completions;
+my $APPEND="not_implemented";
+my $EMPTY_AC='';
+my $GNU=0;
+my $ac; # character to append
 
 sub init
 {
 	($term, $absed_path) = @_;
+
+	@user_completions= ();
+
+	# TODO: Portability ?
+	setpwent;
+	while( my ($name)= getpwent) {
+		push(@user_completions,'~'.$name);
+	}
+	endpwent;
+
+	# The following is ridiculous, but....
+	if( $term->ReadLine eq "Term::ReadLine::Perl") {
+		$APPEND='completer_terminator_character';
+		$term->Attribs->{completer_word_break_characters}=
+			$term->Attribs->{completer_word_break_characters}."$%&@~";
+	} elsif( $term->ReadLine eq "Term::ReadLine::Gnu") {
+		$GNU=1;
+		$APPEND='completion_append_character';
+		$EMPTY_AC="\0";
+	}
+
+	# Wow, both ::Perl and ::Gnu understand it
+	$term->Attribs->{special_prefixes}="$%&@~";
+
 }
+
+
+# Returns a list of possible file completions
+sub cmpl_filenames
+{
+	my $text= shift;
+	my @result= glob "$text*";
+	$ac='/' if(@result==1 && -d $result[0]);
+	return @result;
+}
+
+
+# Returns an array with possible username completions
+sub cmpl_usernames
+{
+	my $text= shift;
+	my @result= grep { starts_with($_,$text) } @user_completions;
+	return @result;
+}
+
 
 #
 # Tries to find executables for possible completions
@@ -38,36 +85,34 @@ sub init
 
 sub cmpl_executable
 {
-	my ($cmd, $state) = @_;
+	my $cmd= shift;
+	my $old_cwd        = cwd;
+	my @result = ();
 
-	if (!$state)
-	{
-		my $old_cwd        = cwd;
-		@completion_buffer = ();
-
-		my $tmp = psh::which($cmd);
-		push( @completion_buffer, $tmp) if defined($tmp);
-		# set up absed_path if not already set and check
-		# wether we found an executable with exactly that name
-
-		foreach my $dir (@$absed_path) {
-			chdir psh::abs_path($dir);
-			push( @completion_buffer, grep { -x && ! -d } glob "$cmd*" );
-		}
-
-		chdir $old_cwd;
+	my $tmp = psh::which($cmd);
+	push( @result, $tmp) if defined($tmp);
+	# set up absed_path if not already set and check
+	# wether we found an executable with exactly that name
+	
+	foreach my $dir (@$absed_path) {
+		chdir psh::abs_path($dir);
+		push( @result, grep { -x && ! -d } glob "$cmd*" );
 	}
-
-	return shift @completion_buffer;
+	
+	chdir $old_cwd;
+	return @result;
 }
 
 
 #
-# Completes perl variables/
+# Completes perl variables
+#
+# TODO: Also complete package variables and package names
+#
 sub cmpl_perl
 {
 	my $text= shift;
-	@completion_buffer=();
+	my @result=();
 
 	return () if ! $text=~ /^[$%&@][a-zA-Z0-9_]*$/go;
 
@@ -100,82 +145,78 @@ sub cmpl_perl
 		next if(! eval "defined(${firstchar}main::$rest)" &&
 				$rest ne "ENV" && $rest ne "INC" && $rest ne "$SIG" &&
 				$rest ne "ARGV" );
-		push @completion_buffer, $rest
-			if( length($tmp)>=length($text) &&
-				substr($tmp,0,length($text)) eq $text);
+		push @result, $rest if starts_with($tmp,$text);
 	}
-	return @completion_buffer;
+	return @result;
 }
 
 #
-# custom_completion_gnu(text,line,start,end)
+# custom_completion(text,line,start,end)
 #
-# Completion function for Term::ReadLine::Gnu
+# Main Completion function
 #
 
-sub custom_completion_gnu
+sub custom_completion
 {
-	my ($text, $line, $start, $end) = @_;
-	my $attribs                     = $term->Attribs;
-	my (@tmp, $startchar, $starttext, $prevchar);
-
-	$startchar= substr($line,$start,1);
-	if( $start>0) { $prevchar= substr($line,$start-1,1) }
-	else { $prevchar=''; }
-
-	if ($startchar eq '~') {
-		return $term->completion_matches($text,
-			$attribs->{username_completion_function});
-	} elsif( $prevchar eq "\$" || $prevchar eq "\@" || $prevchar eq "\&" ) {
-		@tmp= &cmpl_perl($prevchar.$text);
-		if($#tmp>-1) { return ($text,@tmp); }
-		else { return undef; }
-	} elsif( $startchar eq "\%") {
-		# *sigh* $/@/& to not belong to a "readline word" but % does ?!?
-		@tmp= &cmpl_perl($text);
-		if($#tmp>-1) { return ($text,@tmp); }
-		else { return undef; }		
-	}
-
-	#
-	# Only return if executable match found something, otherwise try
-	# filename completion
-	# Only try executable completion if it's the first word or after | and
-	# it does not contain .. or /
-
-	$starttext= substr( $line, 0, $start);
-
-	if ( ($starttext =~ /^\s*$/ ||
-		  $starttext =~ /\|\s*$/ ) &&
-		!( $text =~ /\/|\.\.@/)) {
-		@tmp = $term->completion_matches($text, \&cmpl_executable);
-		return @tmp if defined @tmp;
-	}
-
-	return $term->completion_matches($text,
-		   $attribs->{filename_completion_function});
-}
-
-#
-# custom_completion_perl(text,line,start)
-#
-# Completion function for Term::ReadLine::Perl
-#
-sub custom_completion_perl {
 	my ($text, $line, $start) = @_;
+	my $attribs               = $term->Attribs;
+	my (@tmp, $startchar, $starttext);
 
-	
-	return $term->rl_filename_list($text,$line,$start);
+	$startchar= substr($line, $start, 1);
+	$starttext= substr($line, 0, $start);
+
+	$ac=' ';
+
+	if ($startchar eq '~' &&
+	    !($text=~/\//)) {
+		# after ~ try username completion
+		@tmp= cmpl_usernames($text);
+		$ac="/" if @tmp;
+	} elsif( $startchar eq "\$" || $startchar eq "\@" || $startchar eq "\&" ||
+			 $startchar eq "\%" ) {
+		# probably a perl variable ?
+		@tmp= cmpl_perl($text);
+	} elsif( ($starttext =~ /^\s*$/ ||
+			  $starttext =~ /[\|\`]\s*$/ ) &&
+			 !( $text =~ /\/|\.\.@/)) {
+		# we have the first word in the line or a pipe sign/backtick in front
+		# of the current item, so we try to complete executables
+		@tmp= cmpl_executable($text);
+	} else {
+		if( $GNU) { # faster....
+			@tmp= $term->completion_matches($text,
+						   $attribs->{filename_completion_function});
+			shift @tmp if @tmp>1;
+		}
+		else
+		{
+			@tmp= cmpl_filenames($text);
+		}
+	}
+
+	$attribs->{$APPEND}=$ac;
+	return @tmp;
 }
 
+#
+# starts_with( completion, text)
+# Called with the possible completion and the text to complete
+# will return true if match
 
+sub starts_with {
+	my ($completion, $text) = @_;
+
+	return length($completion)>=length($text) &&
+		substr($completion,0,length($text)) eq $text;
+}
 
 1;
 __END__
 
 =head1 NAME
 
-Psh::Completion - containing the completion routines of psh
+Psh::Completion - containing the completion routines of psh.
+Currently works with Term::ReadLine::Gnu and Term::ReadLine::Psh
 
 =head1 SYNOPSIS
 

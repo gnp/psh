@@ -504,6 +504,11 @@ the special Perl variable '$@' is non-empty. Note that the side
 effects of 'use foo' as a B<psh> command line appear to be exactly as
 expected. 
 
+Not exactly a C<psh> limitation: Term::ReadLine::Gnu seems to be rather
+buggy on Linux systems and leads to continous crashes of C<psh>.
+Use Term::ReadLine::Perl instead ( set PERL_RL to Perl to disable
+Term::ReadLine::Gnu)
+
 =head1 REQUIREMENTS
 
 psh needs several optional Perl modules to offer full functionality:
@@ -515,9 +520,9 @@ psh needs several optional Perl modules to offer full functionality:
 support is by far more advanced currently than support for
 Term::ReadLine::Perl
 
-=item Term::Size to offer the ability to change the environment variables
-LINES and COLUMNS when the terminal window size changes while running
-as standard shell
+=item Term::Size or Term::ReadKey to offer the ability to change the
+environment variables LINES and COLUMNS when the terminal window size
+changes while running as standard shell
 
 =back
 
