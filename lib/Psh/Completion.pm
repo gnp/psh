@@ -181,7 +181,9 @@ sub cmpl_executable
 	}
 
 	if (Psh::Strategy::active('built_in')) {
-		push @result, grep { Psh::Util::starts_with($_,$cmd) } Psh::Support::Alias::get_alias_commands();
+		if ($Psh::Support::Alias::loaded) {
+			push @result, grep { Psh::Util::starts_with($_,$cmd) } Psh::Support::Alias::get_alias_commands();
+		}
 		push @result, grep { Psh::Util::starts_with($_,$cmd) } Psh::Support::Builtins::get_builtin_commands();
 	}
 	push @result, cmpl_directories($cmd) if $complete_first_word_dirs;

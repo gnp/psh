@@ -2,6 +2,8 @@ package Psh::Support::Alias;
 
 use strict;
 
+$Psh::Support::Alias::loaded=1;
+
 %Psh::Support::Alias::aliases=();
 
 #
