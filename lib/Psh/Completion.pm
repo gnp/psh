@@ -1,14 +1,15 @@
 package Psh::Completion;
 
 use strict;
-use vars qw(@bookmarks $ac $complete_first_word_dirs);
+use vars qw($ac $complete_first_word_dirs);
 
 require Psh::Util;
 require Psh::OS;
 
 my $APPEND="not_implemented";
 
-@bookmarks= ();
+@Psh::Completion::bookmarks= ();
+@Psh::Completion::autoload=();
 
 sub init
 {
@@ -29,9 +30,10 @@ sub init
 {
 	my $kh_loaded=0;
 	sub bookmarks {
-		return @bookmarks if $kh_loaded;
-		@bookmarks= Psh::OS::get_known_hosts();
-		return @bookmarks;
+		return @Psh::Completion::bookmarks if $kh_loaded;
+		push @Psh::Completion::bookmarks, Psh::OS::get_known_hosts();
+		$kh_loaded=1;
+		return @Psh::Completion::bookmarks;
 	}
 }
 
