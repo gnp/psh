@@ -9,7 +9,7 @@ Prints out the current environment
 sub bi_env
 {
 	foreach my $key (keys %ENV) {
-		print_out("$key=$ENV{$key}\n");
+		Psh::Util::print_out("$key=$ENV{$key}\n");
 	}
 	return undef;
 }

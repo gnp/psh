@@ -1,4 +1,4 @@
-package Psh::Builtins::Fallback;
+package Psh::Builtins::Fallback::Ls;
 
 =item * C<ls>
 
@@ -15,7 +15,7 @@ sub bi_ls
 	my @files= map { 
 		    return $1 if( m:\Q$ps\E([^\Q$ps\E]+)$:); $_
 		} Psh::OS::glob($pattern);
-	Psh::Util::print_list(@files);
+	Psh::Util::print_list(sort @files);
 	return undef;
 }
 
