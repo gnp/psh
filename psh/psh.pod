@@ -210,6 +210,52 @@ If you want to ensure that "print" (for example) refers to the Perl
 function "print" and not "/usr/bin/print", try adding the "perlfunc"
 strategy before "executable".
 
+
+=head2 PIPELINES
+
+Pipelines are used to construct processing chains.
+
+    cat a.txt b.txt | wc -l
+
+
+=head2 MANIFEST FILTERS
+
+A manifest filter is a chunk of code that causes the creation of a
+filter process. They are handy for creating simple one-time filters
+because they don't require creating a program file, setting permissions
+and so on.
+
+There are three kinds of manifest filters: quick, grep and substitution.
+
+A quick filter consists of a block of code surrounded by curly braces,
+with a trailing 'C<q>' modifier. The Perl Shell turns this into a line-by-line
+filter. For the code in the braces, C<$_> will contain the line as it was
+read from input (including any end-of-line character). The filter block
+should
+
+     ls | { print ++$i, ": $_"; }q
+
+A grep filter consists of a block of code surrounded by curly braces,
+with a trailing 'C<g>' modifier. The Perl Shell turns this into a line-by-line
+filter. Only those lines for which the code in the braces returns a true
+value will be printed. For the code in the braces, C<@_> will contain the
+results of splitting C<$_> with the pattern C<\s+>.
+
+     netstat | { $_[1]>2; }g
+
+A substitution filter consists of a perl-style s/// operator instance.
+The Perl Shell will turn this into a line-by-line filter that performs the
+substitution on each line, and then prints the line. For example:
+
+    ls | s/a/b/
+
+A substitution filter is logically equivalent to a block filter containing
+the substitution and a statement to print the resulting line. The example
+above is equivalent to:
+
+    ls | { s/a/b/; print; }q 
+
+
 =head2 BUILT-IN FUNCTIONS
 
 The following functions are provided as built-in functions of
