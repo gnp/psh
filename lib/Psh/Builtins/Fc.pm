@@ -95,7 +95,7 @@ sub bi_fc
 		($from,$to)=$ARGV[0]=~/(\d+)-(\d+)/ if $ARGV[0]=~/-/;
 		if (open(FILE,"> $file")) {
 			for (my $i=$from; $i<=$to; $i++) {
-				print $fh $Psh::history[$i-1]."\n";
+				print FILE $Psh::history[$i-1]."\n";
 			}
 			close(FILE);
 		}
