@@ -17,9 +17,11 @@
 
 =head1 0.007 [2000-02-07]
 
-Contributions primarily by Markus Peter (C<warp>) and Simon Huggins (C<huggie>).
+Contributions primarily by Markus Peter (C<warp>) and Simon Huggins
+(C<huggie>).
 
-New features:
+
+=head2 New Features
 
 =over 4
 
