@@ -53,10 +53,15 @@ sub tab_completion {
     my $self= shift;
     my ($buffer, $caret, $length)= $self->{term}->line();
     $buffer= substr($buffer,0,$length); # JIC
-    my ($pos,completions= $self->{psh}->completor->complete($buffer,$caret);
-
-#    $self->{term}->insertstr("Tab completion dummy");
-    return Term::EditLine::CC_REFRESH();
+    my ($line, $newcaret, $list)= $self->{psh}->completor->complete($buffer,$caret);
+    if ($line) {
+        $self->{term}->set_line($line, $newcaret);
+    }
+    if ($list and @$list>1) {
+        print "\n";
+        $self->print_list(@$list);
+    }
+    return Term::EditLine::CC_REDISPLAY();
 }
 
 1;

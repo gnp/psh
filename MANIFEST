@@ -47,3 +47,4 @@ lib/Psh2/Parser.pm
 lib/Psh2/Unix.pm
 lib/Psh2/Windows.pm
 t/parser.t
+META.yml                                Module meta-data (added by MakeMaker)

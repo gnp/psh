@@ -18,11 +18,12 @@ chdir '..';
 WriteMakefile(
 	      NAME         => 'psh2',
 	      VERSION_FROM => 'psh2',
-	      AUTHOR       => 'Gregor N. Purdy (gregor@focusresearch.com) and Markus Peter (warp@spin.de)',
+	      AUTHOR       => 'Markus Peter (warp@spin.de)',
 	      ABSTRACT     => 'Poly Shell',
 	      EXE_FILES    => ['psh2'],
 	      PREREQ_PM    => {
-			       'Term::ReadLine' => 0,
+#			       'Term::ReadLine' => 0,
+                               'Term::EditLine' => 0.05,
 			       'Test::More' => 0,
 			       'File::Glob' => 0,
 			   },

@@ -2,3 +2,4 @@ blib
 Makefile
 pm_to_blib
 .DS_Store
+META.yml
