@@ -136,7 +136,6 @@ sub signal_description {
 	my $signal_name= signal_name(shift);
 	my $desc= $Psh::text{sig_description}->{$signal_name};
    	if( defined($desc) and $desc) {
-		
 		return "SIG$signal_name - $desc";
 	}
 	return "signal $signal_name";
