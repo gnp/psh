@@ -9,11 +9,11 @@ my %opt=();
 
 if (@ARGV) {
     require Getopt::Std;
-    Getopt::Std::getopts('fiwrd:c:', \%opt);
+    Getopt::Std::getopts('Ffiwrd:c:', \%opt);
 }
 
 $psh->init_minimal();
-$psh->process_rc() unless $opt{'f'} or $opt{'c'};
+$psh->process_rc() unless ($opt{'f'} or $opt{'c'}) and !$opt{'F'};
 $psh->init_finish();
 
 if ($opt{'c'}) {
