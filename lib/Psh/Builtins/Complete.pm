@@ -8,7 +8,15 @@ package Psh::Builtins::Complete;
 
 require Psh::PCompletion;
 
-=item * C<complete>
+=item * C<complete module MODULE>
+
+Load a pre-defined completion module
+
+=item * C<complete module list>
+
+Lists pre-defined completion modules
+
+=item * C<complete ...>
 
 Define programmable completion method.
 
@@ -28,7 +36,61 @@ Delete completion spec for command NAME
 
 sub bi_complete {
 	my $cs;
-	if (!$_[1] or !($cs= Psh::PCompletion::pcomp_getopts($_[1]))) {
+
+	if ($_[1] and $_[1][0] eq 'module' and
+	    $_[1][1]) {
+		my @dirs=
+		  (
+		   File::Spec->catdir(File::Spec->rootdir,'usr','share',
+							  'psh','complete'),
+		   File::Spec->catdir(File::Spec->rootdir,'usr','local','share',
+							  'psh','complete'),
+		   File::Spec->catdir(Psh::OS::get_home_dir(),'.psh','share','complete'),
+		   File::Spec->catdir(File::Spec->rootdir,'psh','complete')
+		  );
+		if ($_[1][1] eq 'list') {
+			my @result=();
+			foreach my $dir (@dirs) {
+				next unless -r $dir;
+				my @tmp= Psh::OS::glob('*',$dir);
+				foreach my $file (@tmp) {
+					my $full= File::Spec->catfile($dir,$file);
+					next if !-r $full or -d _;
+					next if $file=~/\~$/;
+					push @result,$file;
+				}
+			}
+			@result= sort @result;
+			Psh::Util::print_list(@result);
+			return (1,undef);
+		} else {
+			my $file=$_[1][1];
+			my @lines;
+			foreach my $dir (@dirs) {
+				my $full= File::Spec->catfile($dir,$file);
+				if (-r $full and !-d $full) {
+					$file= $full;
+					last;
+				}
+			}
+
+			open(THEME,"< $file");
+			@lines= <THEME>;
+			close(THEME);
+			if (!@lines) {
+				Psh::Util::print_error("Could not find completion module '$file'.\n");
+				return (0,undef);
+			}
+			if ($lines[0]=~/^\#\!.*psh/) { # psh-script
+				Psh::process_variable(join("\n",@lines));
+				return (1,undef);
+			} else {
+				Psh::Util::print_error("Completion module '$file' is not in a valid format.\n");
+				return (0,undef);
+			}
+		}
+	}
+	elsif (!$_[1] or !($cs= Psh::PCompletion::pcomp_getopts($_[1]))) {
 		require Psh::Builtins::Help;
 		Psh::Builtins::Help::bi_help('complete');
 		return (0,undef);

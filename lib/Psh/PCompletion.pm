@@ -73,11 +73,6 @@ BEGIN {
 	   variable	=> CA_VARIABLE,	# Perl variable
 	   hashvar	=> CA_HASH,	# Perl hash variable
 	  );
-
-	# Simulate old @netprograms support
-	my $tmp= {'action'=>CA_HOSTNAME};
-	%COMPSPEC=('ftp'=>$tmp,'ncftp'=>$tmp,'telnet'=>$tmp,'traceroute'=>$tmp,
-			   'ssh'=>$tmp,'ssh1'=>$tmp,'ssh2'=>$tmp,'ping'=>$tmp);
 }
 
 my($__line, $__start, $__cmd);

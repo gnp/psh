@@ -401,7 +401,7 @@ sub completion
 	my $startchar= substr($line, $start, 1);
 	my $starttext= substr($line, 0, $start);
 	$starttext =~ /^\s*(\S+)\s+/;
-	my $startword= $1 || '';
+	my $command= $1 || '';
 
 	my $pretext= '';
 	if( $starttext =~ /\s(\S*)$/) {
@@ -410,8 +410,9 @@ sub completion
 		$pretext= $1;
 	}
 
-	if( $starttext =~ /[\|\`]\s*(\S+)\s+$/) {
-		$startword= $1;
+	# are we in backticks or after a pipe ?
+	if( $starttext =~ /.*[\|\`]\s*(\S+)\s+/) {
+		$command= $1;
 	}
 
 	my $firstflag= $starttext !~/\s/;
@@ -421,7 +422,7 @@ sub completion
 	if ($Psh::PCompletion::LOADED) {
 		# Check completion-spec is defined or not.
 		my $cmd;
-		$line =~ m|^\s*(\S*/)?(\S*)|;
+		$command =~ m|^\s*(\S*/)?(\S*)|;
 		my $dir=$1||'';
 		my $base=$2||'';
 		my $cs = $Psh::PCompletion::COMPSPEC{$cmd = $dir . $base}
@@ -484,11 +485,11 @@ sub completion
 	}
 
 	if (Psh::Strategy::active('built_in') and
-		grep { $_ eq $startword } Psh::Support::Builtins::get_builtin_commands() ) {
-		my $pkg= ucfirst($startword);
+		grep { $_ eq $command } Psh::Support::Builtins::get_builtin_commands() ) {
+		my $pkg= ucfirst($command);
 		eval "require Psh::Builtins::$pkg";
 		Psh::Util::print_debug_class('e',"Error: $@") if $@;
-		my @tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext','$line')";
+		my @tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$command('$text','$pretext','$starttext','$line')";
 		if( @tmp2 && $tmp2[0]) {
 			shift(@tmp2);
 			@tmp= @tmp2;
