@@ -55,7 +55,7 @@ accumulated input is processed as if it were a single line.
 
 The command-line arguments to B<psh> are:
 
- psh [-d [options]] [-w] [-f RC_FILE] [-c STRING ] [FILE1 FILE2 ....]
+ psh [-d [options]] [-w] [-F] [-f RC_FILE] [-c STRING ] [FILE1 FILE2 ....]
 
 They are processed in the following order, regardless of what order
 they are specified in:
@@ -87,6 +87,10 @@ different from C<$ENV{HOME}> and it contains a F<.pshrc> file, that
 file will be read and executed in addition to
 F<$ENV{HOME}/.pshrc>. 
 
+=item * B<-F>
+
+No pshrc files will be read and executed.
+
 =item * B<-c> I<string>
 
 If the B<-c> flag is present, then commands are read from
@@ -116,7 +120,7 @@ the tokenization is irrelevant to that strategy.
 =head2 STANDARD EVALUATION STRATEGIES
 
 B<psh> includes the following evaluation strategies, sorted by the
-order we suggest for @Psh::strategies. For adding/removing evaluation
+default order. For adding/removing evaluation
 strategies we suggest the usage of the built-in command "strategy"
 from within psh.
 
@@ -131,6 +135,11 @@ the line.
 
 If the first word of the input line begins with a '!' character, send
 everything after the '!' to system().
+
+=item * C<perl>
+
+If the line begins with 'p!', send the everything after the '!' to the
+perl interpreter unchanged.
 
 =item * C<brace>
 
@@ -170,6 +179,11 @@ If the input line matches the name of a stopped job then brings that
 job to the foreground instead of starting a new programm with that
 name.
 
+=item * C<auto_cd> (not enabled by default)
+
+If the input line matches the name of a directory in the current
+directory, then change to that directory.
+
 =item * C<perlscript> (not enabled by default)
 
 If (1) the first word of the input line matches the name of a file found in
@@ -206,13 +220,6 @@ Pass the line to eval, regardless of any condition. This is a catch-all
 strategy; strategies placed after it will never be triggered.
 
 =back
-
-The list of evaluation strategies to try is kept in the configuration
-variable C<@Psh::strategies>, which defaults to
-C<qw(comment bang brace built_in executable fallback_builtin eval)>. 
-If you want to ensure that "print" (for example) refers to the Perl
-function "print" and not "/usr/bin/print", try adding the "perlfunc"
-strategy before "executable".
 
 =head2 GLOBBING
 
@@ -337,23 +344,6 @@ Every Perl expression that B<psh> evaluates as part of its read-eval loop
 is prepended with this string, intended primarily to set the expected
 package context.
 
-=item I<$Psh::executable_expand_arguments> (0)
-
-If this variable is true, then the following
-procedure is applied to each argument ARG of the command line before
-passing the command line on to "system":
-If ARG starts with a single quote, it is untouched.
-If ARG starts with a double quote, it is passed to "eval", and then double
-quotes are placed around the result.
-Otherwise, double quotes are placed around ARG, it is passed to eval,
-and the result is used directly.
-The intention of these steps is to do variable substitution of perl
-variables that appear in the command line as the user would expect, and
-in a way similar to shells such as bash. For example, if 
-@files = (file1, file2, file3), then
- 'ls @files' will expand to 'ls file1 file2 file3', whereas
- 'echo "@files"' will expand to 'echo "file1 file2 file3"'.
-
 =item I<$Psh::handle_segfaults> (0)
 
 If set to true, B<psh> will ignore all segfaults and attempt to
@@ -457,26 +447,22 @@ Those will be eligible for TAB completion if you add a command
 for completion using complete C<-A> hostname command. C<psh> will
 initialize this list with your /etc/hosts file
 
-=item I<@Psh::executable_noexpand> ( B<whois>, B<^ezmlm->, etc. )
-
-Contains regular expressions. If $Psh::executable_expand_arguments
-is set commands which match one of these REs won't have perl
-variables expanded. This is especially useful for commands which
-expect email adresses, and therefore an at-sign.
-
 =item I<@Psh::history>
 
 An array of lines to write to the history file when B<psh> exits, only
 filled when the ReadLine module doesn't handle the history file.
 
-=item I<@Psh::strategies> ( comment, bang, built_in, executable, eval)
-
-The list of strategies for executing a line, tried in order.
-
 =item I<@Psh::val>
 
 The default array where B<psh> stores away the results of executing
 lines, as described in C<$Psh::echo> above. 
+
+=item I<@Psh::Strategy::Executable::noexpand> ( B<whois>, B<^ezmlm->, etc. )
+
+Contains regular expressions. If $Psh::executable_expand_arguments
+is set commands which match one of these REs won't have perl
+variables expanded. This is especially useful for commands which
+expect email adresses, and therefore an at-sign.
 
 =back
 
@@ -484,25 +470,6 @@ lines, as described in C<$Psh::echo> above.
 =head2 PSH HASH VARIABLES
 
 =over 4
-
-=item I<%Psh::array_exports>
-
-Contains a list of environment variables which should be tied
-to arrays. The key of the hash is the name of the variable, the
-value is the delimiter of the list (e.g. ':' in PATH). The
-default value for array_exports currently contains PATH, CLASSPATH,
-LD_LIBRARY_PATH, FIGNORE and CDPATH.
-
-=item I<%Psh::built_ins>
-
-The keys are command names, the values do not matter. Builtins on this
-list may be autoloaded. This is initialized on startup by &Psh::Builtins::built_autoload_list()
-- please see B<pshdevel> for more information.
-
-=item I<%Psh::fallback_builtins>
-
-A list of fallback builtins Psh should provide. This currently defaults
-to ls and env.
 
 =item I<%Psh::Strategy::Perlfunc::perl_builtins> (by default, all Perl builtins and keywords)
 
@@ -527,18 +494,21 @@ keywords)
 The keys of this hash never have their arguments expanded in a
 shell-like fashion, even if $Psh::perlfunc_expand_arguments is true.
 
-=item I<%Psh::prompt_vars>
+=item I<%Psh::Prompt::prompt_vars>
 
 The keys of this hash are single characters, and the values are
 subroutine references that implement the given escape character in
 prompt strings. (See L<PROMPT STRINGS> below.)
 
-=item I<%Psh::strategy_which>
+=item I<%Psh::Support::Env::array_exports>
 
-=item I<%Psh::strategy_eval>
+Contains a list of environment variables which should be tied
+to arrays. The key of the hash is the name of the variable, the
+value is the delimiter of the list (e.g. ':' in PATH). The
+default value for array_exports currently contains PATH, CLASSPATH,
+LD_LIBRARY_PATH, FIGNORE and CDPATH.
 
-These hashes implement the named strategies used in B<psh>'s
-evaluation of input lines. It is possible to add new strategies, see below.
+
 
 =back
 
@@ -561,10 +531,6 @@ filter subroutines placed in $Psh::echo. For example,
 C<$Psh::echo = \&Psh::is_number;> will cause only numeric return
 values to be printed.
 
-=item C<&Psh::news>
-
-Returns the current news, as a string.
-
 =item C<&Psh::Util::print_debug, print_error, print_out, print_warning>
 
 These four functions are called whenever B<psh> wants to produce B<-d>-mode 
@@ -572,14 +538,9 @@ output, error messages, normal output, and warnings,
 respectively. They could conceivably be redefined to implement logging 
 or similar facilities.
 
-=item C<&Psh::symbols>
-
-Takes one argument, a package name, and shows all of the symbols in
-that package.
-
 =back
 
-There are other functions in the psh:: package, but they are probably
+There are other functions in the Psh:: package, but they are probably
 not useful except internally to B<psh>.
 
 =head2 PROMPT STRINGS

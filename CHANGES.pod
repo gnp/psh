@@ -39,6 +39,15 @@ New B<-F> command line switch to disable processing of any pshrc files
 
 New builtin command B<modules> to display a list of loaded Perl modules
 
+=item *
+
+First attempt at a B<ulimit> command.
+
+=item *
+
+New default strategy B<perl> - send everything after 'p!' unparsed to the
+perl interpreter (might be used later on for a special rc file compiler)
+
 =back
 
 =head2 Fixes
