@@ -122,7 +122,7 @@ sub decompose {
 	        $piece eq '${'or $piece eq '$(') {
                 push @open, $piece;
             } elsif ($piece eq '}' or $piece eq ')' or $piece eq ']') {
-                if (@open and $piece eq $nesthash{$open[0]}) {
+                if (@open and $piece eq $nesthash{$open[$#open]}) {
                     pop @open;
                 }
             }

@@ -70,7 +70,7 @@ character). Examples:
    C<ls *.pl>
    C<rm */*~>
 
-Advanced mode is entered if you embed some text in C<[]>. Advanced mode
+Advanced mode is entered if you embed a glob completely in C<[]>. Advanced mode
 basically corresponds to Perl regular expressions, but C</> will always
 match a directory level. Examples:
 

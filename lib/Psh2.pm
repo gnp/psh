@@ -546,23 +546,24 @@ sub glob {
 
     return $pattern if index($pattern,'*')==-1 and
       index($pattern,'?')==-1 and
-	substr($pattern,0,1) ne '[';
+	substr($pattern,0,1) ne '[' or
+          $pattern eq '[]';
 
     my $opts={};
     my @re= ();
     if (substr($pattern,0,1) eq '[') {
-	if ($pattern=~ /^\[(.*)\(([a-zA-Z]*)\)\]$/) {
-	    $pattern=$1;
-            if (!$pattern or $pattern eq '*') {
+        if ($pattern=~ /^\[(.*)\(([a-zA-Z]+)\)\]$/) {
+            $pattern=$1;
+            if (!$pattern) {
                 $pattern='.*';
             }
-	    my $optstring=$2;
-	    foreach (split //, $optstring) {
-		$opts->{$_}= 1;
-	    }
-	} else {
-	    $pattern= substr($pattern,1,-1);
-	}
+            my $optstring=$2;
+            foreach (split //, $optstring) {
+                $opts->{$_}= 1;
+            }
+        } else {
+            $pattern= substr($pattern,1,-1);
+        }
 	@re= split /\//, $pattern;
     } else {
 	$pattern= _escape($pattern);

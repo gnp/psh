@@ -68,7 +68,7 @@ sub tab_completion {
         $attribs->{line_buffer}= $line;
         $attribs->{point}= $newcaret;
     }
-    if ($list and @$list) {
+    if ($list and @$list>1) {
         print "\n";
         $self->print_list(@$list);
         $self->{term}->on_new_line();
