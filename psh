@@ -17,7 +17,7 @@
 package psh;
 
 use vars qw($VERSION);
-$VERSION   = '0.00201';
+$VERSION   = '0.00202';
 
 use Cwd;
 use Cwd 'chdir';
@@ -146,7 +146,7 @@ sub process
 		} elsif ($input =~ m/^\s*!(.+)\s*$/) {
 			system($1);
 			undef $input;
-		} elsif (($psh::smart) and ($input =~ m/^\s*([a-zA-Z0-9_-]+)\s+/)) {
+		} elsif (($psh::smart) and ($input =~ m/^\s*([a-zA-Z0-9_-]+)((\s*$)|(\s+.+$))/)) {
 			my $smart = $1;
 			my $which = `which $smart`;
 			chomp $which;
