@@ -91,7 +91,7 @@ sub bi_fc
 		return Psh::evl($comtext);
 	} else {
 		my $file= Psh::OS::tmpnam();
-		my $editor= $opt->{e}||$ENV{FCEDIT}||$ENV{EDITOR}||'vi';
+		my $editor= Psh::OS::get_editor($opt->{e} || $ENV{FCEDIT});
 		my $from=my $to=$#Psh::history;
 		($from,$to)=$ARGV[0]=~/(\d+)-(\d+)/ if $ARGV[0]=~/-/;
 		if (open(FILE,"> $file")) {
@@ -102,6 +102,9 @@ sub bi_fc
 		}
 		system("$editor $file");
 		Psh::process_file($file);
+		eval {
+			unlink($file);
+		};
 	}
 	return (1,undef);
 }
@@ -109,15 +112,3 @@ sub bi_fc
 
 
 1;
-
-# Local Variables:
-# mode:perl
-# tab-width:4
-# indent-tabs-mode:t
-# c-basic-offset:4
-# perl-label-offset:0
-# perl-indent-level:4
-# cperl-indent-level:4
-# cperl-label-offset:0
-# End:
-

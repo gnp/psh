@@ -26,7 +26,6 @@ my @user_cache=();
 $Psh::OS::PATH_SEPARATOR=';';
 $Psh::OS::FILE_SEPARATOR='\\';
 
-$Psh::rc_file = "pshrc";
 $Psh::history_file = "psh_history";
 
 sub set_window_title {
@@ -266,7 +265,7 @@ sub get_rc_files {
 	push @rc, "\\etc\\pshrc" if -r "\\etc\\pshrc";
 	push @rc, "$ENV{WINDIR}\\pshrc" if -r "$ENV{WINDIR}\\pshrc";
 	my $home= Psh::OS::get_home_dir();
-	if ($home) { push @rc, File::Spec->catfile($home,$Psh::rc_file) };
+	if ($home) { push @rc, File::Spec->catfile($home,'pshrc') };
 	return @rc;
 }
 
@@ -308,6 +307,12 @@ sub getcwd_psh {
 		$tmp=~tr:\\:/:;
 	}
 	return $tmp||Psh::OS::fb_getcwd();
+}
+
+
+sub get_editor {
+	my $suggestion= shift;
+    return $suggestion||$ENV{VISUAL}||$ENV{EDITOR}||'edit';
 }
 
 
