@@ -7,10 +7,7 @@ require Psh::Locale;
 $Psh::OS::PATH_SEPARATOR=':';
 $Psh::OS::FILE_SEPARATOR='/';
 
-$Psh::rc_file = ".pshrc";
 $Psh::history_file = ".psh_history";
-
-my @user_cache=();
 
 # Sets the title of the current window
 sub set_window_title {
@@ -54,15 +51,18 @@ sub get_known_hosts {
 #
 # Returns a list of all users on the system, prepended with ~
 #
-sub get_all_users {
-	unless (@user_cache) {
-		CORE::setpwent;
-		while (my ($name) = CORE::getpwent) {
-			push(@user_cache,'~'.$name);
+{
+	my @user_cache;
+	sub get_all_users {
+		unless (@user_cache) {
+			CORE::setpwent;
+			while (my ($name) = CORE::getpwent) {
+				push(@user_cache,'~'.$name);
+			}
+			CORE::endpwent;
 		}
-		CORE::endpwent;
+		return @user_cache;
 	}
-	return @user_cache;
 }
 
 #
@@ -97,9 +97,6 @@ sub get_rc_files {
 
 	if (-r '/etc/pshrc') {
 		push @rc, '/etc/pshrc';
-	}
-	if (-r '/usr/share/psh/pshrc') {
-		push @rc, '/usr/share/psh/pshrc';
 	}
 	my $home= Psh::OS::get_home_dir();
 	if ($home) { push @rc, File::Spec->catfile($home,'.pshrc') };
@@ -750,43 +747,34 @@ sub _resize_handler
 	$SIG{$sig} = \&_resize_handler;
 }
 
+{
+	my $debian=-1;
+	sub _check_debian {
+		if ($debian==-1) {
+			if (-r '/etc/debian-version') {
+				$debian=1;
+			} else {
+				$debian=0;
+			}
+		}
+		return $debian;
+	}
+}
+
+sub get_editor {
+	my $file= shift;
+	my $suggestion= shift;
+	my $editor= $suggestion||$ENV{VISUAL}||$ENV{EDITOR};
+	if (_check_debian()) {
+		$editor ||='editor';
+	} else {
+		$editor ||='vi';
+	}
+	return $editor;
+}
+
 1;
 
 __END__
-
-=head1 NAME
-
-Psh::OS::Unix - contains Unix specific code
-
-
-=head1 SYNOPSIS
-
-	use Psh::OS::Unix;
-
-=head1 DESCRIPTION
-
-Implements the Unix specific parts of Psh::OS
-
-=head1 AUTHOR
-
-various
-
-=cut
-
-# The following is for Emacs - I hope it won't annoy anyone
-# but this could solve the problems with different tab widths etc
-#
-### The One True Width of tabs is 8 characters.  The point about tabs over
-### spaces is that it doesn't matter *WHAT* value you give it.
-### Unfortunately people persist in using the space bar.
-### Greater than three spaces should be a macro for TAB in all editors.
-#
-# Local Variables:
-# tab-width:4
-# indent-tabs-mode:t
-# c-basic-offset:4
-# perl-indent-level:4
-# perl-label-offset:0
-# End:
 
 

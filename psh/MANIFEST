@@ -82,7 +82,6 @@ lib/Psh/Builtins/Ulimit.pm
 lib/Psh/Builtins/Unalias.pm
 lib/Psh/Builtins/Which.pm
 lib/Psh/OS.pm
-lib/Psh/OS/Mac.pm
 lib/Psh/OS/Unix.pm
 lib/Psh/OS/Win.pm
 lib/Psh/Support/Alias.pm
