@@ -1,9 +1,7 @@
 package Psh::Prompt;
 
 use strict;
-use vars qw(%prompt_vars $VERSION);
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
+use vars qw(%prompt_vars);
 
 #
 # string prompt_string(TEMPLATE)
@@ -22,7 +20,7 @@ my $default_prompt = '\s% ';
 		},
 	'E' => sub { return "\e"} ,
 	'h' => sub { return $Psh::host; },
-	'H' => sub { return $Psh::longhost; },
+	'H' => sub { return $Psh::longhost || $Psh::host; },
 	's' => sub {
 			my $shell = $Psh::bin;
 			$shell =~ s/^.*\///;

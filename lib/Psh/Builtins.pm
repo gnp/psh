@@ -44,21 +44,18 @@ package Psh::Builtins;
 ###############################################################
 
 use strict;
-use vars qw($VERSION %aliases @dir_stack $dir_stack_pos);
+use vars qw(%aliases @dir_stack $dir_stack_pos);
 
-use Config;
 use Psh::Util qw(:all print_list);
-use Psh::OS;
-use File::Spec;
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
+require Psh::OS;
+use File::Spec ();
 
 my $PS=$Psh::OS::PATH_SEPARATOR;
 
 %Psh::array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
 					 'FIGNORE'=>$PS,'CDPATH'=>$PS,'LS_COLORS'=>':');
 
-@dir_stack= (Psh::OS::getcwd_psh());
+@dir_stack= ();
 $dir_stack_pos=0;
 
 
@@ -88,13 +85,13 @@ sub _do_setenv
 			# Use eval so that variables may appear on RHS
 			# ($value); use protected_eval so that lexicals
 			# in this file don't shadow package variables
-			Psh::protected_eval("\$ENV{$var}=\"$value\"", 'do_setenv');
+			Psh::PerlEval::protected_eval("\$ENV{$var}=\"$value\"", 'do_setenv');
 		}
 		return $var;
 	} elsif( $arg=~ /(\w+)/ ) {
 		my $var= $1;
 		$var =~ s/^\$//;
-		Psh::protected_eval("\$ENV{$var}=\$$var if defined(\$$var);",
+		Psh::PerlEval::protected_eval("\$ENV{$var}=\$$var if defined(\$$var);",
 			       'do_setenv');
 		return $var;
 	}
@@ -128,10 +125,10 @@ sub bi_delenv
 		return undef;
 	}
 	foreach my $var ( @args) {
-		my @result = Psh::protected_eval("tied(\$$var)");
+		my @result = Psh::PerlEval::protected_eval("tied(\$$var)");
 		my $oldtie = $result[0];
 		if (defined($oldtie)) {
-			Psh::protected_eval("untie(\$$var)");
+			Psh::PerlEval::protected_eval("untie(\$$var)");
 		}
 		delete($ENV{$var});
 	}
@@ -152,18 +149,20 @@ sub bi_export
 {
 	my $var = _do_setenv(@_);
 	if ($var) {
-		my @result = Psh::protected_eval("tied(\$$var)");
+		my @result = Psh::PerlEval::protected_eval("tied(\$$var)");
 		my $oldtie = $result[0];
 		if (defined($oldtie)) {
 			if (ref($oldtie) ne 'Env') {
 				print_warning_i18n('bi_export_tied',$var,$oldtie);
 			}
 		} else {
-			Psh::protected_eval("use Env '$var';");
+			Psh::PerlEval::protected_eval("use Env '$var';");
 			if( exists($Psh::array_exports{$var})) {
-				eval "use Env::Array;";
+				eval {
+					require Env::Array;
+				};
 				if( ! $@) {
-					Psh::protected_eval("use Env::Array qw($var $Psh::array_exports{$var});",'hide');
+					Psh::PerlEval::protected_eval("use Env::Array qw($var $Psh::array_exports{$var});",'hide');
 				}
 			}
 		}
@@ -182,12 +181,13 @@ directory".
 
 =cut
 
-$ENV{OLDPWD}= $dir_stack[0];
-
 sub bi_cd
 {
 	my $in_dir = shift || Psh::OS::get_home_dir();
 	my $explicit=0;
+	unless (@dir_stack) {
+		push @dir_stack, $ENV{PWD};
+	}
 
 	if ($in_dir=~/^[+-](\d+)$/) {
 		my $tmp_pos=$dir_stack_pos-int($in_dir);

@@ -1,17 +1,15 @@
 package Psh::OS;
 
 use strict;
-use vars qw($VERSION $AUTOLOAD $ospackage);
-use Cwd;
-use Config;
-use File::Spec;
+use vars qw($AUTOLOAD $ospackage);
+use Cwd ();
+use Config ();
+use File::Spec ();
 
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
+$ospackage='Psh::OS::Unix';
 
-$ospackage="Psh::OS::Unix";
-
-$ospackage="Psh::OS::Mac" if( $^O eq "MacOS");
-$ospackage="Psh::OS::Win" if( $^O eq "MSWin32");
+#$ospackage='Psh::OS::Mac' if( $^O eq 'MacOS');
+$ospackage='Psh::OS::Win' if( $^O eq 'MSWin32');
 
 eval "use $ospackage";
 die "Could not find OS specific package $ospackage: $@" if( $@);
@@ -76,8 +74,12 @@ sub fb_glob {
 
 	# Expand ~
 	my $home= $ENV{HOME}||get_home_dir();
-	$pattern=~ s|^\~/|$home/|;
-    $pattern=~ s|^\~([^/]+)|&get_home_dir($1)|e;
+	if ($pattern eq '~') {
+		$pattern=$home;
+	} else {
+		$pattern=~ s|^\~/|$home/|;
+		$pattern=~ s|^\~([^/]+)|&get_home_dir($1)|e;
+	}
 
 	return $pattern if $pattern !~ /[*?]/;
 	
@@ -121,11 +123,11 @@ sub fb_glob {
 
 sub fb_signal_name {
 	my $signalnum = shift;
-	my @numbers= split ',',$Config{sig_num};
-	@numbers= split ' ',$Config{sig_num} if( @numbers==1);
+	my @numbers= split ',',$Config::Config{sig_num};
+	@numbers= split ' ',$Config::Config{sig_num} if( @numbers==1);
 	# Strange incompatibility between perl versions
 
-	my @names= split ' ',$Config{sig_name};
+	my @names= split ' ',$Config::Config{sig_name};
 	for( my $i=0; $i<$#numbers; $i++)
 	{
 		return $names[$i] if( $numbers[$i]==$signalnum);

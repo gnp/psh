@@ -1,12 +1,9 @@
 package Psh::Locale::Base;
 
 use strict;
-use vars qw($VERSION);
 use locale;
 
-use POSIX qw(strftime);
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
+use POSIX ();
 
 #
 # Here is the list of ISO-639:1988 language codes. Obtained from
@@ -212,12 +209,12 @@ sub init {
 	@Psh::mon= ();
 	for( my $i=0; $i<12; $i++)
 	{
-		push( @Psh::mon, strftime("%b",0,0,0,1,$i,99));
+		push( @Psh::mon, POSIX::strftime("%b",0,0,0,1,$i,99));
 	}
 	@Psh::wday= ();
 	for( my $i=0; $i<7; $i++)
 	{
-		push( @Psh::wday, strftime("%a",0,0,0,19+$i,11,99,$i));
+		push( @Psh::wday, POSIX::strftime("%a",0,0,0,19+$i,11,99,$i));
 	}
 
 	# Use the default locale for defaults

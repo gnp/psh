@@ -37,4 +37,3 @@ WriteMakefile (
     PM           => $pms,
 	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
 );
-

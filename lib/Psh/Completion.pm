@@ -4,8 +4,8 @@ use strict;
 use vars qw(@bookmarks @user_completions $ac $complete_first_word_dirs);
 
 use Psh::Util qw(:all starts_with ends_with);
-use Psh::OS;
-use Psh::PCompletion;
+require Psh::OS;
+require Psh::PCompletion;
 
 my $APPEND="not_implemented";
 my $GNU=0;
