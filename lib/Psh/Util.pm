@@ -191,16 +191,24 @@ if (!$@) {
 
 	my $last_path_cwd = '';
 	my %hashed_cmd    = ();
+	my $FS=$Psh::OS::FILE_SEPARATOR;
+
+	my $re1="\Q$FS\E";
+	my $re2="^(.*)\Q$FS\E([^\Q$FS\E]+)\$";
+
+	if ($]>=5.005) {
+		eval {
+			$re1= qr{$re1};
+			$re2= qr{$re2};
+		}
+	}
 
 	sub which
     {
 		my $cmd      = shift;
-		my $FS= $Psh::OS::FILE_SEPARATOR;
 
-		#print_debug("[which $cmd]\n");
-
-		if ($cmd =~ m|\Q$FS\E|) {
-			$cmd =~ m|^(.*)\Q$FS\E([^\Q$FS\E]+)$|;
+		if ($cmd =~ m|$re1|o) {
+			$cmd =~ m|$re2|o;
 			my $path_element= $1;
 			my $cmd_element= $2||'';
 			my $try = abs_path($path_element).$FS.$cmd_element;
@@ -236,11 +244,10 @@ if (!$@) {
 			foreach my $ext (@path_extension) {
 				if ((-x $try.$ext) and (!-d _)) { 
 					$hashed_cmd{$cmd} = $try.$ext;
-					return $try.$ext; 
+					return $try.$ext;
 				}
 			}
 		}
-      
 		$hashed_cmd{$cmd} = undef;
 
 		return undef;
