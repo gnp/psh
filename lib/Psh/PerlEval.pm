@@ -35,7 +35,8 @@ sub protected_eval
 		local $Psh::currently_active= -1;
 		local @Psh::result= eval "$Psh::eval_preamble $Psh::string";
 
-		if ( !$@ && $#Psh::result==0 &&
+		if ( !$@ && @Psh::result &&
+			 $#Psh::result==0 &&
 			 $Psh::result[0] eq $Psh::string &&
 			 $Psh::string=~ /^\s*\S+\s*$/ &&
 			 $Psh::string!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {

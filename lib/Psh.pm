@@ -47,6 +47,7 @@ use vars qw($bin $cmd $echo $host $debugging
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $change_title $window_title
 			@val @wday @mon @strategies @unparsed_strategies @history
+            @executable_noexpand
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval %fallback_builtin);
 
@@ -178,12 +179,23 @@ my $input;
 	},
 
 	'executable' => sub {
-		@newargs= $executable_expand_arguments?variable_expansion($_[1]):
-		  $_[1];
+		my @args=@_;
+		my @newargs= @{$args[1]};
+		if ($executable_expand_arguments) {
+			my $flag=0;
+
+			foreach my $re (@executable_noexpand) {
+				if ($args[2]=~ m{$re}) {
+					$flag=1;
+					last;
+				}
+			}
+			@newargs= variable_expansion(\@newargs) unless $flag;
+		}
 		@newargs = Psh::Parser::glob_expansion(\@newargs);
 		@newargs = map { Psh::Parser::unquote($_)} @newargs;
 
-		return ("$_[2] @newargs", ["$_[2]",@newargs], 0, undef, );
+		return ("$args[2] @newargs", ["$args[2]",@newargs], 0, undef, );
 	},
 );
 
@@ -592,8 +604,8 @@ sub iget
 	exit unless defined $line;
 	chomp $line;
 
-	if ($line !~ m/^\s*$/) {
-		if ($history[$#history] ne $line) {
+	if ($line && $line !~ m/^\s*$/) {
+		if (!@history || $history[$#history] ne $line) {
 			$term->addhistory($line) if $term;
 		
 			push(@history, $line);
@@ -656,6 +668,11 @@ sub minimal_initialize
 	$joblist= new Psh::Joblist();
 
 	@val = ();
+	@history= ();
+
+	# I don't know wether this should really be pre-initialized
+	@executable_noexpand= ('whois','/ezmlm-','/mail$','/mailx$',
+						   '/pine$');
 
 	Psh::Locale::Base::init();
 }

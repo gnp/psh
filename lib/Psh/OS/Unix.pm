@@ -425,7 +425,7 @@ sub _fork_process {
 					exec { $code } @$words;
 				}
 			} # Avoid unreachable warning
-			Psh::Util::print_error_i18n(`exec_failed`,$code);
+			Psh::Util::print_error_i18n('exec_failed',$code);
 			&exit(-1);
 		}
 	}
@@ -671,7 +671,7 @@ sub _resize_handler
 		};
 	}
 
-	if(($cols > 0) && ($rows > 0)) {
+	if($cols && $rows && ($cols > 0) && ($rows > 0)) {
 		$ENV{COLUMNS} = $cols;
 		$ENV{LINES}   = $rows;
 		if( $Psh::term) {
