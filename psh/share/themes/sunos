@@ -1,4 +1,6 @@
 #!psh
 
-Psh::Options::set_option('ps1','\h:\u> ');
-Psh::Options::set_option('window_title',"shelltool - $Psh::bin"
+option ps1='\h:\u> ' ps2='> ' -ps3 -ps4 -prompt_command
+Psh::Options::set_option('window_title',"shelltool - $Psh::bin")
+
+
