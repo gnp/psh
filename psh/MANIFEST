@@ -24,6 +24,8 @@ lib/Psh/Locale/Italian.pm
 lib/Psh/Locale/Portuguese.pm
 lib/Psh/Locale/Spanish.pm
 lib/Psh/Parser.pm
+lib/Psh/PerlEval.pm
+lib/Psh/Prompt.pm
 lib/Psh/Util.pm
 lib/Psh/Builtins.pm
 lib/Psh/OS.pm

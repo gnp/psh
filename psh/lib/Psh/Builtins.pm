@@ -52,11 +52,11 @@ use Config;
 use Psh::Util qw(:all print_list);
 use Psh::OS;
 use Pod::Text;
+use File::Spec;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 my $PS=$Psh::OS::PATH_SEPARATOR;
-my $FS=$Psh::OS::FILE_SEPARATOR;
 
 %Psh::array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
 					 'FIGNORE'=>$PS,'CDPATH'=>$PS);
@@ -108,10 +108,7 @@ Sets the environment variable NAME to VALUE.
 sub bi_setenv
 {
 	my $var = _do_setenv(@_);
-	if (!$var) {
-		print_error("Usage: setenv <variable> <value>\n".
-					"       setenv <variable>\n");
-	}
+	print_error_18n('usage_setenv') if !$var;
 	return undef;
 }
 
@@ -136,9 +133,7 @@ sub bi_export
 		my $oldtie = $result[0];
 		if (defined($oldtie)) {
 			if (ref($oldtie) ne 'Env') {
-				print_warning("Variable \$$var is already ",
-							  "tied via $oldtie, ",
-							  "can't export.\n");
+				print_warning_i18n('bi_export_tied',$var,$oldtie);
 			}
 		} else {
 			Psh::protected_eval("use Env '$var';");
@@ -150,8 +145,7 @@ sub bi_export
 			}
 		}
 	} else {
-		print_error("Usage: export <variable> [=] <value>\n".
-					"       export <variable>\n");
+		print_error_18n('usage_export');
 	}
 	return undef;
 }
@@ -161,7 +155,7 @@ $Psh::Builtins::help_cd = '
 
 =item * C<cd DIR>
 
-Change the working directory to DIR or $ENV{HOME} if DIR is not specified.
+Change the working directory to DIR or home if DIR is not specified.
 The special DIR "-" is interpreted as "return to the previous
 directory".
 
@@ -174,17 +168,17 @@ directory".
 
 	sub bi_cd
 	{
-		my $in_dir = shift || $ENV{HOME};
+		my $in_dir = shift || Psh::OS::get_home_dir();
 		my $dirpath= $ENV{CDPATH} || '.';
 
 		foreach my $cdbase (split $PS,$dirpath) {
 			my $dir= $in_dir;
 			$dir = $last_dir if $dir eq '-';
 			if( $cdbase eq '.' ||
-				substr($dir,0,1) eq $FS) {
+				File::Spec->file_name_is_absolute($dir)) {
 				$dir = Psh::Util::abs_path($dir);
 			} else {
-				$dir = Psh::Util::abs_path($cdbase.$FS.$dir);
+				$dir = Psh::Util::abs_path(File::Spec->catdir($cdbase,$dir));
 			}
 		
 			if ((-e $dir) and (-d _)) {
@@ -239,7 +233,7 @@ sub bi_kill
 	} elsif (scalar(@args) == 2) {
 		($sig, $pid) = @args;
 	} else {
-		print_error("kill: usage: kill <sig> <pid>| -l \n");
+		print_error_i18n('usage_kill');
 		return 1;
 	}
 
@@ -248,7 +242,7 @@ sub bi_kill
 
 		$job= $Psh::joblist->find_job($temp);
 		if( !defined($job)) {
-			print_error("kill: No such job $pid\n");
+			print_error_18n('bi_kill_no_such_job',$pid);
 			return 1;
 		}
 
@@ -256,7 +250,7 @@ sub bi_kill
 	}
 
 	if ($pid =~ m/\D/) {
-		print_error("kill: Unknown job specification $pid\n");
+		print_error_18n('bi_kill_no_such_jobspec',$pid);
 		return 1;
 	}
 
@@ -267,7 +261,7 @@ sub bi_kill
 	}
 
 	if (CORE::kill($sig, $pid) != 1) {
-		print_error("kill: Error sending signal $sig to process $pid\n");
+		print_error_18n('bi_kill_error_sig',$pid,$sig);
 		return 1;
 	}
 
@@ -298,33 +292,54 @@ current setting of C<$Psh::strategies>.
 
 sub bi_which
 {
-	my $cmd   = shift;
+	my $line   = shift;
 
-	print_debug("[which $cmd]\n");
-
-	if (!defined($cmd) or $cmd eq '') {
-		print_error("which: requires a command or command line as argument\n");
+	if (!defined($line) or $line eq '') {
+		print_error_18n('bi_which_no_command');
 		return 1;
 	}
-  
-	my @words = Psh::Parser::decompose(' ',$cmd,undef,1,undef,'\&');
 
-	for my $strat (@Psh::strategies) {
+
+	print_debug("[which $line]\n");
+
+	my @words= Psh::Parser::std_tokenize($line);
+	foreach my $strat (@Psh::unparsed_strategies) {
 		if (!defined($Psh::strategy_which{$strat})) {
-			print_warning("${Psh::bin}: WARNING: unknown strategy '$strat'.\n");
+			print_warning_i18n('no_such_strategy',$strat,'which');
 			next;
 		}
 
-		my $how = &{$Psh::strategy_which{$strat}}(\$cmd,\@words);
+		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
 
 		if ($how) {
-			print_out("$cmd evaluates under strategy $strat by: $how\n");
+			print_out_18n('evaluates_under',$line,$strat,$how);
 			return 0;
 		}
 	}
 
-	print_warning("which: can't determine how to evaluate $cmd\n");
 
+	my @words= Psh::Parser::decompose(
+							'(\s+|\||;|\&\d*|[0-9&]*>|[0-9&]*<|\\|=)',
+							$line, undef, 1,
+							{"'"=>"'","\""=>"\"","{"=>"}"});
+	# TODO: The special rules are missing so this is not really correct
+
+	my $line= join ' ', @words;
+	foreach my $strat (@Psh::strategies) {
+		if (!defined($Psh::strategy_which{$strat})) {
+			print_warning_i18n('no_such_strategy',$strat,'which');
+			next;
+		}
+
+		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
+
+		if ($how) {
+			print_out_18n('evaluates_under',$line,$strat,$how);
+			return 0;
+		}
+	}
+
+	print_warning_18n('clueless',$line,'which');
 	return 1;
 }
 
@@ -364,14 +379,14 @@ sub bi_alias
 			$wereThereSome = 1;
 		}
 		if (!$wereThereSome) {
-			print_out("No aliases.\n");
+			print_out_i18n('bi_alias_none');
 		}
 	} elsif( $text eq '') {
 		my $aliasrhs = $aliases{$command};
 		$aliasrhs =~ s/\'/\\\'/g;
 		print_out("alias $command='$aliasrhs'\n");
 	} elsif ($text eq '-a') {
-		print_error("Can't alias '-a'.\n");
+		print_error_i18n('bi_alias_cant_a');
 	} else {
 		print_debug("[[ Aliasing '$command' to '$text']]\n");
 		# my apologies for the gobbledygook
@@ -523,13 +538,14 @@ sub bi_jobs {
 		$result .= "[$visindex] $pid $command";
 
 		if ($job->{running}) { $result .= "\n"; }
-		else                 { $result .= " (stopped)\n"; }
+		else                 { $result .= ' ('.$Psh::text{stopped}.")\n"; }
 		$visindex++;
 	}
 
-	if (!$result) { $result = "No jobs.\n"; }
-
-	print_out($result);
+	if (!$result) { print_out_i18n('bi_jobs_none'); }
+	else {
+		print_out($result);
+	}
 
 	return undef;
 }
@@ -556,7 +572,7 @@ sub bi_exit
 		$Psh::term->WriteHistory($Psh::history_file);
 	}
 	
-	my $file= "$ENV{HOME}/.${Psh::bin}_logout";
+	my $file= File::Spec->catfile(Psh::OS::get_home_dir(),".${Psh::bin}_logout");
 	if( -r $file) {
 		process_file(abs_path($file));
 	}
@@ -602,7 +618,7 @@ be extended to allow rebinding, etc.
 
 sub bi_readline
 {
-	print_out_i18n('builtin_readline_header',$Psh::term->ReadLine());
+	print_out_i18n('bi_readline_header',$Psh::term->ReadLine());
 
 	my $featureref = $Psh::term->Features();
 
