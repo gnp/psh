@@ -14,8 +14,9 @@ sub T_AND() { 6; }
 sub T_EXECUTE() { 1; }
 
 # generate and cache regexpes
-my %quotehash= qw|' ' " " ` ` ( ) { } [ ]|;
+my %quotehash= qw|' ' " " ` ` q[ ] qq[ ]|;
 my %quotedquotes= ();
+my %nesthash=  qw|( ) { } [ ]|;
 
 my $part2= '(?!a)a';
 
@@ -24,7 +25,7 @@ foreach my $opener (keys %quotehash) {
     $quotedquotes{$opener}= quotemeta($quotehash{$opener});
 }
 
-my $part1= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|\&>|\\&|>>|>|<<|<)';
+my $part1= '(\n|\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|\&>|\\&|>>|>|<<|<|=|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\\\]|\\\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 ############################################################################
@@ -43,7 +44,6 @@ sub decompose {
     my @pieces= ('');
     my $start_new_piece= 0;
     my $fresh_piece= 1;
-    my $uquote= 0;
 
     while ($line) {
 	if ($start_new_piece) {
@@ -59,10 +59,6 @@ sub decompose {
 	}
 
 	if (defined $delimiter) {
-	    if ($delimiter ne ' ' and
-	        $delimiter =~ /^\s+$/) {
-		$delimiter=' ';
-	    }
 	    $pieces[$#pieces] .= $prefix;
 	    if (length($pieces[$#pieces]) or !$fresh_piece) {
 		push @pieces, $delimiter;
@@ -72,31 +68,64 @@ sub decompose {
 	    $start_new_piece= 1;
 	    $line= $rest;
 	} elsif (defined $quote) {
-	    my ($rest_of_quote, $remainder)=
-		($rest =~ m/^((?:[^\\]|\\.)*?)$quotedquotes{$quote}(.*)$/s);
+	    my ($rest_of_quote, $remainder);
+	    if ($quote eq 'qq[' or $quote eq '"') {
+		($rest_of_quote, $remainder)=
+		  ($rest =~ m/^((?:[^\\]|\\.)*?)$quotedquotes{$quote}(.*)$/s);
+	    } elsif ($quote eq "'") {
+		($rest_of_quote, $remainder)=
+		  ($rest =~ m/^((?:[^\']|\'\')*)\'(.*)$/s);
+	    } else {
+		($rest_of_quote, $remainder)=
+		  ($rest =~ m/^(.*?)$quotedquotes{$quote}(.*)$/s);
+	    }
 	    if (defined $rest_of_quote) {
-		if ($quote eq "\"") {
-		    $rest_of_quote= remove_backslash($rest_of_quote);
-		}
 		$pieces[$#pieces]= join('', $pieces[$#pieces], $prefix, $quote,
 					$rest_of_quote, $quotehash{$quote});
 		$line= $remainder;
 		$fresh_piece= 0;
 	    } else { # can't find matching quote, give up
-		$uquote= 1;
-		last;
+		die "parse: needmore: quote: missing $quote";
 	    }
 	} else {
-	    if (length($line)) {
-		$line= remove_backslash($line);
-	    }
 	    last;
 	}
     }
     if (length($line)) {
 	$pieces[$#pieces].= $line;
     }
-    return (\@pieces, $uquote);
+    my @realpieces= ();
+    my @open= ();
+    my @tmp= ();
+    while (@pieces) {
+	my $piece= shift @pieces;
+	if (length($piece)==1) {
+            if ($piece eq '[' or $piece eq '(' or $piece eq '{') {
+                push @open, $piece;
+            } elsif ($piece eq '}' or $piece eq ')' or $piece eq ']') {
+                my $tmp= pop @open;
+                if (!defined $tmp) {
+                    die "parse: needmore: nest: closed $piece";
+                }
+                if ($nesthash{$tmp} ne $piece) {
+                    die "parse: needmore: nest: wrong $tmp $piece";
+                }
+            }
+        }
+        if (@open) {
+            push @tmp, $piece;
+        } elsif (@tmp) {
+	    push @realpieces, join('', @tmp, $piece);
+	    @tmp= ();
+	} else {
+	    if ($piece=~/^\s+$/ and $piece ne "\n") {
+		next;
+	    }
+            push @realpieces, $piece;
+        }
+
+    }
+    return \@realpieces;
 }
 
 sub remove_backslash {
@@ -112,7 +141,7 @@ sub remove_backslash {
     $text=~ s/\\e/\e/g;
     $text=~ s/\\(0[0-7][0-7])/chr(oct($1))/ge;
     $text=~ s/\\(x[0-9a-fA-F][0-9a-fA-F])/chr(oct($1))/ge;
-    $text=~ s/\\(.)/$1/g;
+    $text=~ s/\\([^a-zA-Z0-9])/$1/g;
     $text=~ s/\001/\\/g;
     return $text;
 }
@@ -126,6 +155,12 @@ sub unquote {
     } elsif ( substr($text,0,1) eq "\"" and
 	      substr($text,-1,1) eq "\"") {
 	$text= substr($text,1,-1);
+    } elsif ( substr($text,0,2) eq 'q[' and
+	      substr($text,-1,1) eq ']') {
+	$text= substr($text,2,-1);
+    } elsif ( substr($text,0,3) eq 'qq[' and
+	      substr($text,-1,1) eq ']') {
+	$text= substr($text,3,-1);
     }
     return $text;
 }
@@ -190,11 +225,7 @@ sub _parse_fileno {
 
 sub make_tokens {
     my $line= shift;
-    my ($partstmp, $openquotes)= decompose($line);
-    die "parse: openquotes: $openquotes" if $openquotes;
-
-    my @parts= @$partstmp;
-
+    my @parts= @{decompose($line)};
     my @tmp= ();
     my @tokens= ();
     my $tmp;
@@ -234,7 +265,7 @@ sub make_tokens {
 		    $file= '';
 		}
 		die "parse: redirection >: file missing" unless $file;
-		push @tmp, [T_REDIRECT, $tmp, $fileno[0], unquote($file)];
+		push @tmp, [T_REDIRECT, $tmp, $fileno[0], $file];
 	    } else {
 		push @tmp, [T_REDIRECT, '>&', @fileno];
 	    }
@@ -252,7 +283,7 @@ sub make_tokens {
 		    $file= '';
 		}
 		die "parse: redirection <: file missing" unless $file;
-		push @tmp, [T_REDIRECT, '<', $fileno[1], unquote($file)];
+		push @tmp, [T_REDIRECT, '<', $fileno[1], $file];
 	    } else {
 		push @tmp, [T_REDIRECT, '<&', $fileno[1], $fileno[0]];
 	    }
@@ -260,13 +291,18 @@ sub make_tokens {
 	    push @tokens, @tmp;
 	    push @tokens, [T_BACKGROUND], [T_END];
 	    @tmp= ();
-	} elsif ($tmp eq ';') {
+	} elsif ($tmp eq ';' or $tmp eq "\n") {
 	    push @tokens, @tmp;
 	    push @tokens, [T_END];
 	    @tmp= ();
-	} elsif ($tmp=~ /^\s+$/) {
 	} else {
-	    push @tmp, [ T_WORD, $tmp];
+	    if (substr($tmp,0,2) ne "q[" and
+	        substr($tmp,0,1) ne "'") {
+		$tmp= remove_backslash($tmp);
+	    } elsif (substr($tmp,0,1) eq "'") {
+		substr($tmp,1,-1)=~ s/\'\'/\'/g;
+	    }
+	    push @tmp, [ T_WORD, unquote($tmp)];
 	}
     }
     push @tokens, @tmp;
@@ -369,12 +405,12 @@ sub _parse_simple {
         !$alias_disabled->{$words[0]}) {
 	my $alias= $psh->{aliases}->{$words[0]};
 	$alias_disabled->{$words[0]}= 1;
-	my @tmp= make_tokens($alias);
-	unshift @tmp, @precom;
+	my $tmp= make_tokens($alias);
+	unshift @$tmp, @precom;
 	shift @savetokens;
-	push @tmp, @savetokens;
-	push @tmp, @options;
-	return _sub_parse_complex(\@tmp, $piped, $fg, $alias_disabled, $psh);
+	push @$tmp, @savetokens;
+	push @$tmp, @options;
+	return @{_sub_parse_complex($tmp, $piped, $fg, $alias_disabled, $psh)};
     } elsif ($words[0] and substr($words[0],0,1) eq "\\") {
 	$words[0]= substr($words[0],1);
     }
@@ -397,7 +433,6 @@ sub _parse_simple {
     }
 
     @words= @{glob_expansion($psh, \@words)} unless $opt->{noglob};
-    @words= map { unquote($_)} @words;
 
     unless ($opt->{nobuiltin}) {
 	if ($psh->is_builtin($words[0])) {
@@ -447,11 +482,10 @@ sub glob_expansion {
 	} else {
 	    my @results = $psh->glob($word);
 	    if (scalar(@results) == 0) {
-		@results = ($word);
-	    } elsif (scalar(@results)>1 or $results[0] ne $word) {
-		foreach (@results) { $_ = "'$_'"; }
+		push @retval, $word;
+	    } else {
+		push @retval, @results;
 	    }
-	    push @retval, @results;
 	}
     }
     return \@retval;

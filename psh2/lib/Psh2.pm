@@ -8,6 +8,8 @@ if ($^O eq 'MSWin32') {
     require Psh2::Unix;
 }
 
+*gt= *gt_dummy;
+
 build_builtin_list();
 
 require POSIX;
@@ -47,9 +49,10 @@ sub new {
 	    },
 	       strategy => [],
 	       language => { 'perl' => 1, 'c' => 1},
-	       tmp => {},
+	       aliases  => {},
 	       dirstack => [],
 	       dirstack_pos => 0,
+	       tmp => {},
 	   };
     bless $self, $class;
     return $self;
@@ -209,6 +212,17 @@ sub print {
     }
 }
 
+sub printf {
+    my $self= shift;
+    my $format= shift;
+    $self->print(sprintf($format,@_));
+}
+
+sub println {
+    my $self= shift;
+    $self->print(@_,"\n");
+}
+
 sub printerr {
     my $self= shift;
     if ($self->fe) {
@@ -216,6 +230,17 @@ sub printerr {
     } else {
 	CORE::print STDERR @_;
     }
+}
+
+sub printerrln {
+    my $self= shift;
+    $self->printerr(@_,"\n");
+}
+
+sub printferr {
+    my $self= shift;
+    my $format= shift;
+    $self->printerr(sprintf($format,@_));
 }
 
 sub printdebug {
@@ -308,7 +333,7 @@ sub printdebug {
 	return $command_hash{$command} if exists $command_hash{$command}
 	  and !$all_flag;
 
-	return undef if $command !~ /^[-a-zA-Z0-9_.~+]+$/;
+	return undef if $command !~ /^[\-a-zA-Z0-9_.~+]+$/;
 
 	if (!@absed_path or $last_path_cwd ne ($ENV{PATH}.$ENV{PWD})) {
 	    $last_path_cwd= $ENV{PATH}.$ENV{PWD};
