@@ -143,7 +143,11 @@ sub fork {
 sub _setup_env {
     my $env= shift;
     while (my ($key,$value)= each %$env) {
-        $ENV{$key}=$value;
+        if (ref $value) {
+            $ENV{$key}=join(' ',@$value);
+        } else {
+            $ENV{$key}=$value;
+        }
     }
 }
 

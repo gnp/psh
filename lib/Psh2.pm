@@ -971,7 +971,9 @@ sub value {
         if ($subscript>=0) {
             $self->{value}[$subscript]= $value;
         } else {
-            if ($self->{joinby}) {
+            if (ref $value) {
+                $self->{value}= $value;
+            } elsif ($self->{joinby}) {
                 $self->{value}= [ split /\Q$self->{joinby}\E/, $value ];
             } else {
                 $self->{value}= [ $value ];

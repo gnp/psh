@@ -498,16 +498,30 @@ sub _parse_simple {
 
     while (@words) {
         my ($key, $val);
-        if ($words[0]=~/^(.*?)=(.*)$/) {
-            ($key,$val)= ($1,$2);
-            shift @words;
-        }
-        elsif (@words>2 and $words[0]=~/^[a-zA-Z0-9:_-]+$/ and
+        if (@words>2 and $words[0]=~/^[a-zA-Z0-9_-]+$/ and
                $words[1]=~/^\[\d+\]$/ and
                substr($words[2],0,1) eq '=') {
             $key=qq[$words[0]$words[1]];
             $val=substr($words[2],1);
             shift @words; shift @words; shift @words;
+        }
+        elsif (@words>1 and $words[0]=~/^[a-zA-Z0-9_-]+\=$/ and
+               $words[1]=~/^\(\s*(.*?)\s*\)$/) {
+            $val= $1;
+            $key=substr($words[0],0,length($words[0])-1);
+            my @val=();
+            if (!$opt->{noglob}) {
+                @val= @{glob_expansion($psh, [$val])};
+            } else {
+                @val= split /\s+/, $val;
+            }
+            $options->{env}{$key}= \@val;
+            shift @words; shift @words;
+            next;
+        }
+        elsif ($words[0]=~/^(.*?)=(.*)$/) {
+            ($key,$val)= ($1,$2);
+            shift @words;
         }
         else {
             last;
