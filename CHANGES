@@ -9,6 +9,9 @@ CVS HEAD
   * Added new builtin 'builtin'
   * Added new evaluation strategy 'auto_resume'
 
+ Portability:
+  * New fallback builtin 'ls'
+
  Internal:
   * Changed prompt evaluation to be more bash compatible and
     to handle even complex prompts

@@ -659,6 +659,9 @@ sub bi_builtin {
 		if( ref *{"Psh::Builtins::bi_$command"}{CODE} eq 'CODE') {
 			my $coderef= *{"Psh::Builtins::bi_$command"};
 			return &{$coderef}($rest);
+		} elsif( ref *{"Psh::Builtins::Fallback::bi_$command"}{CODE} eq 'CODE') {
+			my $coderef= *{"Psh::Builtins::Fallback::bi_$command"};
+			return &{$coderef}($rest);
 		}
 	}
 	print_error_i18n('no_such_builtin',$command,$Psh::bin);
@@ -715,6 +718,21 @@ sub bi_env
 	foreach my $key (keys %ENV) {
 		print_out("$key=$ENV{$key}\n");
 	}
+	return undef;
+}
+
+# void bi_ls
+# like the Unix binary but without options
+sub bi_ls
+{
+	my $pattern= shift || '*';
+	my $ps= $Psh::OS::FILE_SEPARATOR;
+	$pattern.=$ps.'*' if( $pattern !~ /\*/ &&
+						  -d Psh::Util::abs_path($pattern));
+	my @files= map { 
+		    return $1 if( m:\Q$ps\E([^\Q$ps\E]+)$:); $_
+		} Psh::OS::glob($pattern);
+	Psh::Util::print_list(@files);
 	return undef;
 }
 
