@@ -86,9 +86,9 @@ sub execute {
 		$psh->del_option(substr($tmp,1));
 	    } elsif (substr($tmp,0,1) eq '+') {
 		$psh->set_option(substr($tmp,1),1);
-	    } elsif (@$words>1 and $words->[0] eq '=') {
-		shift @$words; my $val= shift @$words;
-		$psh->set_option($tmp, $val);
+            } elsif ($tmp=~/^(.*?)\=(.*)$/) {
+                my ($key,$val)= ($1,$2);
+		$psh->set_option($key, $val);
 	    } else {
 		my $val= get_printable_option($psh,$tmp,1);
 		$psh->print("$val\n");

@@ -1,10 +1,9 @@
 2004-01-28  Markus Peter  <warp@spin.de>
 
 	* lib/Psh2/Parser.pm (make_tokens): Changed order of adding redirections so >[2=1] | actually works
-	(_parse_simple): Simplified parsetree result
-
+	* Simplified parsetree result
+	* The =-sign is no shell metacharacter any more
 	* Removed CHANGES.pod. Changes are now logged in ChangeLog and major user visible changes will be logged to docs/psh2news.pod
-
 	* Added which builtin
 
 

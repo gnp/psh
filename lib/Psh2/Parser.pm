@@ -18,7 +18,7 @@ my %nesthash=  ('('=> ')', '$(' => ')',
 	       );
 
 my $part2= '\\\'|\\"|q\\[|qq\\[';
-my $part1= '(\\n|\\|\\||\\&\\&|\\||;|\&>|\\&|>>|>|<|=|\\$\\{|\\$\\(|\\(|\\)|\\{|\\}|\\[|\\])';
+my $part1= '(\\n|\\|\\||\\&\\&|\\||;|\&>|\\&|>>|>|<|\\$\\{|\\$\\(|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 my %tmp_tokens=
@@ -499,6 +499,7 @@ sub _parse_simple {
 
     my $opt= {};
     my $options= { redirects => \@redirects,
+                   env => {},
                    opt => $opt };
 
     while ($words[0] and length($words[0])>5 and
@@ -513,6 +514,20 @@ sub _parse_simple {
 
     if (substr($first,0,1) eq '\\') {
 	$first= substr($first,1);
+    }
+
+    while (defined $first and $first=~/^(.*?)=(.*)$/) {
+        my ($key,$val)= ($1,$2);
+        if (!$opt->{noglob}) {
+            $val=join(' ',@{glob_expansion($psh, [$val])});
+        }
+        $options->{env}{$key}=$val;
+        shift @words;
+        $first= $words[0];
+    }
+    if (!@words) {
+        # we'd have to set the variables now
+        return ();
     }
 
     my $line= join ' ', @words;

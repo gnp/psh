@@ -41,6 +41,7 @@ test_decompose 'echo "foo bar"', [ 'echo', 'foo bar'];
 test_decompose q[echo 'foo\\nbar'], [ 'echo', "foo\\nbar"];
 test_decompose q[echo 'foo{bar'], [ 'echo', "foo{bar"];
 test_decompose 'echo foo\\ bar', [ 'echo', 'foo\\ bar'];
+test_decompose 'foo=bar ls', [ 'foo=bar','ls'];
 test_decompose 'foo ( bar )', [ 'foo','( bar )'];
 test_decompose 'foo "" bar', [ 'foo','','bar'];
 test_decompose 'foo  bar', [ 'foo', 'bar'];
