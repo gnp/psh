@@ -5,10 +5,6 @@ package themes;
 
 $color= '\C{cyan}';
 
-$openright="/";
-$closeright="\\\\";
-$dash="-";
-
 $c1='\[\C{nobold}'.$color.'\]';
 $c2='\[\C{bold}'.$color.'\]';
 $c3='\[\C{bold}\C{black}\]';
