@@ -1,0 +1,6 @@
+#!psh
+# hermann@sbs.de
+
+option ps1='\n\u@\h \w\n\! \$ '
+option ps2='> '
+option -ps3 -ps4 -prompt_command

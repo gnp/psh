@@ -1,0 +1,7 @@
+#!psh
+# largo the maintainer of wterm
+# this was found on his homepage
+
+option ps2='> '
+option ps1='/\u@\h)-(\t \d)-- - -  -\n\\\(\W)-\$> '
+option window_title='f   r   e   a   k'
