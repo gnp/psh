@@ -18,6 +18,13 @@ sub bi_kill
 	my $sig= 'TERM';
 	my (@pids, $job);
 
+	unless (@args) {
+		require Psh::Builtins::Help;
+		Psh::Builtins::Help::bi_help('kill');
+		return (0,undef);
+	}
+
+
 	if (scalar(@args) == 1 &&
 		$args[0] eq '-l') {
 		require Config;
@@ -32,29 +39,25 @@ sub bi_kill
 	foreach my $pid (@args) {
 		if ($pid =~ m|^%(\d+)$|) {
 			my $temp = $1 - 1;
-			
+
 			$job= Psh::Joblist::find_job($temp);
 			if( !defined($job)) {
 				Psh::Util::print_error_i18n('bi_kill_no_such_job',$pid);
 				next;
 			}
-			
+
 			$pid = $job->{pid};
 		}
+		elsif ($pid !~ m/^\d+$/) {
+			my ($index,$rpid)= Psh::Joblist::find_last_with_name($pid);
+			if( $rpid) {
+				$pid=$rpid;
+			} else {
+				Psh::Util::print_error_i18n('bi_kill_no_such_job',$pid);
+				next;
+			}
+		}
 
-		my ($index,$rpid)= Psh::Joblist::find_last_with_name($pid);
-		if( $rpid) {
-			$pid=$rpid;
-		} else {
-			Psh::Util::print_error_i18n('bi_kill_no_such_job',$pid);
-		}
-		
-		if ($pid =~ m/\D/) {
-			Psh::Util::print_error_i18n('bi_kill_no_such_jobspec',$pid);
-			$status=1;
-			next;
-		}
-		
 		if ($sig ne 'CONT' and Psh::Joblist::job_exists($pid)
 			and !(($job=Psh::Joblist::get_job($pid))->{running})) {
 			#Better wake up the process so it can respond to this signal
@@ -62,14 +65,14 @@ sub bi_kill
 		}
 
 		$sig=0 if $sig eq 'ZERO'; # stupid perl bug
-		
+
 		if (my $num=CORE::kill($sig, $pid) != 1) {
 			Psh::Util::print_error_i18n('bi_kill_error_sig',$pid,$sig);
 			next;
 		} else {
 			$count+=$num;
 		}
-		
+
 		if ($sig eq 'CONT' and Psh::Joblist::job_exists($pid)) {
 			Psh::Joblist::get_job($pid)->{running}=1;
 		}
@@ -87,7 +90,8 @@ sub cmpl_kill {
 		push @tmp, $job->{call};
 	}
 
-	if( split(' ',$starttext)<2) {
+	my @tmp2= split /\s+/, $starttext; # just to remove a deprecated message...
+	if( @tmp2<2) {
 		require Config;
 		push @tmp, map { '-'.$_} split(' ', $Config::Config{sig_name});
 	}
