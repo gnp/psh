@@ -4,7 +4,7 @@ use strict;
 use vars qw($VERSION);
 use Psh::Util ':all';
 
-eval { use Win32; }
+eval { use Win32; };
 if ($@) {
 	print_error_i18n('no_libwin32');
 	die "\n";
@@ -36,7 +36,7 @@ sub exit {
 # void display_pod(text)
 #
 sub display_pod {
-	my $tmp= POSIX::tmpnam;
+	my $tmp= POSIX::tmpnam();
 	my $text= shift;
 
 	open( TMP,">$tmp");
@@ -81,7 +81,7 @@ sub glob {
 	my $path= shift;
 	my $old;
 	if( $path) {
-		$old=cwd;
+		$old=cwd();
 		chdir abs_path($path);
 	}
 	my @result= glob(shift);
@@ -98,6 +98,8 @@ sub setup_signal_handlers {1}
 sub setup_sigsegv_handler {1}
 sub setup_readline_handler {1}
 sub reinstall_resize_handler {1}
+
+sub remove_readline_handler {1} #FIXME: better than not running at all
 
 sub get_home_dir {1} # we really should return something (profile?)
 

@@ -8,13 +8,13 @@ use Cwd 'chdir';
 use FileHandle;
 use Getopt::Std;
 
+use Psh::Util ':all';
+use Psh::Locale::Base;
 use Psh::OS;
 use Psh::Joblist;
 use Psh::Job;
 use Psh::Completion;
-use Psh::Locale::Base;
 use Psh::Parser;
-use Psh::Util ':all';
 use Psh::Builtins;
 
 #
