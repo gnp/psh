@@ -206,19 +206,8 @@ for translations.
 
 Markus Peter, warp@spin.de
 
-<<<<<<< Default.pm
 =head1 SEE ALSO
 
-=======
-
-=head1 SEE ALSO
->>>>>>> 1.15
-
-<<<<<<< Default.pm
-=cut
-
-=======
 Psh::Locale::*
 
->>>>>>> 1.15
 
