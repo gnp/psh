@@ -235,7 +235,7 @@ sub execute_complex_command {
 
 			if( $i<$#array && $#array) {
 				close(WRITE);
-				open(INPUT,"<&READ");
+				open(INPUT,"<&READ"); # TODO: This is the only mention of INPUT filehandle, causing warnings on make test.
 			}
 			if( @return_val < 1 ||
 				!defined($return_val[0])) {
@@ -301,12 +301,15 @@ sub _remove_redirects {
 		if( $type==0) {
 			close(STDIN);
 			open(STDIN,"<&OLDIN");
+			close(OLDIN);
 		} elsif( $type==1) {
 			close(STDOUT);
 			open(STDOUT,">&OLDOUT");
+			close(OLDOUT);
 		} elsif( $type==2) {
 			close(STDERR);
 			open(STDERR,">&OLDERR");
+			close(OLDERR);
 		}
 	}
 }
