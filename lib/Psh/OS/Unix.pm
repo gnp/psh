@@ -208,6 +208,7 @@ sub execute_complex_command {
 	my @array= @{shift()};
 	my $fgflag= shift @array;
 	my @return_val;
+	my $eval_thingie;
 	my $pgrp_leader=0;
 	my $pid;
 	my $string='';
@@ -216,7 +217,7 @@ sub execute_complex_command {
 	for( my $i=0; $i<@array; $i++) {
 		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
 		my $line= join(' ',@$words);
-		my ($eval_thingie,@return_val)= &$coderef( \$line, $words,$how,$i>0);
+		($eval_thingie,@return_val)= &$coderef( \$line, $words,$how,$i>0);
 		
 		if( defined($eval_thingie)) {
 			if( $#array) {
@@ -325,6 +326,7 @@ sub _fork_process {
 		my $cache= _setup_redirects($options);
 		my @result= eval { &$code };
 		_remove_redirects($cache);
+		Psh::Util::print_error($@) if $@;
 		return (0,@result);
 	}
 

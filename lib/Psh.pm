@@ -545,7 +545,7 @@ $strategy_eval{brace}= $strategy_eval{eval}= sub {
 		} else {
 			$code='while(<STDIN>) { '.$todo.' ; print $_ if $_; }';
 		}
-		return (sub {return protected_eval($code); }, undef);
+		return (sub {return protected_eval($code,'eval'); }, undef);
     } else {
 		return (sub {
 			return protected_eval($todo,'eval');
@@ -755,8 +755,7 @@ sub process
 				} else { # Ordinary string
 					$result_array_name = $last_result_array;				        
 					$result_array_name =~ s/^\@//;
-				        $result_array_ref = (protected_eval("\\\@$result_array_name"))[0];
-
+					$result_array_ref = (protected_eval("\\\@$result_array_name"))[0];
 				}
 			}
 			if (scalar(@result) > 1) {
