@@ -175,6 +175,9 @@ if (!$@) {
 			return undef;
 		}
 
+		# Only search for names which match a given regexp
+		if ($cmd !~ m/$Psh::which_regexp/) { return undef; }
+
 		if ($last_path_cwd ne ($ENV{PATH} . cwd())) {
 			$last_path_cwd = $ENV{PATH} . cwd();
 			@Psh::absed_path    = ();
