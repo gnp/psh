@@ -6,58 +6,172 @@ use vars qw($VERSION);
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 #
-# array decompose(string LINE)
+# array decompose(regexp DELIMITER, string LINE, int PIECES, 
+#                 bool KEEP, hashref QUOTINGPAIRS, regexp METACHARACTERS
+#                 scalarref UNMATCHED_QUOTE)
 #
-# decompose breaks LINE into pieces much like split(' ',LINE), except
-# that single and double quotes prevent splitting on internal
-# whitespace. It returns the array of pieces.  Thus, if LINE is
-#    echo fred(joe, "Happy Days", ' steve"jan ', "\"Oh, no!\"")
-# then decompose should break it at the following places marked by
-# vertical bars:
-#    echo|fred(joe,|"Happy Days",|' steve"jan',|"\"Oh, no!\"")
-#
-# As a special hack, if LINE ends in an ampersand followed by
-# whitespace, the ampersand is split off into its own word.
-#
+# decompose is a cross between split() and
+# Text::ParseWords::parse_line: it breaks LINE into at most PIECES
+# pieces separated by DELIMITER, except that the hash given by the
+# reference QUOTINGPAIRS specifies pairs of quotes (each key is an
+# open quote which matches the corresponding value) which prevent
+# splitting on internal instances of DELIMITER, and negate the effect
+# of other quotes. The quoting characters are retained if KEEP is
+# true, discarded otherwise. Matches to the regexp METACHARACTERS
+# (outside quotes) are their own words, regardless of being delimited.
+# Backslashes escape the meanings of characters that might match
+# delimiters, quotes, or metacharacters.  Initial unquoted empty
+# pieces are suppressed.
+
+# decompose returns the array of pieces. If UNMATCHED_QUOTE is
+# specified, 1 will be placed in the scalar referred to if LINE
+# contained an unmatched quote, 0 otherwise.
+
+# If DELIMITER is undefined or equal to ' ', the regexp '\s+' is used
+# to break on whitespace. If PIECES is undefined, as many pieces as
+# necessary are used. KEEP defaults to 1. If QUOTINGPAIRS is
+# undefined, {"'" => "'", "\"" => "\""} is used, i.e. single and
+# double quotes are recognized. Supply a reference to an empty hash to
+# have no quoting characters. METACHARACTERS defaults to a regexp that
+# never matches.
+
+# EXAMPLE: if $line is exactly
+
+# echo fred(joe, "Happy Days", ' steve"jan ', "\"Oh, no!\"")
+
+# then decompose(' ', $line) should break it at the
+# following places marked by vertical bars: 
+
+# echo|fred(joe,|"Happy Days",|' steve"jan',|"\"Oh, no!\"")
 
 sub decompose 
 {
-    my ($line) = @_;
+    my ($delimexp,$line,$num,$keep,$quotehash,$metaexp,$unmatched) = @_;
 
-    $line =~ s/^\s*//; # remove initial whitespace, shouldn't be in any piece
+    my $nevermatches = "(?!a)a"; # Anyone have other ideas?
+    if (!defined($delimexp) or $delimexp eq ' ') { $delimexp = '\s+'; }
+    if (!defined($num)) { $num = -1; }
+    if (!defined($keep)) { $keep = 1; }
+    if (!defined($quotehash)) { $quotehash = { "'" => "'", "\"" => "\"" }; }
+    if (!defined($metaexp)) { $metaexp = $nevermatches; }
 
     my @pieces = ('');
+    my $startNewPiece = 0;
+    my $freshPiece = 1;
+    my $uquote = 0;
+
+    my %qhash = %{$quotehash};
+    #generate $quoteexp and fix up the closers:
+    my $quoteexp = $nevermatches;
+    for my $opener (keys %qhash) {
+            $quoteexp .= '|' . quotemeta($opener);
+	    $qhash{$opener} = quotemeta($qhash{$opener});
+    }
 
     while ($line) {
-		my ($prefix,$delimiter,$rest) =
-			($line =~ m/^(\S*?)(\s+|(?<!\\)\"|(?<!\\)\')(.*)$/s);
-		if (!defined($delimiter)) { # no delimiter found, so all one piece
-			$pieces[scalar(@pieces)-1] .= $line;
-			$line = '';
-		} elsif ($delimiter =~ m/\s+/) {
-			$pieces[scalar(@pieces)-1] .= $prefix;
-			push @pieces, '';
-			$line = $rest;
-		} else { # $delimiter is " or '
-			my ($restOfQuote,$remainder) = 
-				($rest =~ m/^(.*?(?<!\\)$delimiter)(.*)$/s);
-			if (defined($restOfQuote)) {
-				$pieces[scalar(@pieces)-1] .= "$prefix$delimiter$restOfQuote";
-				$line = $remainder;
-			} else { # can't find matching delimiter
-				$pieces[scalar(@pieces)-1] .= $line;
-				$line = '';
-			}
-		} 
-	}
-    my $lastpiece = pop @pieces;
-    if ($lastpiece =~ m/^(.*)\&\s*$/) {
-		if ($1) { push @pieces, $1; }
-		push @pieces, '&';
-    } else { push @pieces, $lastpiece; }
+            if ($startNewPiece) { 
+	            push @pieces, '';
+		    $startNewPiece = 0; 
+		    $freshPiece = 1;
+	    }
+	    if (scalar(@pieces) == $num) { last; }
+            my ($prefix,$delimiter,$quote,$meta,$rest) =
+	      ($line =~ m/^((?:[^\\]|\\.)*?)(?:($delimexp)|($quoteexp)|($metaexp))(.*)$/s);
+	    if (!$keep and defined($prefix)) {
+	    	    # remove backslashes in unquoted part:
+	            $prefix =~ s/\\(.)/$1/g;
+	    }
+	    if (defined($delimiter)) {
+		    $pieces[scalar(@pieces)-1] .= $prefix;
+		    if (scalar(@pieces) > 1 or $pieces[0]) {
+		  	    $startNewPiece = 1;
+		    }
+		    $line = $rest;
+	    } elsif (defined($quote)) {
+		    my ($restOfQuote,$remainder) = 
+		      ($rest =~ m/^((?:[^\\]|\\.)*?)$qhash{$quote}(.*)$/s);
+		    if (defined($restOfQuote)) {
+			    if ($keep) {
+				    $pieces[scalar(@pieces)-1] .= "$prefix$quote$restOfQuote${$quotehash}{$quote}";
+			    } else {
+				    $pieces[scalar(@pieces)-1] .= "$prefix$restOfQuote";
+			    }
+			    $line = $remainder;
+			    $freshPiece = 0;
+		    } else { # can't find matching quote, give up
+		           $uquote = 1;
+		           last;
+		    }
+	    } elsif (defined($meta)) {
+                    $pieces[scalar(@pieces)-1] .= $prefix;
+		    if ($pieces[scalar(@pieces)-1] or !$freshPiece) {
+			    push @pieces, $meta;
+		    } else { 
+			    $pieces[scalar(@pieces)-1] = $meta;
+		    }
+		    $line = $rest;
+		    $startNewPiece = 1;
+	    } else { # nothing found, so remainder all one unquoted piece
+	            if (!$keep and $line) {
+	                      $line =~ s/\\(.)/$1/g;
+		    }
+		    last;
+	    }
+    }
+    if ($line) { $pieces[scalar(@pieces)-1] .= $line; }
+    if (defined($unmatched)) { ${$unmatched} = $uquote; }
     return @pieces;
 }
 
+#
+# array std_tokenize(string LINE, [int PIECES])
+#
+# Wrapper for decompose, returns the "standard" psh tokenization of an
+# (unmodified) line of psh input
+#
+
+sub std_tokenize 
+{
+    my ($line,$pieces) = @_;
+    return decompose(' ',$line,$pieces,1,undef,'\&');
+}
+
+#
+# int incomplete_expr(string LINE)
+#
+# Returns 2 if LINE has unmatched quotations. Returns -1 if LINE has
+# mismatched parens. Otherwise, returns 1 if LINE has an unmatched
+# open brace, parenthesis, or square bracket and 0 in all other
+# cases. Summing up, negative is a mismatch, 0 is all OK, and positive
+# is unfinished business. (Reasonably good, can be fooled with some
+# effort. I therefore have deliberately not taken comments into
+# account, which means you can use them to "unfool" this function, but
+# also that unmatched stuff in comments WILL fool this function.)
+#
+
+my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
+
+sub incomplete_expr
+{
+    my ($line) = @_;
+    my $unmatch = 0;
+    my @words = decompose(' ',$line,undef,1,\%perlq_hash,'[]{}()[]', \$unmatch);
+    if ($unmatch) { return 2; }
+    my @openstack = (':'); # : is used as a bottom marker here
+    my %open_of_close = qw|) ( } { ] [|;
+    foreach my $word (@words) {
+            if ($word =~ m/^[{([]$/) { push @openstack, $word; }
+            elsif ($word =~ m/^[])}]$/) {
+	            my $open = $open_of_close{$word};
+		    my $curopen = pop @openstack;
+		    if ($open ne $curopen) {
+		            return -1;
+		    }
+	    }
+    }
+    if (scalar(@openstack) > 1) { return 1; }
+    return 0;
+}
 
 #
 # glob_expansion()
@@ -129,8 +243,7 @@ sub glob_expansion
 #        For example, 'print hello \n' on the command line gets double
 #        quotes around hello and \n, so that it ends up doing
 #        print("hello","\n") which looks nice but is a surprise to
-#        bash users. Perhaps backslash simply shouldn't be in the list
-#        of OK characters?
+#        bash users. Perhaps backslash escapes simply shouldn't be OK?
 
 sub needs_double_quotes
 {
@@ -139,7 +252,7 @@ sub needs_double_quotes
 	return if !defined($word) or !$word;
 
 	if ($word =~ m/[a-zA-Z]/                     # if it has some letters
-		and $word =~ m|^[$.:a-zA-Z0-9/.\\]*$|) { # and only these characters 
+		and $word =~ m"^(\\.|[$.:a-zA-Z0-9/.])*$") { # and only these characters 
 		return 1;                                # then double-quote it
 	}
 

@@ -8,7 +8,7 @@ BEGIN {
 		print STDERR "The Parser test module needs Test.pm\n";
 		exit 0;
 	}
-	plan(tests => 2, todo=> [2]);
+	plan(tests => 2);
 }
 
 use Psh::Parser;
@@ -16,10 +16,10 @@ use Psh::Parser;
 my ($string,@arr);
 
 #
-# First test. Test wether decompose handles " and '
+# First test. Test whether std_tokenize handles " and '
 #
-$string="foo bar \"bla'bla\" 'bla\"bla";
-@arr= Psh::Parser::decompose($string);
+$string="foo \t  bar \"bla'bla\" 'bla\"bla";
+@arr= Psh::Parser::std_tokenize($string);
 
 if( $arr[0] eq 'foo' &&
 	$arr[1] eq 'bar' &&
@@ -30,14 +30,20 @@ if( $arr[0] eq 'foo' &&
 }
 else
 {
+	print STDERR "Unexpected pieces:", join('|',@arr), "\n";
 	ok(0);
 }
 
 #
-# Second test - test wether decompose handles backticks
+# Second test - test whether decompose handles backticks
+#
+# Note psh doesn't use these anywhere, but we'll have to add them to
+# std_tokenize if we ever want to do "command expansion"
 #
 $string='`foo bar`';
-@arr= Psh::Parser::decompose($string);
+my %quotes = qw(' ' " " ` `);
+
+@arr= Psh::Parser::decompose(' ',$string,undef,1,\%quotes);
 
 if( $#arr==0 &&
 	$arr[0] eq '`foo bar`')
@@ -46,6 +52,7 @@ if( $#arr==0 &&
 }
 else
 {
+	print STDERR "Unexpected pieces:", join('|',@arr), "\n";
 	ok(0);
 }
 
