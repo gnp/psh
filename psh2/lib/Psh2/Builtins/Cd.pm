@@ -1,5 +1,7 @@
 package Psh2::Builtins::Cd;
 
+use strict;
+
 =item * C<cd DIR>
 
 Change the working directory to DIR or home if DIR is not specified.
@@ -20,6 +22,8 @@ sub execute {
     my $in_dir= join(' ',@$words);
     $in_dir ||= $ENV{HOME};
 
+    my $explicit= 0;
+
     if (@{$psh->{dirstack}}==0) {
 	push @{$psh->{dirstack}}, $ENV{PWD};
     }
@@ -31,7 +35,7 @@ sub execute {
 	} elsif ($tmp_pos>=@{$psh->{dirstack}}) {
 	    # TODO: Error handling
 	} else {
-	    $in_dir= $psh->{dirstack}[$tmp_post];
+	    $in_dir= $psh->{dirstack}[$tmp_pos];
 	    $psh->{dirstack_pos}= $tmp_pos;
 	}
     } elsif ($in_dir eq '-') {
