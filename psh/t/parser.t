@@ -8,6 +8,7 @@ BEGIN {
 		print STDERR "The Parser test module needs Test.pm\n";
 		exit 0;
 	}
+	use Psh;
 	plan(tests => 2);
 }
 

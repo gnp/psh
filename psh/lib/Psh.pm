@@ -733,7 +733,7 @@ sub minimal_initialize
 
 sub finish_initialize
 {
-	Psh::OS::setup_sigsegv_handler if $Psh::handle_segfaults;
+	Psh::OS::setup_sigsegv_handler() if $Psh::handle_segfaults;
 
 	$save_history    = 1               if !defined($save_history);
 	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);

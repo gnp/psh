@@ -33,7 +33,7 @@ sub print_warning
 #
 sub print_debug
 {
-	print STDERR @_ if $Psh::debugging =~ /o/;
+	print STDERR @_ if $Psh::debugging && $Psh::debugging =~ /o/;
 }
 
 #
