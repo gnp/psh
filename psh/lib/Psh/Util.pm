@@ -130,54 +130,32 @@ sub print_list
     }
 }
 
-{
-	my $abs_path;
+sub abs_path {
+	my $dir= shift;
+	return $path_hash{$dir} if $path_hash{$dir} && $dir ne '.' && $dir ne '..';
+	my $result= Psh::OS::abs_path($dir);
+	unless ($result) {
+		my $tmp= File::Spec->rel2abs($dir,$ENV{PWD});
 
-	sub basic_abs_path {
-		my $dir = shift;
-		$dir = '~' unless defined $dir and $dir ne '';
-		if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
-			my $user = $2;
-			my $rest = $3;
-			my $home;
-
-			$home= Psh::OS::get_home_dir($user);
-			if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
+		# Not using Cwd::fast_abs_path here saves us forking
+		# one process on UNIX, but this is not without risk
+		my $old= $ENV{PWD};
+		if ( CORE::chdir($tmp)) {
+			$result = Psh::OS::getcwd_psh();
+			CORE::chdir($old) || die "Cannot chdir back to $old: $!";
 		}
 
-		if( !File::Spec->file_name_is_absolute($dir)) {
-			$dir = File::Spec->catdir($ENV{PWD},$dir);
-		}
-		return $dir;
-	};
-
-	#
-	# string abs_path(string DIRECTORY)
-	#
-	# expands the argument DIRECTORY into a full, absolute pathname.
-	#
-
-	eval "use Cwd 'fast_abs_path';";
-	if ($@) {
-		$abs_path=\&basic_abs_path;
-	} else {
-		$abs_path=\&fast_abs_path;
-	}
-
-	sub abs_path {
-		my $dir= shift;
-		return $path_hash{$dir} if $path_hash{$dir};
-		my $dir2= Psh::OS::abs_path($dir);
-		unless ($dir2) {
+		unless ($result) {
+			local $^W=0;
+			local $SIG{__WARN__}= {};
 			eval {
-				$dir2= &$abs_path($dir);
+				$result= Cwd::abs_path($tmp);
 			};
-			$dir2= basic_abs_path($dir) if $@;
-			$dir2.='/' unless $dir2=~m:[/\\]:; # abs_path strips / from letter: on Win
 		}
-		$path_hash{$dir}= $dir2;
-		return $dir2;
+		$result.='/' unless $result=~m:[/\\]:; # abs_path strips / from letter: on Win
 	}
+	$path_hash{$dir}= $result;
+	return $result;
 }
 
 #

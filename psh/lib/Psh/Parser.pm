@@ -3,7 +3,6 @@ package Psh::Parser;
 
 use strict;
 use vars qw($VERSION);
-use Carp;
 
 use Psh::OS;
 use Psh::Util;
@@ -71,9 +70,10 @@ sub decompose
 
     # See if metacharacters has any parenthesized subexpressions:
     my @matches = ('x' =~ m/$metaexp|(.)/);
-    if (scalar(@matches) > 1) { 
-      carp "Metacharacter regexp '$metaexp' in decompose may not contain ().";
-      return undef;
+    if (scalar(@matches) > 1) {
+		require Carp;
+		Carp::carp "Metacharacter regexp '$metaexp' in decompose may not contain ().";
+		return undef;
     }
 
     # Remember if delimexp came with any parenthesized subexpr, and
@@ -83,9 +83,10 @@ sub decompose
     my $saveDelimiters = 0;
     @matches = ('x' =~ m/$delimexp|(.)/);
     if (scalar(@matches) > 2) {
-      carp "Delimiter regexp '$delimexp' in decompose may " .
-	   "contain at most 1 ().";
-      return undef;
+		require Carp;
+		Carp::carp "Delimiter regexp '$delimexp' in decompose may " .
+		  "contain at most 1 ().";
+		return undef;
     }
     if (scalar(@matches) == 2) {
       $saveDelimiters = 1;

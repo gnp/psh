@@ -59,7 +59,7 @@ sub get_known_hosts {
 	return "localhost" unless defined($hfh);
 	my $hosts_text = join('', <$hfh>);
 	$hfh->close();
-	return Psh::Util::parse_hosts_file($hosts_text);  
+	return Psh::Util::parse_hosts_file($hosts_text);
 }
 
 #

@@ -29,6 +29,10 @@ WriteMakefile (
 	AUTHOR       => 'Gregor N. Purdy (gregor@focusresearch.com)',
 	ABSTRACT     => 'Perl Shell',
 	EXE_FILES    => [ qw(psh) ],
+    PREREQ_PM    => {
+					 'Cwd'   => '0',
+					 'File::Spec' => '0',
+					},
 	MAN1PODS     => $pods,
     PM           => $pms,
 	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
