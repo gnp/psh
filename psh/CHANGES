@@ -1,5 +1,15 @@
 CVS
 
+29 Dec 1999 - Omer
+Win32:
+ * Works. :)
+ * Makes use of system registry
+ * execute_complex_command()
+ * get_hostname()
+ * get_all_users()
+ * get_home_dir()
+
+
 29 Dec 1999 - warp
 New Features:
  * Saving the history file now respects $Psh::history_size if
