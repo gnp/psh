@@ -31,6 +31,12 @@ sub get_hostname {
 	return Sys::Hostname::hostname();
 }
 
+sub getcwd_psh {
+    my $cwd;
+    chop($cwd = `pwd`);
+    $cwd;
+}
+
 #
 # Returns a list of well-known hosts (from /etc/hosts)
 #
@@ -83,7 +89,7 @@ sub display_pod {
 sub get_home_dir {
 	my $user = shift || $ENV{USER};
 	return $ENV{HOME} if ((! $user) && (-d $ENV{HOME}));
-	return (getpwnam($user))[7];
+	return (getpwnam($user))[7]||'';
 }
 
 sub get_rc_files {

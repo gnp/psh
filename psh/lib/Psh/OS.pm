@@ -1,7 +1,6 @@
 package Psh::OS;
 
 use strict;
-require Cwd;
 require Config;
 require File::Spec;
 
@@ -64,6 +63,9 @@ sub _escape {
 #
 sub fb_glob {
 	my( $pattern, $dir) = @_;
+
+	return () unless $pattern;
+
 	my @result;
 	if( !$dir) {
 		$dir=$ENV{PWD};
@@ -176,6 +178,7 @@ sub fb_exit_psh {
 }
 
 sub fb_getcwd_psh {
+	eval { require Cwd; };
 	return Cwd::getcwd();
 }
 

@@ -65,7 +65,16 @@ sub cmpl_filenames
 		$globtext= substr($text,1);
 	}
 
-	my @result= Psh::OS::glob("$globtext*");
+	my @result;
+
+	if (substr($globtext,0,1) eq '~' and !($globtext=~/\//)) {
+		# after ~ try username completion
+		@result= cmpl_usernames($globtext);
+		$ac="/" if @result;
+		return @result;
+	}
+
+	@result= Psh::OS::glob("$globtext*");
 
 	if( $ENV{FIGNORE}) {
 		my @ignore= split(':',$ENV{FIGNORE});
@@ -114,7 +123,15 @@ sub cmpl_directories
 		$globtext= substr($text,1);
 	}
 
-	my @result= grep { -d $_ } Psh::OS::glob("$globtext*");
+	my @result;
+	if (substr($globtext,0,1) eq '~' and !($globtext=~/\//)) {
+		# after ~ try username completion
+		@result= cmpl_usernames($globtext);
+		$ac="/" if @result;
+		return @result;
+	}
+
+	@result= grep { -d $_ } Psh::OS::glob("$globtext*");
 
 	if(@result==1) {
 		if( -d $result[0]) {
@@ -162,7 +179,7 @@ sub cmpl_executable
 	
 	local $^W= 0;
 
-	which($cmd);
+	Psh::Util::which($cmd);
 	# set up absed_path if not already set and check
 	
 	foreach my $dir (@Psh::absed_path) {
@@ -427,11 +444,7 @@ sub completion
 		}
 	}
 
-	if ($startchar eq '~' && !($text=~/\//)) {
-		# after ~ try username completion
-		@tmp= cmpl_usernames($text);
-		$ac="/" if @tmp;
-	} elsif ($starttext =~ m/\$([\w:]+)\s*(->)?\s*{\s*['"]?$/) {
+	if ($starttext =~ m/\$([\w:]+)\s*(->)?\s*{\s*['"]?$/) {
 		# $foo{key, $foo->{key
 		@tmp= cmpl_hashkeys($text, $line, $start);
 		$ac = '}';
@@ -440,13 +453,13 @@ sub completion
 		@tmp= cmpl_method($text, $line, $start);
 		$ac = ' ';
 	} elsif ( $text =~ /^\$#|[\@\$%&]/) {
-	        # $foo, @foo, $#foo, %foo, &foo
+		# $foo, @foo, $#foo, %foo, &foo
 		@tmp= cmpl_symbol($text, $line, $start);
 		$ac = '';
 	} elsif( $firstflag || $starttext =~ /[\|\`]\s*$/) {
 		# we have the first word in the line or a pipe sign/backtick in front
 		# of the current item, so we try to complete executables
-
+		
 		if ($pretext=~m/\//) {
 			@tmp = cmpl_filenames($pretext.$text,1)
 		} else {
@@ -456,7 +469,7 @@ sub completion
 			# Afterwards we add possible matches for perl barewords
 			push @tmp, cmpl_perl_function($text);
 		}
-  	} else {
+	} else {
 		@tmp = cmpl_filenames($pretext.$text);
 	}
 
