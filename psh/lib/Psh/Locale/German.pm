@@ -19,7 +19,7 @@ BEGIN {
 							'ILL'  => 'Illegale Anweisung',
 							'TSTP' => 'von Benutzer unterbrochen'
 							);
-	$psh::text{sig_description}=\%sig_description;
+	$Psh::text{sig_description}=\%sig_description;
 
 }
 

@@ -8,8 +8,6 @@ use Cwd 'chdir';
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
-my $term;
-my $absed_path;
 my @user_completions;
 my $APPEND="not_implemented";
 my $EMPTY_AC='';
@@ -18,8 +16,6 @@ my $ac; # character to append
 
 sub init
 {
-	($term, $absed_path) = @_;
-
 	@user_completions= ();
 
 	# TODO: Portability ?
@@ -30,18 +26,18 @@ sub init
 	endpwent;
 
 	# The following is ridiculous, but....
-	if( $term->ReadLine eq "Term::ReadLine::Perl") {
+	if( $Psh::term->ReadLine eq "Term::ReadLine::Perl") {
 		$APPEND='completer_terminator_character';
-		$term->Attribs->{completer_word_break_characters}=
-			$term->Attribs->{completer_word_break_characters}.="\$\%\@\~/";
-	} elsif( $term->ReadLine eq "Term::ReadLine::Gnu") {
+		$Psh::term->Attribs->{completer_word_break_characters}=
+			$Psh::term->Attribs->{completer_word_break_characters}.="\$\%\@\~/";
+	} elsif( $Psh::term->ReadLine eq "Term::ReadLine::Gnu") {
 		$GNU=1;
 		$APPEND='completion_append_character';
 		$EMPTY_AC="\0";
 	}
 
 	# Wow, both ::Perl and ::Gnu understand it
-	$term->Attribs->{special_prefixes}= "\$\%\@\~";
+	$Psh::term->Attribs->{special_prefixes}= "\$\%\@\~";
 
 }
 
@@ -50,7 +46,7 @@ sub cmpl_bookmarks
 	my ($text, $prefix)= @_;
 	my $length=length($prefix);
 	return map { substr($_,$length) }
-	         grep { starts_with($_,$prefix.$text) } @psh::bookmarks;
+	         grep { starts_with($_,$prefix.$text) } @Psh::bookmarks;
 }
 
 
@@ -91,13 +87,15 @@ sub cmpl_executable
 	my $old_cwd        = cwd;
 	my @result = ();
 
-	my $tmp = psh::which($cmd);
+	local $^W= 0;
+
+	my $tmp = which($cmd);
 	push( @result, $tmp) if defined($tmp);
 	# set up absed_path if not already set and check
 	# wether we found an executable with exactly that name
 	
-	foreach my $dir (@$absed_path) {
-		chdir psh::abs_path($dir);
+	foreach my $dir (@Psh::absed_path) {
+		chdir abs_path($dir);
 		push( @result, grep { -x && ! -d } glob "$cmd*" );
 	}
 	
@@ -115,6 +113,8 @@ sub cmpl_perl
 {
 	my $text= shift;
 	my @result=();
+
+	local $^W= 0;
 
 	return () if ! $text=~ /^[$%&@][a-zA-Z0-9_]*$/go;
 
@@ -163,7 +163,7 @@ sub cmpl_perl
 sub custom_completion
 {
 	my ($text, $line, $start) = @_;
-	my $attribs               = $term->Attribs;
+	my $attribs               = $Psh::term->Attribs;
 	my (@tmp, $startchar, $starttext,$tmp);
 
 	$startchar= substr($line, $start, 1);
@@ -186,15 +186,15 @@ sub custom_completion
 		# we have the first word in the line or a pipe sign/backtick in front
 		# of the current item, so we try to complete executables
 		@tmp= cmpl_executable($text);
-	} elsif( @psh::netprograms && 
+	} elsif( @Psh::netprograms && 
 			 $starttext =~ /^\s*(\S+)\s+/ && ($tmp=$1) &&
-			 grep { $_ eq $tmp } @psh::netprograms)
+			 grep { $_ eq $tmp } @Psh::netprograms)
 	{
 		$starttext =~ /\s(\S*)$/;
 		@tmp= cmpl_bookmarks($text,$1);
 	} else {
 		if( $GNU) { # faster....
-			@tmp= $term->completion_matches($text,
+			@tmp= $Psh::term->completion_matches($text,
 						   $attribs->{filename_completion_function});
 			shift @tmp if @tmp>1;
 		}

@@ -19,18 +19,18 @@ BEGIN {
 						   'ILL'  => 'illegal instruction',
 						   'TSTP' => 'stop typed at TTY'
 						   );
-	$psh::text{sig_description}=\%sig_description;
-	$psh::text{done}='done';
-	$psh::text{terminated}='terminated';
-	$psh::text{stopped}='stopped';
-	$psh::text{restart}='restart';
-	$psh::text{foreground}='foreground';
-	$psh::text{exec_failed}="Error (exec %1) failed.\n";
-    $psh::text{simulate_perl_w}="Simulating -w switch and strict\n";
-	$psh::text{perm_denied}="%2: %1: Permission denied.\n";
-	$psh::text{no_such_dir}="%2: %1: No such directory.\n";
-	$psh::text{readline_interrupted}="\nInterrupted!\n";
-	$psh::text{no_readline}="No Readline module available. Please install Term::ReadLine::Perl\n";
+	$Psh::text{sig_description}=\%sig_description;
+	$Psh::text{done}='done';
+	$Psh::text{terminated}='terminated';
+	$Psh::text{stopped}='stopped';
+	$Psh::text{restart}='restart';
+	$Psh::text{foreground}='foreground';
+	$Psh::text{exec_failed}="Error (exec %1) failed.\n";
+    $Psh::text{simulate_perl_w}="Simulating -w switch and strict\n";
+	$Psh::text{perm_denied}="%2: %1: Permission denied.\n";
+	$Psh::text{no_such_dir}="%2: %1: No such directory.\n";
+	$Psh::text{readline_interrupted}="\nInterrupted!\n";
+	$Psh::text{no_readline}="No Readline module available. Please install Term::ReadLine::Perl\n";
 
 }
 
