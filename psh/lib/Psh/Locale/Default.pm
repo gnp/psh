@@ -72,6 +72,7 @@ no_help=Sorry, help for builtin %1 is not available
 usage_setenv=Usage: setenv <variable> <value>
 usage_export=Usage: export <variable> [=] <value>\n       export <variable
 usage_kill=Usage: kill <sig> <pid>| -l 
+usage_delenv=Usage: delenv <var> [<var2> <var3> ...]
 bi_export_tied=Variable \$%1 is already tied via %2, cannot export.
 bi_kill_no_such_job=kill: No such job %1
 bi_kill_no_such_jobspec=kill: Unknown job specification %1

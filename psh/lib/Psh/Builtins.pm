@@ -111,6 +111,31 @@ sub bi_setenv
 	return undef;
 }
 
+$Psh::Builtins::help_delenv = '
+
+=item * C<delenv NAME [NAME2 NAME3 ...]>
+
+Deletes the names environment variables.
+
+=cut ';
+
+sub bi_delenv
+{
+	my @args= split(' ',$_[0]);
+	if( !@args) {
+		print_error_i18n('usage_delenv');
+		return undef;
+	}
+	foreach my $var ( @args) {
+		my @result = Psh::protected_eval("tied(\$$var)");
+		my $oldtie = $result[0];
+		if (defined($oldtie)) {
+			Psh::protected_eval("untie(\$$var)");
+		}
+		delete($ENV{$var});
+	}
+}
+
 $Psh::Builtins::help_export = '
 
 =item * C<export VAR [=VALUE]>
@@ -205,7 +230,7 @@ directory".
 
 $Psh::Builtins::help_kill = '
 
-=item * C<kill [SIGNAL] [%JOB | PID] | -l>
+=item * C<kill [-SIGNAL] [%JOB | PID] | -l>
 
 Send SIGNAL (which defaults to TERM) to the given process, specified
 either as a job (%NN) or as a pid (a number).
@@ -220,55 +245,66 @@ sub bi_kill
 	}
 
 	my @args = split(' ',$_[0]);
-	my ($sig, $pid, $job);
+	my $sig= 'TERM';
+	my (@pids, $job);
 
 	if (scalar(@args) == 1 &&
 		$args[0] eq '-l') {
 		print_out($Config{sig_name}."\n");
 		return undef;
-	} elsif (scalar(@args) == 1) {
-		$pid = $args[0];
-		$sig = 'TERM';
-	} elsif (scalar(@args) == 2) {
-		($sig, $pid) = @args;
-	} else {
-		print_error_i18n('usage_kill');
-		return 1;
+	} elsif( substr($args[0],0,1) eq '-') {
+		$sig= substr($args[0],1);
+		shift @args;
 	}
 
-	if ($pid =~ m|^%(\d+)$|) {
-		my $temp = $1 - 1;
-
-		$job= $Psh::joblist->find_job($temp);
-		if( !defined($job)) {
-			print_error_i18n('bi_kill_no_such_job',$pid);
+	# We are copying to a seperate array to check syntax first
+	foreach(@args) {
+		if( /^[%\d]+$/) {
+			push @pids, $_;
+		} else {
+			print_error_i18n('usage_kill');
 			return 1;
 		}
-
-		$pid = $job->{pid};
 	}
 
-	if ($pid =~ m/\D/) {
-		print_error_i18n('bi_kill_no_such_jobspec',$pid);
-		return 1;
+	my $status= 0;
+	foreach my $pid (@pids) {
+		if ($pid =~ m|^%(\d+)$|) {
+			my $temp = $1 - 1;
+			
+			$job= $Psh::joblist->find_job($temp);
+			if( !defined($job)) {
+				print_error_i18n('bi_kill_no_such_job',$pid);
+				$status=1;
+				next;
+			}
+			
+			$pid = $job->{pid};
+		}
+		
+		if ($pid =~ m/\D/) {
+			print_error_i18n('bi_kill_no_such_jobspec',$pid);
+			$status=1;
+			next;
+		}
+		
+		if ($sig ne 'CONT' and $Psh::joblist->job_exists($pid)
+			and !(($job=$Psh::joblist->get_job($pid))->{running})) {
+			#Better wake up the process so it can respond to this signal
+			$job->continue;
+		}
+		
+		if (CORE::kill($sig, $pid) != 1) {
+			print_error_i18n('bi_kill_error_sig',$pid,$sig);
+			$status=1;
+			next;
+		}
+		
+		if ($sig eq 'CONT' and $Psh::joblist->job_exists($pid)) {
+			$Psh::joblist->get_job($pid)->{running}=1;
+		}
 	}
-
-	if ($sig ne 'CONT' and $Psh::joblist->job_exists($pid)
-		and !(($job=$Psh::joblist->get_job($pid))->{running})) {
-		#Better wake up the process so it can respond to this signal
-		$job->continue;
-	}
-
-	if (CORE::kill($sig, $pid) != 1) {
-		print_error_i18n('bi_kill_error_sig',$pid,$sig);
-		return 1;
-	}
-
-	if ($sig eq 'CONT' and $Psh::joblist->job_exists($pid)) {
-		$Psh::joblist->get_job($pid)->{running}=1;
-	}
-
-	return 0;
+	return $status;
 }
 
 # Completion function for kill

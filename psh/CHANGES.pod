@@ -16,6 +16,18 @@
 
 =head1 CVS HEAD
 
+=head2 01 Jan 2000 - warp
+
+Features:
+
+=over 4
+
+=item * New builtin 'delenv'
+
+=item * Builtin 'kill' accepts multiple PIDs
+
+=back
+
 =head2 29 Dec 1999 - Omer
 
 Win32:
