@@ -82,6 +82,42 @@ sub protected_eval
 }
 
 
+#
+# array variable_expansion (arrayref WORDS)
+#
+# For each element x of the array referred to by WORDS, substitute
+# perl variables that appear in x respecting the quoting symbols ' and
+# ", and return the array of substituted values. Substitutions inside
+# quotes always return a single element in the resulting array;
+# outside quotes, the result is split() and pushed on to the
+# accumulating array of substituted values
+#
+
+sub variable_expansion
+{
+	local ($psh::arref) = @_;
+	local @psh::retval  = ();
+	local $psh::word;
+
+	for $psh::word (@{$psh::arref}) {
+		if    ($psh::word =~ m/^\'/) { push @psh::retval, $psh::word; }
+		elsif ($psh::word =~ m/^\"/) { 
+			local $psh::val = eval("$psh::eval_preamble $psh::word");
+
+			if ($@) { push @psh::retval, $psh::word; }
+			else    { push @psh::retval, "\"$psh::val\""; }
+		} else {
+			local $psh::val = eval("$psh::eval_preamble \"$psh::word\"");
+
+			if ($@) { push @psh::retval, $psh::word; }
+			else    { push @psh::retval, split(" ",$psh::val); }
+		}
+	}
+
+	return @psh::retval;
+}
+
+
 ##############################################################################
 ##############################################################################
 ##
@@ -964,7 +1000,7 @@ sub signal_description {
 
 			# No need to do glob_expansion, the system call will do that.
 
-			@newargs = Psh::Parser::variable_expansion($_[1]);
+			@newargs = variable_expansion($_[1]);
 
 			return "$executable @newargs";
 		}
@@ -2017,7 +2053,7 @@ sub handle_wait_status {
 			signal_description(WTERMSIG($pid_status)) . ')';
 		$joblist->delete_job($pid);
 	} elsif (&WIFSTOPPED($pid_status)) {
-		$verb = '\u$text{stopped} (' .
+		$verb = "\u$text{stopped} (" .
 			signal_description(WSTOPSIG($pid_status)) . ')';
 		$job->{running}= 0;
 	}
