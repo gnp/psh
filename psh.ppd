@@ -1,4 +1,4 @@
-<SOFTPKG NAME="psh" VERSION="0,007,0,0">
+<SOFTPKG NAME="psh" VERSION="0,008,0,0">
 	<TITLE>psh</TITLE>
 	<ABSTRACT>The Perl Shell</ABSTRACT>
 	<AUTHOR>Gregor N. Purdy (gregor@focusresearch.com)</AUTHOR>
@@ -24,6 +24,6 @@
 		<DEPENDENCY NAME="Term::Size">
 		<OS NAME="win32" />
 		<ARCHITECTURE NAME="win32" />
-		<CODEBASE HREF="psh-0.007.tar.gz" />
+		<CODEBASE HREF="psh-0.008.tar.gz" />
 	</IMPLEMENTATION>
 </SOFTPKG>

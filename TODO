@@ -1,8 +1,16 @@
+2000-04-30
+
+  * Investigate the relevance of the recent discussion about IPC::BashEm
+    (may be renamed) on the perl5-porters list.
+    [GNP]
+
+
 2000-01-01
 
   * Unify builtin's usage_ error messages with help builtin and make
     the help messages translatable. Seriously think about avoiding
 	to hold all error texts in memory all the time. [warp]
+
 
 1999-12-26
 
