@@ -42,9 +42,9 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * Fixed some small problems with globbing code - warp [2000-03-09]
 
-=item * Fixed problem with pod2man and CHANGES.pod reported on Sourceforge - warp [2000-03-09]
+=item * Fixed problem with pod2man and CHANGES.pod reported on Sourceforge - warp [2000-03-11]
 
-=item * SIGTERM is now not ignored anymore and exits the Perl Shell instead  - warp [2000-03-09]
+=item * SIGTERM and HUP is now not ignored anymore and exits the Perl Shell instead  - warp [2000-03-11]
 
 =back
 
