@@ -426,7 +426,13 @@ sub completion
 		my $base=$2||'';
 		my $cs = $Psh::PCompletion::COMPSPEC{$cmd = $dir . $base}
 		  || $Psh::PCompletion::COMPSPEC{$cmd = $base};
-		
+		my $universal=0;
+		unless (defined $cs) {
+			$cs= $Psh::PCompletion::COMPSPEC{'*'};
+			$cmd= $dir.$base;
+			$universal=1;
+		}
+
 		# Do programmable completion if completion-spec is defined.
 		# This is done here to keep the compatibility with bash.
 		if (defined $cs) {
@@ -434,9 +440,12 @@ sub completion
 			$text =~ s/^\Q$cs->{prefix}//
 			  if (defined $cs->{prefix});
 			@tmp = Psh::PCompletion::pcomp_list($cs, $text, $line, $start, $cmd);
-			if ($cs->{option} and !@tmp) {
-				if ($cs->{option} eq 'default') {
-					#defaults
+			if (!@tmp) {
+				if ($cs->{option} and $cs->{option} eq 'default') {
+				} elsif ($universal) {
+					# ignore both cases
+				} else {
+					return ();
 				}
 			} else {
 				$attribs->{$APPEND}=$ac;
