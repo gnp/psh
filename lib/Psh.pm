@@ -1187,6 +1187,7 @@ sub minimal_initialize
 	$executable_expand_arguments = 0;
 	$cmd                         = 1;
 
+	$ENV{SHELL}                  = $0;
 	$bin                         = $0;
 	$bin                         =~ s/.*\///;
 

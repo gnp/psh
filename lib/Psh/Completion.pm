@@ -46,7 +46,7 @@ sub init
 
 	# Wow, both ::Perl and ::Gnu understand it
 	my $word_break=" \\\n\t\"&{('`\$\%\@~<>=;|/";
-	$attribs->{special_prefixes}= "\$\%\@\~";
+	$attribs->{special_prefixes}= "\$\%\@\~\&";
 	$attribs->{word_break_characters}= $word_break;
 	$attribs->{completer_word_break_characters}= $word_break ;
 }
@@ -135,7 +135,7 @@ sub cmpl_symbol
 
 	return () if ! $text=~ /^[\$\%\&\@][a-zA-Z0-9_\:]*$/go;
 
-	my $package= "main::";
+	my $package= 'main::';
 	my $strip_package= 1;
 
 	if( $text=~ /^([\$\%\&\@])([a-zA-Z0-9_\:]+\:\:)([a-zA-Z0-9_]*)$/) {
@@ -158,13 +158,13 @@ sub cmpl_symbol
 		{
 			no strict qw(refs);
 			push @tmp, "\$$sym" if
-				ref *{"$package::$sym"}{SCALAR} eq 'SCALAR';
+				ref *{"$package$sym"}{SCALAR} eq 'SCALAR';
 			push @tmp,  "\@$sym" if
-				ref *{"$package::$sym"}{ARRAY}  eq 'ARRAY';
+				ref *{"$package$sym"}{ARRAY}  eq 'ARRAY';
 			push @tmp,   "\%$sym" if
-				ref *{"$package::$sym"}{HASH}   eq 'HASH';
+				ref *{"$package$sym"}{HASH}   eq 'HASH';
 			push @tmp,   "\&$sym" if
-				ref *{"$package::$sym"}{CODE}   eq 'CODE';
+				ref *{"$package$sym"}{CODE}   eq 'CODE';
 		}
 	}
 	foreach my $tmp (@tmp) {
@@ -185,11 +185,33 @@ sub cmpl_symbol
 		}
 	}
 	$ac=$EMPTY_AC if @result;
+	$ac='(' if @result==1 && substr($result[0],0,1) eq '&';
 	return @result;
 }
 
 #
-# custom_completion(text,line,start,end)
+# Completes key names for Perl hashes
+#
+sub cmpl_hashkeys {
+	my( $varname, $keystart)= @_;
+	my $package='main::';
+	if( $varname=~ /^[\$]([a-zA-Z0-9_\:]+\:\:)([a-zA-Z0-9_]*)$/) {
+		$package= $2;
+		$varname= $3;
+	}
+	{
+		no strict 'refs';
+		if( eval "\%$package$varname") {
+			my $var= *{"$package$varname"}{HASH};
+			$ac='} ';
+			return grep { starts_with($_,$keystart) } keys %$var;
+		}
+	}
+	return ();
+}
+
+#
+# completion(text,line,start,end)
 #
 # Main Completion function
 #
@@ -198,10 +220,10 @@ sub completion
 {
 	my ($text, $line, $start) = @_;
 	my $attribs               = $Psh::term->Attribs;
-	my (@tmp, $startchar, $starttext,$tmp);
+	my (@tmp, $tmp);
 
-	$startchar= substr($line, $start, 1);
-	$starttext= substr($line, 0, $start);
+	my $startchar= substr($line, $start, 1);
+	my $starttext= substr($line, 0, $start);
 
 	$ac=' ';
 
@@ -210,10 +232,14 @@ sub completion
 		# after ~ try username completion
 		@tmp= cmpl_usernames($text);
 		$ac="/" if @tmp;
-	} elsif( $startchar eq "\$" || $startchar eq "\@" || $startchar eq "\&" ||
-			 $startchar eq "\%" ) {
-		# probably a perl variable ?
+	} elsif( $startchar eq "\$" || $startchar eq "\@" ||
+			 $startchar eq "\%" || $startchar eq "\&" ) {
+		# probably a perl variable/function ?
 		@tmp= cmpl_symbol($text);
+	} elsif( ($starttext =~ /^\$([a-zA-Z0-9_\:]+)\{$/) ||
+			 ($starttext =~ /\s\$([a-zA-Z0-9_\:]+)\{$/)) {
+		# a construct like: "$ENV{"
+		@tmp= cmpl_hashkeys($1,$text);
 	} elsif( ($starttext =~ /^\s*$/ ||
 			  $starttext =~ /[\|\`]\s*$/ ) &&
 			 !( $text =~ /\/|\.\.@/)) {
