@@ -30,7 +30,7 @@ sub get_hostname {
 
 sub getcwd_psh {
     my $cwd;
-    chop($cwd = `pwd`);
+    chomp($cwd = `pwd`);
     $cwd;
 }
 
@@ -353,7 +353,7 @@ sub execute_complex_command {
 
 			if( $i<$#array && $#array) {
 				POSIX::close($write);
-				POSIX::dup2($read,$input);
+				$input= $read;
 			}
 			if( @return_val < 1 ||
 				!defined($return_val[0])) {
