@@ -210,9 +210,9 @@ sub fork_process {
 		if( ref($Psh::code) eq 'CODE') {
 			&{$Psh::code};
 		} else {
-			exec $Psh::code;
+			{ exec $Psh::code; } # Avoid unreachable warning
 			print_error_i18n(`exec_failed`,$Psh::code);
-			exit -1;
+			&exit(-1); #use the subroutine in this module
 		}
 	}
 	setpgid($Psh::pid,$Psh::pid);

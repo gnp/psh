@@ -1,3 +1,4 @@
+#! /usr/local/bin/perl -w
 package Psh;
 
 use locale;
@@ -1145,7 +1146,10 @@ sub minimal_initialize
 	$executable_expand_arguments = 0;
 	$cmd                         = 1;
 
-	$ENV{SHELL}                  = $0; # Avoids problems with ReadLine::Gnu :-)
+	# I think that the "SHELL" environment variable is supposed to
+	# be the login shell (at least no other shell I tried set it), so
+	# let's set some other variable:
+	$ENV{CURRENT_SHELL}                  = $0; # Avoids problems with ReadLine::Gnu :-)
 	$bin                         = $0;
 	$bin                         =~ s/.*\///;
 

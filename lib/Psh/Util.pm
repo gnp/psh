@@ -133,7 +133,7 @@ if (!$@) {
 			my $home;
 			
 			if ($user eq '') { $home = $ENV{HOME}; }
-			else             { $home = get_home_dir($user);(getpwnam($user))[7]; }
+			else             { $home = get_home_dir($user); }
 			
 			if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
 		}
