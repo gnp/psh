@@ -1,7 +1,7 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($VERSION %custom_completions);
+use vars qw($VERSION %custom_completions @bookmarks @netprograms);
 
 use Cwd;
 use Cwd 'chdir';
@@ -19,9 +19,8 @@ my $ac; # character to append
 
 %custom_completions= ();
 
-@Psh::bookmarks=('http://','ftp://');
-@Psh::netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute',
-			  'netscape','lynx','mozilla','wget');
+@netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute');
+@bookmarks= Psh::OS::get_known_hosts();
 
 sub init
 {
@@ -49,8 +48,24 @@ sub cmpl_bookmarks
 {
 	my ($text, $prefix)= @_;
 	my $length=length($prefix);
-	return map { substr($_,$length) }
-	         grep { starts_with($_,$prefix.$text) } @Psh::bookmarks;
+	return
+		grep { length($_)>0 }
+           map { substr($_,$length) }
+	         grep { starts_with($_,$prefix.$text) } @bookmarks;
+}
+
+sub cmpl_custom
+{
+	my( $text, $prefix, $startword)= @_;
+	my $length=length($prefix);
+	my @rules= @{$custom_completions{$startword}};
+	my @result=
+		grep { length($_)>0 }
+            map { substr($_,$length) }
+	         grep { starts_with($_,$prefix.$text) }
+	            @{$rules[1]};
+	$ac=$rules[0] if @result==1;
+	return @result;
 }
 
 
@@ -214,10 +229,13 @@ sub completion
 {
 	my ($text, $line, $start) = @_;
 	my $attribs               = $Psh::term->Attribs;
-	my (@tmp, $tmp);
+
+	my @tmp=();
 
 	my $startchar= substr($line, $start, 1);
 	my $starttext= substr($line, 0, $start);
+	$starttext =~ /^\s*(\S+)\s+/;
+	my $startword= $1;
 
 	$ac=' ';
 
@@ -240,9 +258,8 @@ sub completion
 		# we have the first word in the line or a pipe sign/backtick in front
 		# of the current item, so we try to complete executables
 		@tmp= cmpl_executable($text);
-	} elsif( @Psh::netprograms && 
-			 $starttext =~ /^\s*(\S+)\s+/ && ($tmp=$1) &&
-			 grep { $_ eq $tmp } @Psh::netprograms)
+	} elsif( @netprograms &&
+			 grep { $_ eq $startword } @netprograms)
 	{
 		$starttext =~ /\s(\S*)$/;
 		@tmp= cmpl_bookmarks($text,$1);
@@ -254,6 +271,10 @@ sub completion
 			$file= $1.$text;
 		}
 		@tmp= cmpl_filenames($file);
+	}
+	if( $custom_completions{$startword}) {
+		$starttext =~ /\s(\S*)$/;
+		push(@tmp, cmpl_custom($text,$1,$startword));
 	}
 
 	$attribs->{$APPEND}=$ac;

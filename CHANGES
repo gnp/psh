@@ -36,7 +36,10 @@ CVS HEAD
   * Added 'env' builtin. On systems with an env binary installed
     it will use the binary, on other systems (namely Win32) it
 	will print a list of environment variables
-
+  * Variables for bookmark completion are now
+    @Psh::Completion::bookmarks and @Psh::Completion::netprograms
+  * Support for user defined completions by
+    %Psh::Completion::custom_completions
 
 ------------------------------------------------------------
 0.004                                           [1999-12-13]

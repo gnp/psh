@@ -389,17 +389,17 @@ continue.
 
 =over 4
 
-=item C<@Psh::netprograms> ( B<ping>, B<ftp>, B<ncftp>, B<lynx>, etc. )
+=item C<@Psh::Completion::netprograms> ( B<ping>, B<ftp>, B<ncftp>, B<ssh>, etc. )
 
 Contains names of a number of net based programs for enabling
 TAB completion of hostnames/bookmarks
 
-=item C<@Psh::bookmarks> ( 'http://', 'ftp://' )
+=item C<@Psh::Completion::bookmarks> ( from /etc/hosts )
 
 Supposed to contain your most used IP numbers, hostnames or URLs.
 Those will be eligible for TAB completion if you use one of the
-programs in C<@Psh::netprograms>. Default only contains 'http://' and
-'ftp://'.
+programs in C<@Psh::Completion::netprograms>. C<psh> will
+initialize this list with your /etc/hosts file
 
 =item C<@Psh::mon> ( Jan, Feb, etc. )
 
@@ -452,6 +452,22 @@ to arrays. The key of the hash is the name of the variable, the
 value is the delimiter of the list (e.g. ':' in PATH). The
 default value for array_exports currently contains PATH, CLASSPATH,
 LD_LIBRARY_PATH, FIGNORE and CDPATH.
+
+=item C<%Psh::Completion::custom_completions>
+
+Allows you to add own TAB completions. The keys are names of programs
+to which the TAB completion should apply. The value is a list reference
+with two values, the first one the character which should be appended
+after the completion is successful, the second value is again a list
+reference containing all possible completions. This is probably complicated
+but worth the effort.
+
+Example:
+
+%Psh::Completion::custom_completions= (
+      'scp'=>['',['server1:/path1','server1:/path2','server2:/path']]
+     );
+
 
 =back
 

@@ -90,7 +90,7 @@ if (!$@) {
 } else {
     sub abs_path {
 		my $dir = shift;
-		my $FS= Psh::OS::FILE_SEPARATOR();
+		my $FS= $Psh::OS::FILE_SEPARATOR;
 		
 		$dir = '~' unless defined $dir and $dir ne '';
 		
@@ -133,7 +133,7 @@ if (!$@) {
 	sub which
     {
 		my $cmd      = shift;
-		my $FS= Psh::OS::FILE_SEPARATOR();
+		my $FS= $Psh::OS::FILE_SEPARATOR;
 		my $qFS= "\\".$FS;
 
 		print_debug("[which $cmd]\n");
@@ -149,7 +149,7 @@ if (!$@) {
 			@Psh::absed_path    = ();
 			%hashed_cmd    = ();
 
-			my @path = split(Psh::OS::PATH_SEPARATOR(), $ENV{PATH});
+			my @path = split($Psh::OS::PATH_SEPARATOR, $ENV{PATH});
 
 			foreach my $dir (@path) {
 				push @Psh::absed_path, abs_path($dir);
@@ -198,6 +198,24 @@ sub ends_with {
 
 	return length($text)>=length($suffix) &&
 		substr($text,-length($suffix)) eq $suffix;
+}
+
+#
+# list parse_hosts_file( text)
+# 
+# Gets a standard hosts file as input and returns
+# a list of the hostnames mentioned in the file
+#
+sub parse_hosts_file {
+	my $text= shift;
+	my @lines= split( /\n|\r|\r\n/, $text);
+	my @result= ();
+	foreach my $line (@lines) {
+		$line=~/^\s*\S+\s(.*)$/;
+		my $rest= $1;
+		push @result, grep { length($_)>0 } split( /\s/, $rest);
+	}
+	return @result;
 }
 
 1;

@@ -10,8 +10,8 @@ use Psh::OS;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
-my $PS=Psh::OS::PATH_SEPARATOR();
-my $FS=Psh::OS::FILE_SEPARATOR();
+my $PS=$Psh::OS::PATH_SEPARATOR;
+my $FS=$Psh::OS::FILE_SEPARATOR;
 
 %Psh::array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
 					 'FIGNORE'=>$PS,'CDPATH'=>$PS);

@@ -8,6 +8,9 @@ use Psh::Util ':all';
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
+$Psh::OS::PATH_SEPARATOR=':';
+$Psh::OS::FILE_SEPARATOR='/';
+
 #
 # Returns the hostname of the machine psh is running on, preferrably
 # the full version
@@ -15,6 +18,17 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 
 sub get_hostname() {
 	return qx(hostname);
+}
+
+#
+# Returns a list of well-known hosts (from /etc/hosts)
+#
+sub get_known_hosts { 
+	open(FILE,"< /etc/hosts") || return ();
+	my $text='';
+	while( <FILE>) { $text.=$_; }
+	close(FILE);
+	return Psh::Util::parse_hosts_file($text);
 }
 
 #

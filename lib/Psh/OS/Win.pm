@@ -10,8 +10,16 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 # For documentation see Psh::OS::Unix
 #
 
+$Psh::OS::PATH_SEPARATOR=';';
+$Psh::OS::FILE_SEPARATOR="\\";
+
 # dummy currently
 sub get_hostname { return 'localhost'; }
+
+# TODO: locate hosts file on Windows and do the same as for Unix
+# (it can be anywhere in PATH I think)
+sub get_known_hosts { return (); }
+
 
 sub exit { CORE::exit( shift); }
 
@@ -38,8 +46,6 @@ sub glob {
 	return @result;
 }
 
-sub PATH_SEPARATOR { return ';'; }
-sub FILE_SEPARATOR { return "\\"; }
 sub get_all_users { return (); }
 sub restart_job { }
 sub remove_signal_handlers {}
