@@ -1,22 +1,21 @@
 package Psh::OS;
 
 use strict;
-use vars qw($AUTOLOAD $ospackage);
-use Cwd ();
-use Config ();
-use File::Spec ();
+require Cwd;
+require Config;
+require File::Spec;
 
-$ospackage='Psh::OS::Unix';
+my $ospackage='Psh::OS::Unix';
 
 #$ospackage='Psh::OS::Mac' if( $^O eq 'MacOS');
 $ospackage='Psh::OS::Win' if( $^O eq 'MSWin32');
 
-eval "use $ospackage";
-die "Could not find OS specific package $ospackage: $@" if( $@);
+eval "use $ospackage;";
+die "Could not find OS specific package $ospackage: $@" if $@;
 
 sub AUTOLOAD {
+	no strict;
 	$AUTOLOAD=~ s/.*:://;
-	no strict 'refs';
 	my $name="${ospackage}::$AUTOLOAD";
 	$name="Psh::OS::fb_$AUTOLOAD" unless ref *{$name}{CODE} eq 'CODE';
 	require Carp;

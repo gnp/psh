@@ -4,7 +4,7 @@ package Psh::Parser;
 use strict;
 
 require Psh::OS;
-use Psh::Util;
+require Psh::Util;
 
 my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
 

@@ -1,9 +1,8 @@
 package Psh;
 
 use locale;
-require File::Spec;
-
 use Psh::Util ':all';
+require File::Spec;
 require Psh::Locale::Base;
 require Psh::OS;
 require Psh::Joblist;

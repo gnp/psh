@@ -3,7 +3,7 @@ package Psh::Locale::Base;
 use strict;
 use locale;
 
-use POSIX ();
+require POSIX;
 
 #
 # Here is the list of ISO-639:1988 language codes. Obtained from
@@ -218,7 +218,7 @@ sub init {
 	}
 
 	# Use the default locale for defaults
-	use Psh::Locale::Default;
+	require Psh::Locale::Default;
 
 	# Now try to use a locale module depending on LANG
 	if( $lang and $lang ne "C" and $lang ne "POSIX") {

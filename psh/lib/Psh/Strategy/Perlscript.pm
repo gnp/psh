@@ -1,7 +1,7 @@
 package Psh::Strategy::Perlscript;
 
-use Psh::Util ':all';
-use Config ();
+require Psh::Util;
+require Config;
 
 =item * C<perlscript>
 

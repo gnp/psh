@@ -2,6 +2,7 @@ package Psh::Prompt;
 
 use strict;
 use vars qw(%prompt_vars);
+require Psh::OS;
 
 #
 # string prompt_string(TEMPLATE)
