@@ -372,6 +372,20 @@ sub signal_description {
 		return '';
 	},
 
+	'auto_resume' => sub {
+		my $fnname= ${$_[1]}[0];
+        $joblist->enumerate;
+        while( my $job= $joblist->each) {
+			next if $job->{running};
+			my $call= $job->{call};
+			if( $call=~ m:/([^/\s]+)\s*$: ) {
+				$call= $1;
+			}
+			return "(auto-resume $call)" if( $call eq $fnname);
+		}
+        return '';
+	},
+
 	'perlfunc' => sub {
 		my $firstword = ${$_[1]}[0];
 		my $fnname = $firstword;
@@ -596,6 +610,24 @@ sub signal_description {
         }
 	},
 
+	'auto_resume' => sub {
+		my $fnname= ${$_[1]}[0];
+        $joblist->enumerate;
+        my $index=0;
+        while( my $job= $joblist->each) {
+			next if $job->{running};
+			my $call= $job->{call};
+			if( $call=~ m:/([^/\s]+)\s*$: ) {
+				$call= $1;
+			}
+			if( $call eq $fnname) {
+				Psh::OS::restart_job(1,$index);
+				return undef;
+			}
+			$index++;
+		}
+        return undef;
+	},
 
 	'perlscript' => sub {
 		my ($script, @options) = split(' ',$_[2]);

@@ -50,20 +50,30 @@ sub get_all_users {
 #
 sub glob {
 	my( $pattern, $dir) = @_;
+	my @result;
 	if( !$dir) {
 		$dir=$ENV{PWD};
 	} else {
 		$dir=abs_path($dir);
 	}
-	$pattern=~s/\\/\\\\/g;
-	$pattern=~s/\./\\./g;
-	$pattern=~s/\*/.*/g;
-	$pattern=~s/\?/./g;
-	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
-
-	opendir( DIR, $dir) || return ();
-	my @result= grep { /^$pattern$/ } readdir(DIR);
-	closedir( DIR);
+	if( $pattern=~ m:/:) {
+		# Too difficult to simulate
+		my $old=$ENV{PWD};
+		chdir $dir;
+		@result= glob($pattern);
+		chdir $old;
+	} else {
+		# The fast variant for simple matches
+		$pattern=~s/\\/\\\\/g;
+		$pattern=~s/\./\\./g;
+		$pattern=~s/\*/.*/g;
+		$pattern=~s/\?/./g;
+		$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
+		
+		opendir( DIR, $dir) || return ();
+		@result= grep { /^$pattern$/ } readdir(DIR);
+		closedir( DIR);
+	}
 	return @result;
 }
 
