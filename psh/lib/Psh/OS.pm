@@ -91,6 +91,7 @@ sub glob {
 		# Too difficult to simulate, so use slow variant
 		my $old=$ENV{PWD};
 		chdir $dir;
+		$pattern=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
 		@result= eval { CORE::glob($pattern); };
 		chdir $old;
 	} else {

@@ -193,7 +193,13 @@ sub _handle_wait_status {
 	my $verb='';
 
 	if (&WIFEXITED($pid_status)) {
-		$verb= "\u$Psh::text{done}" if (!$quiet);
+		my $status=&WEXITSTATUS($pid_status);
+		if ($status==0) {
+			$verb= "\u$Psh::text{done}" if (!$quiet);
+		} else {
+			$verb= "\u$Psh::text{error}";
+		}
+		Psh::Util::print_debug("Status: $status\n");
 		$Psh::joblist->delete_job($pid);
 	} elsif (&WIFSIGNALED($pid_status)) {
 		$verb = "\u$Psh::text{terminated} (" .

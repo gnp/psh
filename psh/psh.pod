@@ -878,6 +878,12 @@ ignore when performing TAB completion. No default.
 B<HISTSIZE> - The maximum number of lines to save in the history file.
 Defaults to 50.
 
+B<IGNOREEOF> - Controls the action of the shell on receipt of an EOF character as the
+sole input.  If set, the value is the number of consecutive EOF  characters typed 
+as the first characters on an input line before bash exits.  If the variable exists
+but does not have a numeric value, the default value is 10.
+If it does not exist, EOF signifies the end of input to the shell.
+
 B<LANG> - Sets the language of the shell.
 
 B<SHLVL> - The number of shells deep that B<psh> is nested. Initially set

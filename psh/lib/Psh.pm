@@ -351,6 +351,12 @@ sub process
 	my $result_array_ref = \@Psh::val;
 	my $result_array_name = 'Psh::val';
 
+	my $control_d_counter=0;
+	my $control_d_max=$ENV{IGNOREEOF}||0;
+	if ($control_d_max !~ /^\d$/) {
+		$control_d_max=10;
+	}
+
 	while (1) {
 		if ($q_prompt) {
 			$input = &$get(Psh::Prompt::prompt_string(Psh::Prompt::normal_prompt()), 0, \&Psh::Prompt::pre_prompt_hook);
@@ -362,7 +368,12 @@ sub process
 
 		$cmd++;
 
-		last unless defined($input);
+		unless (defined($input)) {
+			$control_d_counter++;
+			last if $control_d_counter>=$control_d_max;
+			next;
+		}
+		$control_d_counter=0;
 
 		if ($input =~ m/^\s*$/) { next; }
 		my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
@@ -582,13 +593,6 @@ sub iget
 
 	exit unless defined $line;
 	chomp $line;
-
-# [ gtw: Why monkey with the input? If we take out whitespace now,
-#   we'll never know if it was there. Better wait.
-# ]
-
-#	$line =~ s/^\s+//;
-#	$line =~ s/\s+$//;
 
 	if ($term and $line !~ m/^\s*$/) {
 		$term->addhistory($line);
