@@ -169,7 +169,7 @@ tree now only contains valid locales.
 
 =item *
 
-Many configuration variables have been removed. Please see README.upgrade and the new B<option> builtin.
+Many configuration variables have been removed. Please see README.upgrade and the new B<option> builtin. Tieable options by Michael Graham.
 
 =item *
 

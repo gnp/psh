@@ -15,6 +15,8 @@ TODO
 psh
 doc/psh.pod
 doc/pshdevel.pod
+doc/pshcomplete.pod
+doc/pshconfig.pod
 tryme
 lib/Psh.pm
 lib/Psh/Joblist.pm
@@ -99,6 +101,7 @@ lib/Psh/Support/Functions.pm
 lib/Psh/Support/TiedOption.pm
 t/locale.t
 t/parser.t
+t/bi_tieopt.t
 t/unix.psh
 t/win32.psh
 examples/complete-examples
