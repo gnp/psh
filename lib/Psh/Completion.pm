@@ -248,7 +248,7 @@ sub cmpl_hashkeys {
 	}
 }
 
-sub _search_ISA ($) {
+sub _search_ISA {
 	my ($mypkg) = @_;
 		no strict qw(refs);
 	my $isa = "${mypkg}::ISA";
@@ -275,7 +275,7 @@ sub cmpl_method {
 	my @keyword;
 
 	# complete perl bare words (Perl function, subroutines, filehandle)
-	sub cmpl_perl_function ($) {
+	sub cmpl_perl_function {
 		my ($text) = @_;
 
 		my ($prefix, $pkg, $sym);
