@@ -92,7 +92,7 @@ sub cmpl_filenames
 
 	# HACK: This won't help much if user tries to do another completion
 	# on the same item afterwards
-	@result= map { s/([ \'\"\-\´\`])/\\$1/g; $_ } @result;
+	@result= map { s/([ \'\"\´\`])/\\$1/g; $_ } @result;
 
 	if(@result==1) {
 		if( -d $result[0]) {
