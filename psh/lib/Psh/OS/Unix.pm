@@ -57,7 +57,7 @@ sub get_all_users {
 # void display_pod(text)
 #
 sub display_pod {
-	my $tmp= POSIX::tmpnam;
+	my $tmp= Psh::OS::tmpnam();
 	my $text= shift;
 
 	open( TMP,">$tmp");

@@ -35,6 +35,8 @@ A reverse-chronological ordered list of changes
 
 =item * Psh::OS::backtick() now can call and capture the output of Psh builtins on Unix - warp [2000-05-01]
 
+=item * Added new builtin 'fc' which is similar to bash's fc - inspired by a command on the SourceForge message board (and I finally start to like this command ;-) - warp [2000-05-03]
+
 =head2 Internals
 
 =item * New sub Psh::Util::prompt for interactive prompting - warp [2000-05-01]
