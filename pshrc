@@ -4,5 +4,4 @@ print "\n";
 print &psh::news;
 
 $psh::prompt = '[\u@\h \W]{TESTING psh}$ ';
-$psh::smart = 1;
 

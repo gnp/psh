@@ -1,6 +1,5 @@
 Try out the new features:
-  * Readline support, where available
-  * Smart Input (go ahead, type ls -l at it)
-  * Custom and built-in shell prompt variables
   * Built-in functions: exit, which, cd and the ability to add your own
+  * Evaluation strategies
+  * Background jobs
 

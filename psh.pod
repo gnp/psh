@@ -1,31 +1,23 @@
-=pod
-
-
 =head1 NAME
-
 
 psh - Perl Shell
 
 
-
 =head1 SYNOPSIS
-
 
 B<psh> is a perl program which executes a read-eval loop with enough
 options so that general behavior reasonably similar to more
 traditional shells like 'sh' or 'bash' can be achieved, while still
 allowing arbitrary perl expressions to be evaluated.
 
-
-Within B<psh>, the C<-w> flag and 'C<use strict>' are not employed so
-that the user is not bound by their stipulations.  Setting C<$^W = 1>
-will turn on warnings, and calling 'C<use strict>' will (almost) do
-the usual thing if called by the user (see LIMITATIONS, below).
-
+By default within B<psh>, the C<-w> flag and 'C<use strict>' are not
+employed so that the user is not bound by their stipulations. 
+They can both be turned on via a command-line flag; or setting
+C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
+(almost) do the usual thing if called by the user (see LIMITATIONS, below).
 
 
 =head1 DESCRIPTION
-
 
 Each line of input is read. B<psh> knows a number of possible
 strategies for evaluating the line, such as "send it to system() if it
@@ -37,7 +29,6 @@ matching strategy evaluates the line. There is a psh configuration
 variable (see below) which controls whether the perl value of the
 evaluation is saved and printed after each command.
 
-
 Multiline input may be entered in one of two ways: If an input line
 contains the Perl "here document" construct as in C<E<lt>E<lt>XXX>,
 (anywhere on the line), then input is read and accumulated until
@@ -48,7 +39,6 @@ itself. Alternatively, if an input line ends with a '{' character,
 then input is read up to a line that contains only a '}', without any
 leading whitespace. This makes it easy to define subroutines, as in
 
-
   sub foo {
     while (1) {
       print "in the loop";
@@ -57,44 +47,32 @@ leading whitespace. This makes it easy to define subroutines, as in
   # block of input
   } 
 
-
 This brace mechanism for accumulating input is admittedly a hack; a
 better mechanism that could be implemented would be to recognize when
 the input has an unmatched open brace, and then continue to read input
 until braces match.
 
-
 =head2 STANDARD EVALUATION STRATEGIES
-
 
 B<psh> includes the following evaluation strategies:
 
-
 =over 4
-
 
 =item * C<comment>
 
-
 If the input line begins with a '#' character, ignore it.
 
-
 =item * C<bang>
-
 
 If the input line begins with a '!' character, strip the '!' and send
 the remainder to system.
 
-
 =item * C<built_in>
-
 
 If the first word of the input line matches a B<psh> "built-in"
 function, call the subroutine associated with that built-in.
 
-
 =item * C<perlfunc>
-
 
 If the first word of the input line matches either a built-in Perl
 function, or a defined subroutine in the main:: package, pass the line
@@ -102,9 +80,7 @@ to eval. Commas may be automatically inserted between arguments if
 needed, depending on the $psh::perlfunc_insert_commas configuration
 variable, see below.
 
-
 =item * C<executable>
-
 
 If the first word of the input line matches the name of an executable
 file in the path given by $ENV{PATH}, then pass the line to
@@ -112,30 +88,21 @@ system. Perl variable substitution will be done on the line first if
 the $psh::executable_interpolate_arguments configuration variable is
 true. 
 
-
 =item * C<eval>
-
 
 Pass the line to eval, regardless of any condition. This is a catch-all
 strategy; strategies placed after it will never be triggered.
 
-
 =back
-
 
 The list of evaluation strategies to try is kept in the configuration
 variable $psh::strategies, which defaults to
-C<qw(comment bang built_in eval)>. 
-If you want B<psh> to act more shell-like so that it
-automatically recognizes commands like "mv", you should insert the 
-'executable' strategy in there somewhere
-before 'eval'. Having done that, if you want
+C<qw(comment bang built_in executable eval)>. 
+If you want
 "print" to mean the perl print function instead of, say, 
 F</usr/bin/print>, you can add in 'perlfunc' before 'executable'.
 
-
 =head2 BUILT-IN FUNCTIONS
-
 
 The following functions are provided as built-in functions of
 C<psh>. You can add an additional built-in called 'foo' by setting the
@@ -143,139 +110,117 @@ hash $psh::built_ins{foo} to a reference to a subroutine. When a line
 like "foo bar $baz" is then evaluated by the 'built_in' strategy, the
 string 'bar $baz' will be passed to your subroutine as its only
 argument. This is precisely the difference between making 'foo' a
-built-in as opposed to simpley defining a procedure main::foo and
+built-in as opposed to simply defining a procedure main::foo and
 letting the eval strategy call foo: the built-in subroutine will get
 the precise input string entered, whereas the ordinary procedure will
 of course get arguments that have already been evaluated by the Perl
 evaluator. Which you want depends on the nature of the function being
 defined.
 
-
 =over 4
 
-
 =item * C<. FILE> [or C<source FILE>]
-
 
 Read and process the contents of the given file as a sequence of psh
 commands.
 
-
 =item * C<alias NAME REPLACEMENT> [or C<alias NAME=REPLACEMENT>]
-
 
 Add NAME as a built-in so that NAME <REST_OF_LINE> will execute
 exactly as if REPLACEMENT <REST_OF_LINE> had been entered. For
-example, one can execute "C<alias ls ls -F>" to always supply the C<-F>
+example, one can execute C<alias ls ls -F> to always supply the B<-F>
 option to "ls". Note the built-in is defined to avoid recursion
 here. Note also that any previous definition of NAME as a built-in is
 destroyed by alias, so that "alias source source /home/scripts/" won't
 work to prepend "/home/scripts/" to every source command.
 
+=item * C<bg [JOB]>
 
-=item * C<bg JOB>
-
-
-Put a job into the background.
-
+Put a job into the background. If JOB is omitted, uses the
+highest-numbered stopped job, if any.
 
 =item * C<cd DIR>
 
-
-Change the working directory to DIR or$ENV{HOME} if DIR is not specified.
+Change the working directory to DIR or $ENV{HOME} if DIR is not specified.
 The special DIR '-' is interpreted as "return to the previous
 directory'.
 
-
 =item * C<exit>
-
 
 Exit out of the shell.
 
-
 =item * C<fg JOB>
 
-
-Bring a job into the foreground.
-
+Bring a job into the foreground. If JOB is omitted, uses the
+highest-numbered stopped job, or, failing that, the highest-numbered job.
 
 =item * C<jobs>
 
-
 List the currently running jobs.
 
-
 =item * C<kill [SIGNAL] [%JOB | PID]>
-
 
 Send SIGNAL (which defaults to TERM) to the given process, specified
 either as a job (%NN) or as a pid (a number).
 
+=item * C<readline>
+
+Prints out information about the current ReadLine module which is
+being used for command line input. Very rudimentary at present, should 
+be extended to allow rebinding, etc.
 
 =item * C<which COMMAND-LINE>
-
 
 Describe how psh will execute the given COMMAND-LINE, under the
 current setting of $psh::strategies.
 
-
 =back
-
 
 =head2 INVOKING PSH
 
-
 The command-line arguments to B<psh> are:
-
 
  psh [-d] [-w] [-r RC_FILE] [FILE1 FILE2 ....]
 
-
-The B<-w> switch runs perl with the "C<-w>" switch and "use strict;".
+The B<-w> switch runs perl with the C<"-w"> switch and "use strict;".
 The B<-d> option puts B<psh> into "debugging" mode, which prints
 diagnostic output, including primarily the result of the "which"
-builtin before every execution.
-
+builtin before every execution. Note that you can also enter/leave this
+debugging mode in a running psh via the $psh::debugging variable.
 
 The B<-r> option specifies a file of commands to be read in and
 evaluated before processing begins. If it is not set, and
 C<$ENV{HOME}> is set, and the file C<$ENV{HOME}/.pshrc> is present, it
-will be used. If B<-r> is not specified andf the current directory is
+will be used. If B<-r> is not specified and the current directory is
 different from C<$ENV{HOME}> and it contains a F<.pshrc> file, that
 file will be read and executed in addition to
 C<$ENV{HOME}/.pshrc>. 
 
-
 If any FILE1 ... arguments are specified on the command line, they
-will be read and executed and then psh will execute. Otherwise, B<psh>
+will be read and executed and then psh will exit. Otherwise, B<psh>
 will enter an interactive command loop.
-
 
 =head2 PSH VARIABLES and FUNCTIONS
 
-
 B<psh> makes a number of variables and functions accessible to the
-user in the B<psh> package for configuration or utility
+user in the psh:: package for configuration or utility
 purposes. Their default values are given in parentheses below:
-
 
 =over 4
 
-
 =item $psh::bin (the basename of the file B<psh> was invoked by)
-
 
 The name of the current shell.
 
-
 =item $psh::cmd
-
 
 The command serial number in the currently-executing processing loop.
 
+=item $psh::debugging (1 if -d option specified, 0 if not)
+
+Whether B<psh>'s internal debugging output should be produced.
 
 =item $psh::echo (0)
-
 
 Controls whether the processing loop saves and displays the Perl value 
 of executing a line of input. Three cases are distinguished: a false
@@ -285,15 +230,12 @@ multiple arguments if the eval returned an array) and should return
 true to display, false to not; or a true (scalar) value, in which case 
 any non-undef, non-empty value is displayed.
 
-
 In addition to displaying the value, it is pushed onto @psh::val.
 Note that scalar values are
 pushed directly onto @psh::val, but array values are pushed by
 reference. 
 
-
 =item $psh::executable_interpolate_arguments (0)
-
 
 If this variable is true, then the following
 procedure is applied to each argument ARG of the command line before
@@ -310,209 +252,152 @@ in a way similar to shells such as bash. For example, if
  'ls @files' will expand to 'ls file1 file2 file3', whereas
  'echo "@files"' will expand to 'echo "file1 file2 file3"'.
 
-
 =item $psh::history_file ("$ENV{HOME}/.${bin}_history")
-
 
 The filename B<psh> will use to save the command history in from one
 invocation to the next, if $psh::save_history is true.
 
-
 =item $psh::history_length (50)
-
 
 The number of lines of command history to keep.
 
-
 =item $psh::news_file ("$psh::bin.NEWS")
-
 
 A file giving news for the shell.
 
-
 =item $psh::perlfunc_insert_commas (0)
 
-
-If this variable is true, then on command lines interepreted by the
+If this variable is true, then on command lines interpreted by the
 perlfunc strategy, commas will be inserted between the arguments as
 long as the command line contains no parens, braces, or commas. For 
 example, 'print "hello" $dolly' will be sent to eval as 'print
 "hello",$dolly'.
 
-
 =item $psh::prompt ('\s\$')
-
 
 Controls the prompt string in interactive use, see below.
 
-
 =item $psh::save_history (1)
-
 
 If this is true, the command history is saved in $psh::history_file
 from one invocation of B<psh> to the next.
 
-
 =item @psh::mon ( Jan, Feb, etc. )
 
+An array of month names used in printing dates, for example in prompt
+strings.
 
-A similar array of month names.
-
-
-=item @psh::strategies ( comment, bang, built_in, eval)
-
+=item @psh::strategies ( comment, bang, built_in, executable, eval)
 
 The list of strategies for executing a line, tried in order.
 
-
 =item @psh::val 
-
 
 Stores away the results of executing lines, as described in $psh::echo
 above. 
 
-
 =item @psh::wday ( Mon, Tue, Wed, Thu, Fri, Sat)
-
 
 An array of the weekday names used in printing dates, for example in
 prompt strings.
 
-
 =item %psh::built_ins
-
 
 The keys are command names, the values are subroutine references which
 are called with the remainder of the line exactly as input.
 
-
 =item %psh::prompt_vars
-
 
 The keys of this hash are single characters, and the values are
 subroutine references that implement the given escape character in
-prompt strings.
-
+prompt strings. (See L<PROMPT STRINGS> below.)
 
 =item %psh::strategy_which
 
-
 =item %psh::strategy_eval
-
 
 These hashes implement the named strategies used in B<psh>'s
 evaluation of input lines. It is possible to add new strategies, see below.
 
-
 =item &psh::evl
-
 
 This function takes a string, evaluates it as if it were a line of
 B<psh> input, and returns the value. Useful in loops like:
  
- psh$ for $file (glob $pat) { psh::evl("ls -ld $file"); }
-
+ psh$ C<for $file (glob $pat) { psh::evl("ls -ld $file"); }>
 
 =item &psh::is_number
-
 
 Returns true if its first argument is a number. Intended for use in
 filter subroutines placed in $psh::echo. For example,
 C<$psh::echo = \&psh::is_number;> will cause only numeric return
 values to be printed.
 
-
 =item &psh::news
-
 
 Returns the current news, as a string.
 
-
 =item * &psh::print_debug, print_error, print_out, print_warning
 
-
-These functions are called whenever B<psh> wants to produce B<-d>-mode 
+These four functions are called whenever B<psh> wants to produce B<-d>-mode 
 output, error messages, normal output, and warnings,
 respectively. They could conceivably be redefined to implement logging 
 or similar facilities.
 
-
 =item &psh::symbols
-
 
 Takes one argument, a package name, and shows all of the symbols in
 that package.
 
 
-
 There are other functions in the psh:: package, but they are probably
 not useful except internally to B<psh>.
 
-
 =head2 PROMPT STRINGS
-
 
 Setting the variable C<$psh::prompt> to a string will cause that string
 to be used as the prompt-string. Setting it to a subroutine reference
 causes the result of running that subroutine to be used each time.
 For example,
 
-
   $psh::prompt = sub { $i++; "psh [$i]\$ "; }
 
-
 will cause the prompt to be C<psh [1]$> followed by C<psh [2]$>, and so on.
-
 
 C<psh> uses some of the same ``prompting variables'' as C<bash>. They are
 accessed by placing a backslash followed by the code in the prompt string,
 either hard coded, or as returned by the prompt string function. The
 variables supported are:
 
-
 =over 4
-
 
 =item d The date in ``Weekday Month Day'' format
 
-
 =item h The hostname
-
 
 =item n A carriage return and line feed
 
-
 =item s The name of the shell
-
 
 =item t The current time in HH:MM:SS format
 
-
 =item u The username of the current user
-
 
 =item w The current working directory
 
-
 =item W The basename of the current working directory
-
 
 =item # The command number of the current command
 
-
 =item $ `#' if the effective UID is zero, else `$'
 
-
 =back
-
 
 Custom prompting variables may be added by adding entries to the array
 C<%psh::prompt_vars> keyed by the single character code. The entries
 should be subroutine references that return the replacement string.
 
-
 =head2 DEFINING EVALUATION STRATEGIES
-
 
 There are two hashes, %psh::strategy_which and %psh::strategy_eval.
 An evaluation strategy called "foo" is implemented by putting a
@@ -528,30 +413,18 @@ is guaranteed that the string passed in will contain some
 non-whitespace, and that the first string in the array of words is
 non-empty.
 
-
 The $strategy_eval{foo} routine accepts the same two first arguments
 and a third argument, which is the string returned by
 $strategy_which{foo}. It should do the evaluation, and return the
 result. Note that the $strategy_eval function will be evaluated in
 an array context. 
 
-
 =head1 LIMITATIONS
-
 
 The loop inside C<psh> will clobber C<$1> and other variables because
 it uses matches to implement some of its special functions.
 
-
 Very little error checking is done.
-
-
-Interrupt (Control-C) handling is rudimentary, and other
-signal-handling is nonexistent.
-
-
-There is no job control.
-
 
 Note that since expressions like 'use foo' return undef when sent to
 eval(), it is not possible to use that return value as indication of
@@ -560,25 +433,20 @@ the special Perl variable '$@' is non-empty. Note that the side
 effects of 'use foo' as a B<psh> command line appear to be exactly as
 expected. 
 
-
 =head1 OTHER PERL SHELLS
-
 
 Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
 page 161 of the Camel Book (2nd Edition).
 
-
 Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
 psh-0.001 announcement on C<http://freshmeat.net>, which contained this
 gem that leverages the Perl debugger: C<perl -d -e 1>;
-
 
 Some versions of the Perl faq mention an interactive Perl shell called
 SoftList, which can still be found at
 C<http://www.mit.edu/afs/sipb/contrib/perl/SoftList/>. It predates
 Term::Readline and was apparently last touched in 1993, so it seems to
 be obsolescent.
-
 
 In an example of convergent evolution, at C<http://jenda.krynicky.cz/>
 there is a Perl shell module called F<PSH.pm> which is quite similar
@@ -587,45 +455,42 @@ inside some other program via C<PSH::prompt();>, but a small file
 F<psh.pl> is also included that uses PSH to provide a standalone
 shell.
 
-
 =head1 FILES
 
-
 C<psh> - The Perl Shell executable script.
-
 
 C<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
 current directory; if both are present, both will be read in the order
 mentioned.
 
 
-
 =head1 AUTHOR
-
 
 Gregor N. Purdy, E<lt>F<gregor@focusresearch.com>E<gt>
 
 
-
 =head1 CREDITS
 
-
-The following people made contributions to this project.
-
+The following people have contributed to the development of C<psh>:
 
 =over 4
 
+=item Prodigious Contributors
+
+Markus Peter E<lt>F<warp@spin.de><E<gt> added job and signal handling and filename
+completion. He also made some updates to history handling.
+
+Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
+strategies, improved interrupt/job handling, &psh::evl, $psh::echo,
+more extensive documentation, and other more minor features.
 
 =item ReadLine Support
-
 
 Code examples showing how to apply the Term::ReadLine package were contributed
 by Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> (in his C<pash.pl> program,
 which is his own Perl shell).
 
-
 =item Symbol Table Dumping
-
 
 Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> also had an example of a symbol
 table printing function that was used as the starting point for the C<psh>
@@ -633,41 +498,24 @@ function C<psh::symbols()>. The C<psh> version adds the ability to specify a
 package name, and it also filters out some special variables. The implementation
 technique is also different from Billy's.
 
-
 =item Prompt String Variables
-
 
 Matthew D. Allen E<lt>F<s2mdalle@titan.vcu.edu>E<gt> contributed an enhanced
 prompt string handling routine that emulates the C<bash> prompt variables. This
 was expanded into the form now present.
 
-
-=item Other mods
-
-
-Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
-strategies, improved interrupt handling, &psh::evl, $psh::echo, more extensive
-documentation, and other more minor features.
-
-
 =item Typo Spotting
-
 
 Allan Kelly E<lt>F<akelly@holyrood.ed.ac.uk>E<gt> found some problems with the
 generated documentation.
 
-
 =back
 
 
-
 =head1 COPYRIGHT
-
 
 Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
 This script is free software. It may be copied or modified according
 to the same terms as Perl itself.
 
-
 =cut
- 
