@@ -14,7 +14,6 @@ Upgrading from version 0.009 or earlier:
 - Do not use %Psh::text directly - instead use Psh::Locale::get_text and
   Psh::Locale::set_text
 
-
 - The config variables
   @Psh::executable_no_expand,
   $Psh::executable_expand_arguments,
@@ -23,6 +22,7 @@ Upgrading from version 0.009 or earlier:
   $Psh::history_length,
   $Psh::handle_segfault,
   $Psh::save_history,
+  $Psh::echo,
   were removed. Please use the new option builtin.
 
 - %Psh::strategy_which, %Psh::strategy_eval, @Psh::strategies,
