@@ -82,7 +82,7 @@ sub find_job {
 
 	for (my $i = $#$jobs_order; $i >= 0; $i--) {
 		my $job = $jobs_order->[$i];
-		
+
 		if(!$job->{running}) {
 			$job_to_start = $i;
 			return $job;
@@ -98,11 +98,15 @@ sub find_last_with_name {
 	while( my $job= $self->each) {
 		next if $runningflag && $job->{running};
 		my $call= $job->{call};
-		if( $call=~ m:/([^/\s]+)\s*$: ) {
+		if ($call=~ m:([^/\s]+)\s*: ) {
+			$call= $1;
+		} elsif( $call=~ m:/([^/\s]+)\s+.*$: ) {
+			$call= $1;
+		} elsif ( $call=~ m:^([^/\s]+): ) {
 			$call= $1;
 		}
 		if( $call eq $name) {
-			return ($index,$job->{pid});
+			return ($index,$job->{pid},$job->{call});
 		}
 		$index++;
 	}
