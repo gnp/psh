@@ -34,34 +34,27 @@ each character denotes a certain class of debug messages.
 
 =item C<f> - enables printing of the rc files read by psh on startup while it is executed and allows easy tracing of problems in these files
 
+=item C<i> - enables printing of initialization debug info
+
 =back
 
 =head2 BUILT-IN FUNCTIONS
 
-The following functions are provided as built-in functions of
-C<psh>. You can add an additional built-in called 'C<foo>' by setting the
-hash C<$Psh::built_ins{foo}> to a reference to a subroutine. When a line
-like "C<foo bar $baz>" is then evaluated by the 'C<built_in>' strategy, the
-string 'C<bar $baz>' will be passed to your subroutine as its only
-argument. This is precisely the difference between making 'C<foo>' a
-built-in as opposed to simply defining a procedure C<main::foo> and
-letting the C<eval> strategy call C<foo>: the built-in subroutine will get
-the precise input string entered, whereas the ordinary procedure will
-of course get arguments that have already been evaluated by the Perl
-evaluator. Which you want depends on the nature of the function being
-defined.
+On startup, C<psh> scans the Psh::Builtins:: namespace and will add
+the names of all found dynamic loadable builtins to C<%Psh::built_ins>.
 
-If C<$Psh::built_ins{foo}> does not exist, but
-C<&Psh::Builtins::bi_foo> is defined, then foo will still be
-considered a builtin calling that function. This is primarily to
-ensure that the original builtins are always accessible, for example
-if they have been aliased and unaliased.
+During evaluation of an input line, C<psh> will first check the
+%Psh::built_ins variable. If this fails it will try to locate an
+appropriate built-in function in Psh::Builtins.pm.
 
-"Fallback builtins" are provided similarly to this last option: "foo"
-is a fallback builtin if C<&Psh::Builtins::Fallback::bi_foo> is
-defined.
+A dynamical loadable builtin has to be in a file called Builtinname.pm
+within the Psh::Builtins:: namespace and has at least one subroutine, called
+'bi_builtinname'. Additionally, it may provide a cmpl_builtinname
+subroutine for a custom completion. Furthermore, a builtin should
+contain some pod documentation, starting with "=item * " and ending
+with "=cut".
 
-For a list of the predefined B<psh> builtins, see L<Psh::Builtins> or use the "help" command from within B<psh>.
+For a list of the predefined B<psh> builtins, use the "help" command from within B<psh>.
 
 =head2 DEFINING EVALUATION STRATEGIES
 

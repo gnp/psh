@@ -422,7 +422,8 @@ sub parse_line {
 		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
 
 		if ($how) {
-			Psh::Util::print_debug("Using strategy $strat by $how\n");
+			Psh::Util::print_debug_class('s',
+										 "[Using strategy $strat by $how]\n");
 			return [ 1, [$Psh::strategy_eval{$strat},
 						 $how, [], \@words, $strat ]];
 		}
@@ -512,7 +513,7 @@ sub parse_simple_command {
 		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words,$piped);
 
 		if ($how) {
-			Psh::Util::print_debug("Using strategy $strat by $how\n");
+			Psh::Util::print_debug_class('s',"[Using strategy $strat by $how]\n");
 			return [ $Psh::strategy_eval{$strat},
 					 $how, \@options, \@words, $strat, $line ], @tokens;
 		}

@@ -27,7 +27,7 @@ $VERSION='0.007';
 #
 # option -i is ignored
 
-getopts('diwrf:c:', \%opt);
+getopts('iwrd:f:c:', \%opt);
 
 if ($opt{'r'}) {
 	Psh::Util::print_error_i18n('no_r_flag');
@@ -49,8 +49,8 @@ if ($opt{'w'}) {
 # -d is "debug mode":
 #
 
-if ($opt{'d'}) { $Psh::debugging = 1; }
-else           { $Psh::debugging = 0; }
+if (exists($opt{'d'})) { $Psh::debugging = $opt{'d'}||'soi'; }
+else                   { $Psh::debugging = 0; }
 
 Psh::Util::print_debug("Debugging!\n");
 
@@ -74,7 +74,7 @@ if (@ARGV) {
 }
 
 END {	# try and write the history no matter how we exit
-	Psh::Util::print_debug("[Saving history]\n");
+	Psh::Util::print_debug_class('o',"[Saving history]\n");
 	if( $Psh::save_history) {
 		if ($Psh::readline_saves_history) {
 			$Psh::term->WriteHistory($Psh::history_file);
