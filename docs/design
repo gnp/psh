@@ -63,3 +63,12 @@ Support missing currently for: << (here-docs used as STDIN) <{ } and >{ }
 
 <{ } and >{ } use named pipes
 
+
+Influences and other shells
+---------------------------
+
+* rc - the Plan 9 shell (http://www.star.le.ac.uk/~tjg/rc/misc/td and "man rc")
+* aibash - http://aibash.sourceforge.net/
+* zsh - http://www.zsh.org
+* eshell - http://www.newartisans.com/johnw/eshell.html
+* our harmonic rivalry with Zoidberg - http://zoidberg.student.utwente.nl/

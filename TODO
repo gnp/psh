@@ -11,12 +11,15 @@ We need prompt support. Later on we can add the psh1 "theme" system.
 
 - Support for ROX Packages and Mac OS X/Gnustep .app executables
 
+- Frontends
+The frontends have to be improved. We should focus on editline as low-footprint frontend and a new pure perl frontend. The readline frontend is mainly considered a fallback due to wide availibility and for users who insist on readline. Term::ReadLine::Perl will not be supported this time (nightmare).
+
 Loose-Ideas:
 - >{} and <{} redirects
 - Auto-directory-changing
 - Error Correction - see aibash project for ideas
 - we have "sub" already for re-definable Perl subs. We should also have "function" for shell functions and maybe something for C functions.
-
+- A redirection target pseudodevice which copies stuff into the system clipboard
 
 Syntax/Parser additions:
 - We so far only do $var and $(var) expansion. ${...} is intended to do
@@ -28,5 +31,5 @@ one is incompatible with psh2 conventions. Do we want a partly-POSIX shell
 the later.
 
 - Syntax extensions for manipulating env vars (substrings, arithmetics)?
-Should maybe better be done in Perl modules I think.
+Should maybe better be done in Perl I think.
 
