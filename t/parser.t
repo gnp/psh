@@ -52,3 +52,4 @@ test_decompose qq[foo { a \n bc \n bar } bla], [ 'foo', "{ a \n bc \n bar }",'bl
 test_decompose 'foo bar;', [ 'foo', 'bar', [3]];
 test_decompose 'foo;', [ 'foo', [3]];
 test_decompose "foo\n", [ 'foo', [4]];
+test_decompose qq[echo foo\\\\nbar], [ 'echo', "foo\\nbar"];

@@ -541,10 +541,6 @@ sub _parse_simple {
             return [ 'call', $psh->{function}{$full_fun_name}[0], $options, \@words,
                      $line, $psh->{function}{$full_fun_name}[1]];
         }
-	my $tmp= $psh->which($first);
-	if ($tmp) {
-	    return [ 'execute', $tmp, $options, \@words, $line, undef];
-	}
 	foreach my $strategy (@{$psh->{strategy}}) {
 	    my $tmp= eval {
 		$strategy->applies(\@words, $line);
@@ -555,8 +551,13 @@ sub _parse_simple {
 		return [ $strategy, $tmp, $options, \@words, $line, undef];
 	    }
 	}
+	my $tmp= $psh->which($first);
+	if ($tmp) {
+	    return [ 'execute', $tmp, $options, \@words, $line, undef];
+	}
     }
-    die "duh: $first";
+    $psh->printerrln($psh->gt('syntax error').': '.$first);
+    return ();
 }
 
 sub glob_expansion {
