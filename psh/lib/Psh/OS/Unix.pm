@@ -353,7 +353,8 @@ my @signals= split(' ', $Config{sig_name});
 sub remove_signal_handlers
 {
 	foreach my $sig (@signals) {
-		next if ! ref($special_handlers{$sig});
+		next if exists($special_handlers{$sig}) &&
+			! ref($special_handlers{$sig});
 		$SIG{$sig} = 'DEFAULT';
 	}
 }
@@ -370,7 +371,7 @@ sub remove_signal_handlers
 sub setup_signal_handlers
 {
 	foreach my $sig (@signals) {
-		if( $special_handlers{$sig}) {
+		if( exists($special_handlers{$sig})) {
 			if( ref($special_handlers{$sig})) {
 				$SIG{$sig}= $special_handlers{$sig};
 			}
