@@ -80,6 +80,7 @@ lib/Psh/Builtins/Setenv.pm
 lib/Psh/Builtins/Source.pm
 lib/Psh/Builtins/Strategy.pm
 lib/Psh/Builtins/Symbols.pm
+lib/Psh/Builtins/Theme.pm
 lib/Psh/Builtins/Ulimit.pm
 lib/Psh/Builtins/Unalias.pm
 lib/Psh/Builtins/Which.pm

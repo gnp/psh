@@ -71,6 +71,7 @@ sub fb_glob {
 	} else {
 		$dir=Psh::Util::abs_path($dir);
 	}
+	return unless $dir;
 
 	# Expand ~
 	my $home= $ENV{HOME}||get_home_dir();
