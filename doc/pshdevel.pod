@@ -6,12 +6,9 @@ psh - Developing for Perl Shell
 Please read the perlpod manpage! Pay particular attention to the markup
 sequences (B<>, C<>, I<>, etc.).
 
-=head1 COPYRIGHT
+=head1 SYNOPSIS
 
-Copyright (C) 1999-2000 Gregor N. Purdy. All rights reserved.
-This script is free software. It may be copied or modified according
-to the same terms as Perl itself.
-
+Developing for the Perl Shell.
 
 =head1 DESCRIPTION
 
@@ -59,24 +56,13 @@ For a list of the predefined B<psh> builtins, use the "help" command from within
 
 =head2 DEFINING EVALUATION STRATEGIES
 
-There are two hashes, I<%Psh::strategy_which> and I<%Psh::strategy_eval>.
-An evaluation strategy called "C<foo>" is implemented by putting a
-subroutine object in each of these hashes keyed by "foo". The first
-subroutine should accept a reference to a string (the exact input
-line) and a reference to an array of strings (the array of "words" in
-the input line produced by C<&Psh::decompose>, provided as a convenience
-so that each individual strategy doesn't have to recompute this). It
-should return a string, which should be empty if the strategy does not
-apply to that input line, and otherwise should be an arbitrary
-non-null string describing how that strategy applies to that line. It
-is guaranteed that the string passed in will contain some
-non-whitespace, and that the first string in the array of words is
-non-empty.
+Currently empty due to overhaul of strategies
 
-The I<$strategy_eval{foo}> routine accepts the same two first arguments
-and a third argument, which is the string returned by
-I<$strategy_which{foo}>. It should do the evaluation, and return the
-result. Note that the I<$strategy_eval> function will be evaluated in
-an array context. 
+=head1 COPYRIGHT
+
+Copyright (C) 1999-2001 Gregor N. Purdy. All rights reserved.
+This script is free software. It may be copied or modified according
+to the same terms as Perl itself.
+
 
 =cut
