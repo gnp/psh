@@ -26,7 +26,27 @@ my %color_table=
    white => '\E[37m',
    none => '\E[00m',
   );
-
+my %sign_table=
+  (
+   'iso8859-1' => {
+				   332 => '/',
+				   304 => '-',
+				   300 => "\\",
+				   333 => '+',
+				   262 => '=',
+				   261 => '|',
+				   260 => '#',
+				  },
+   'default'   => {
+				   332 => "\332",
+				   304 => "\304",
+				   300 => "\300",
+				   333 => "\333",
+				   262 => "\262",
+				   261 => "\261",
+				   260 => "\260",
+				 },
+  );
 
 
 %Psh::Prompt::prompt_vars = (
@@ -148,8 +168,16 @@ sub prompt_string
 		$sub=~ s/\\/\0/g;
 		$temp=$save1 . $sub . $save2;
 	}
+
+	my $encoding= Psh::Options::get_option('encoding');
+	my $my_sign= $sign_table{'default'};
+	if ($encoding and exists $sign_table{$encoding}) {
+		$my_sign= $sign_table{'iso8859-1'};
+	}
 	# Color substitution
-	$temp=~ s/\\C\{(.*?)\}/$color_table{$1}/g;
+	$temp=~ s/\\C\{(.+?)\}/$color_table{$1}/g;
+	# Graphics sign conversion
+	$temp=~ s/\\S\{(\d+?)\}/$my_sign->{$1}/g;
 
 	# Standard prompt_var substitution
 	$temp=~ s/\\([0-9]x?[0-9a-fA-F]*|[^0-9\\])/&prompt_helper($1)/ge;
