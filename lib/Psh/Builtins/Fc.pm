@@ -90,10 +90,24 @@ sub bi_fc
 		Psh::add_history($comtext);
 		return Psh::evl($comtext);
 	} else {
+		if (!$Psh::interactive) {
+			Psh::Util::print_error("fc: not running interactively - cancelled\n");
+			return (0,undef);
+		}
 		my $file= Psh::OS::tmpnam();
 		my $editor= Psh::OS::get_editor($opt->{e} || $ENV{FCEDIT});
 		my $from=my $to=$#Psh::history;
-		($from,$to)=$ARGV[0]=~/(\d+)-(\d+)/ if $ARGV[0]=~/-/;
+		if ($ARGV[0]=~/^\s*(\d+)-(\d+)/) {
+			($from,$to)=($1,$2);
+		} elsif ($ARGV[0]=~/^\s*(\d+)\s*$/) {
+			($from,$to)=($1,$1);
+		}
+		if ($from<0 or $to<0 or $from>$#Psh::history or
+		    $to>$#Psh::history) {
+			Psh::Util::print_error("fc: specified range not in history\n");
+			return (0,undef);
+		}
+
 		if (open(FILE,"> $file")) {
 			for (my $i=$from; $i<=$to; $i++) {
 				print FILE $Psh::history[$i-1]."\n";
