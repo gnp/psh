@@ -12,13 +12,16 @@ lib/Psh2.pm
 lib/Psh2/Builtins/Alias.pm
 lib/Psh2/Builtins/Bg.pm
 lib/Psh2/Builtins/Cd.pm
+lib/Psh2/Builtins/Echo.pm
 lib/Psh2/Builtins/Exec.pm
 lib/Psh2/Builtins/Exit.pm
+lib/Psh2/Builtins/False.pm
 lib/Psh2/Builtins/Fg.pm
 lib/Psh2/Builtins/Jobs.pm
 lib/Psh2/Builtins/Modules.pm
 lib/Psh2/Builtins/Option.pm
 lib/Psh2/Builtins/Setenv.pm
+lib/Psh2/Builtins/True.pm
 lib/Psh2/Frontend/Readline.pm
 lib/Psh2/Language/Perl.pm
 lib/Psh2/Language/C.pm

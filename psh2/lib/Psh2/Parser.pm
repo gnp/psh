@@ -159,24 +159,6 @@ sub _remove_backslash {
     $$text=~ s/\001/\\/g;
 }
 
-sub _unquote {
-    my $text= shift;
-
-    if (substr($$text,0,1) eq '\'' and
-	substr($$text,-1,1) eq '\'') {
-	$$text= substr($$text,1,-1);
-    } elsif ( substr($$text,0,1) eq "\"" and
-	      substr($$text,-1,1) eq "\"") {
-	$$text= substr($$text,1,-1);
-    } elsif ( substr($$text,0,2) eq 'q[' and
-	      substr($$text,-1,1) eq ']') {
-	$$text= substr($$text,2,-1);
-    } elsif ( substr($$text,0,3) eq 'qq[' and
-	      substr($$text,-1,1) eq ']') {
-	$$text= substr($$text,3,-1);
-    }
-}
-
 sub ungroup {
     my $text= shift;
     if (substr($text,0,1) eq '(' and
@@ -286,18 +268,14 @@ sub make_tokens {
 		my $bothflag= 0;
 		if ($tmp eq '&>') {
 		    $bothflag= 1;
-		$tmp= '>';
+		    $tmp= '>';
 		}
 		my @fileno= (1,0);
 		my $file;
 
 		$bothflag ||= _parse_fileno(\@parts, \@fileno);
 		if ($fileno[1]==0) {
-		    while (@parts>0) {
-			$file= shift @parts;
-			last if $file !~ /^\s+$/;
-			$file= '';
-		    }
+		    $file= shift @parts;
 		    die "parse: redirection >: file missing" unless $file;
 		    push @$redirects, [T_REDIRECT, $tmp, $fileno[0], $file];
 		} else {
@@ -312,11 +290,7 @@ sub make_tokens {
 		my @fileno= (0,0);
 		_parse_fileno(\@parts, \@fileno);
 		if ($fileno[0]==0) {
-		    while (@parts>0) {
-			$file= shift @parts;
-			last if $file !~ /^\s+$/;
-			$file= '';
-		    }
+		    $file= shift @parts;
 		    die "parse: redirection <: file missing" unless $file;
 		    push @$redirects, [T_REDIRECT, '<', $fileno[1], $file];
 		} else {
@@ -325,13 +299,20 @@ sub make_tokens {
 		next;
 	    }
 	}
-	if (substr($tmp,0,2) eq "qq[" or
-	    substr($tmp,0,1) eq '"') {
-	    _remove_backslash(\$tmp);
-	} elsif (substr($tmp,0,1) eq "'") {
-	    substr($tmp,1,-1)=~ s/\'\'/\'/g;
+	if (length($tmp)>1) {
+	    if (length($tmp)> 3 and substr($tmp,0,2) eq 'qq[') {
+		$tmp= substr($tmp,3,-1);
+		_remove_backslash(\$tmp);
+	    } elsif (substr($tmp,0,1) eq "'") {
+		$tmp= substr($tmp,1,-1);
+		$tmp=~ s/\'\'/\'/g;
+	    } elsif (substr($tmp,0,1) eq '"') {
+		$tmp= substr($tmp,-1,1);
+		_remove_backslash(\$tmp);
+	    } elsif (substr($tmp,0,2) eq 'q[') {
+		$tmp= substr($tmp,2,-1);
+	    }
 	}
-	_unquote(\$tmp);
 	push @$words, $tmp;
     }
     if (@$words) {
@@ -351,10 +332,14 @@ sub parse_line {
 	my $token= shift @$tokens;
 	if ($token->[0] == T_EXECUTE) {
 	    my @simple=();
-
+	    my $is_pipe= (@{$token->[2]}>2);
 	    while (@{$token->[2]}) {
 		my $words= shift @{$token->[2]};
 		my $options= shift @{$token->[2]};
+		if (!@$words) {
+		    die 'parse: missing command' if $is_pipe;
+		    next;
+		}
 		push @simple, _parse_simple( $words, $options, $psh);
 	    }
 	    push @elements, [ T_EXECUTE, $token->[1], @simple ];
@@ -377,13 +362,11 @@ sub _parse_simple {
     my @options= @{shift()};
     my $psh= shift;
 
-    my (@savetokens, @precom);
     my $opt= {};
 
     my $firstwords= 1;
     while (@words) {
 	if ($words[0] and _is_precommand($words[0])) {
-	    push @precom, $words[0];
 	    $opt->{$words[0]}= 1;
 	    shift @words;
 	} else {
