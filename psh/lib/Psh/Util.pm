@@ -53,10 +53,9 @@ sub _print_i18n
 {
 	my( $stream, $text, @rest) = @_;
 	$text= Psh::Locale::get_text($text);
-	# This was looping over 0 and 1 and replacing %0 and %1
 	for( my $i=1; $i<=@rest; $i++)
 	{
-		$text=~ s/\%$i/$rest[$i-1]/g; # removed o from flags huggie
+		$text=~ s/\%$i/$rest[$i-1]/g;
 	}
 	print $stream $text;
 }
