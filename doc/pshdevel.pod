@@ -2,7 +2,6 @@
 
 psh - Developing for Perl Shell
 
-
 =for README
 Please read the perlpod manpage! Pay particular attention to the markup
 sequences (B<>, C<>, I<>, etc.).
