@@ -8,49 +8,56 @@
 ###############################################################################
 ###############################################################################
 ##
-## CVS HEAD
+## 0.007
 ##
 ###############################################################################
 ###############################################################################
 
 
-=head1 CVS HEAD
+=head1 0.007 [2000-01-24]
 
-=head2 11 Jan 2000 - warp
+Contributions primarily by Markus Peter (C<warp>).
 
 New features:
 
 =over 4
 
-=item * Windows titles (PSH_TITLE and $Psh::window_title) behave like prompt
-strings now.
+=item *
 
-=item * Perlfunc strategy is now again a default strategy. $Psh::perlfunc_builtins determines wether Perl builtins should be evaled (default 0)
+Support for window titles. New environment variable C<$PSH_TITLE>,
+C<$Psh::change_title>, C<$Psh::window_title>. The behavior is like prompt
+strings.
 
-=item * Builtin 'kill' now supports sending a signal to a name job (e.g. "emacs & ; kill emacs")
+=item *
 
-=item * Added builtin 'strategy' for loading strategies on demand and adding them to the list of strategies to use.
+Strategy B<perlfunc> is a default strategy again. C<$Psh::perlfunc_builtins>
+determines wether Perl builtins should be C<eval>ed (default 0)
+
+=item *
+
+Builtin B<kill> now supports sending a signal to a named job (e.g. "C<emacs & ;
+kill emacs>").
+
+=item *
+
+Builtin B<strategy> for loading strategies on demand and adding them to
+the list of strategies to use. Handy for strategies that are used less often
+than the core strategies.
+
+=item *
+
+Properly pipeable aliases.
+
+=item *
+
+Fallback and most other builtins are loaded on demand.
+
+=item *
+
+Converted C<&Psh::symbols()> into a builtin, B<symbols>.
 
 =back
 
-Internal changes:
-
-=over 4
-
-=item * Aliases are now hardcoded into parser again so they are properly pipable
-
-=item * Fallback builtins and most other builtins are loaded on demand
-
-=item * Made Psh::symbols() a builtin
-
-=item * Some less used strategies are loadable on demand using builtin 'strategy'
-
-=back
-
-=head2 04 Jan 2000 - warp
-
-Support for window titles. New environment variable PSH_TITLE,
-$Psh::change_title
 
 =cut
 
