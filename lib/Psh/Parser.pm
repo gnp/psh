@@ -446,11 +446,14 @@ sub parse_complex_command {
 	($simplecommands[0], @tokens) = parse_simple_command(\@tokens,
 														 \@use_strats);
 
+	my $piped= 0;
+
 	while (@tokens > 0 && $tokens[0]->[0] eq 'PIPE') {
 		shift @tokens;
 		my $sc;
-		($sc, @tokens) = parse_simple_command(\@tokens,\@use_strats);
+		($sc, @tokens) = parse_simple_command(\@tokens,\@use_strats,$piped);
 		push @simplecommands, $sc;
+		$piped= 1;
 	}
 
 	my $foreground = 1;
@@ -465,6 +468,7 @@ sub parse_complex_command {
 sub parse_simple_command {
 	my @tokens = @{shift()};
 	my @use_strats= @{shift()};
+	my $piped= shift;
 
 	my @words;
 	my @options;
@@ -490,7 +494,7 @@ sub parse_simple_command {
 			next;
 		}
 
-		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
+		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words,$piped);
 
 		if ($how) {
 			Psh::Util::print_debug("Using strategy $strat by $how\n");

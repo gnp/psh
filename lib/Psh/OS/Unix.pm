@@ -216,7 +216,7 @@ sub execute_complex_command {
 	for( my $i=0; $i<@array; $i++) {
 		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
 		my $line= join(' ',@$words);
-		my ($eval_thingie,@return_val)= &$coderef( \$line, $words,$how);
+		my ($eval_thingie,@return_val)= &$coderef( \$line, $words,$how,$i>0);
 		
 		if( defined($eval_thingie)) {
 			if( $#array) {
