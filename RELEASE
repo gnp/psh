@@ -1,0 +1,37 @@
+How to make a Perl Shell release:
+
+1999-12-28
+
+
+After making all the appropriate changes to psh.pod
+and CHANGES.pod and elsewhere:
+
+	cd psh
+    make realclean
+	cvs upd -AdP
+    pod2text psh.pod > README
+	pod2text CHANGES.pod > CHANGES
+	cvs commit
+    perl Makefile.PL PREFIX=~
+	make
+	make test
+	make install
+
+Go test it from the home directory and then come back.
+Tag the repository, where X is the major version, Y is the
+minor version, and Z is the patch level.
+
+	cvs -q tag psh-X_YYYZZ
+
+Make the distribution materials:
+
+    make dist
+	pod2html psh.pod > psh.html
+	pod2html CHANGES.pod > CHANGES.html
+
+Archive the *.tar.gz file, and upload it to SourceForge and
+the Focus Research web site. Use the *.html files to provide
+on-line documentation and change information.
+
+Announce on SourceForge, CPAN, and Freshmeat.
+
