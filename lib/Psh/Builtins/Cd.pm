@@ -11,6 +11,12 @@ Change the working directory to DIR or home if DIR is not specified.
 The special DIR "-" is interpreted as "return to the previous
 directory".
 
+C<cd %num> will jump to a certain directory in the stack (See also
+builtin C<dirs>).
+
+C<cd +num> and C<cd -num> will go forward/backward in the directory
+stack.
+
 =cut
 
 sub bi_cd
