@@ -179,7 +179,7 @@ sub decompose
 # (unmodified) line of psh input
 #
 
-sub std_tokenize 
+sub std_tokenize
 {
     my ($line,$pieces) = @_;
     return decompose(' ',$line,$pieces,1,undef,'\&');
@@ -368,7 +368,7 @@ sub make_tokens {
 												$tmp,$Psh::bin);
 					return undef;
 				}
-				push @tokens, ['REDIRECT',$tmp,$handle,$file];
+				push @tokens, ['REDIRECT',$tmp,$handle,unquote($file)];
 				$previous_token='';
 			}
 		} elsif( $tmp eq '<') {
@@ -392,7 +392,7 @@ sub make_tokens {
 												$tmp,$Psh::bin);
 					return undef;
 				}
-				push @tokens, ['REDIRECT','<',0,$file];
+				push @tokens, ['REDIRECT','<',0,unquote($file)];
 				$previous_token='<';
 			}
 		} elsif( $tmp eq '&') {

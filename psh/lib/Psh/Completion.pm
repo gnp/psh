@@ -90,6 +90,10 @@ sub cmpl_filenames
 		@result= grep { -x $_ || -d $_ } @result;
 	}
 
+	# HACK: This won't help much if user tries to do another completion
+	# on the same item afterwards
+	@result= map { s/([ \'\"\-\´\`])/\\$1/g; $_ } @result;
+
 	if(@result==1) {
 		if( -d $result[0]) {
 			$ac='/'.$prepend;
@@ -486,7 +490,7 @@ sub completion
 	return @tmp;
 }
 
-sub perl_symbol_display_match_list ($$$) {
+sub perl_symbol_display_match_list {
     my($matches, $num_matches, $max_length) = @_;
     map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@{$matches});
     $Psh::term->display_match_list($matches);

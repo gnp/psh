@@ -51,6 +51,17 @@ B<bash> - inspired by a command on the SourceForge message board (and I
 finally start to like this command ;-).
 - warp [2000-05-03]
 
+=item *
+
+The builtin B<history> now also accepts a text as argument. In that case it
+will only print commands containing that text.
+- warp [2000-07-08]
+
+=item *
+
+The builtin B<fc> now understands the switch C<-p>. Also it's more behaviour
+compatible with bash's fc
+
 =head2 Internals
 
 =item *
@@ -62,6 +73,28 @@ New sub C<Psh::Util::prompt()> for interactive prompting.
 
 Cleanups in C<Psh::OS::Unix::_setup_redirects> and C<...::_remove_redirects>.
 - warp [2000-05-01]
+
+=item *
+
+Added Psh::add_history so builtins etc. can modify history easily
+- warp [2000-07-08]
+
+=item *
+
+Quotes are removed from file names in redirections
+- warp [2000-07-08]
+
+=item *
+
+Fixed variable substitution in Psh::PerlEval so that whitespace after a
+backslash does not split words anymore
+- warp [2000-07-08]
+
+=item *
+
+Half-hearted attempt at getting whitespace and special characters in
+TAB completion right
+- warp [2000-07-08]
 
 =back
 
