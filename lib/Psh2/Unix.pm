@@ -188,6 +188,30 @@ sub _setup_redirects {
     }
 }
 
+sub process_backtick {
+    my ($self, $var)= @_;
+
+    my ($read, $write)= POSIX::pipe();
+
+    unless (my $pid= CORE::fork()) {
+        POSIX::close($read);
+        POSIX::dup2($write, fileno(*STDOUT));
+        $^F= $write if $write > $^F;
+        eval { $self->process_variable($var); };
+        CORE::exit($self->{status});
+    }
+    POSIX::close($write);
+
+    my $result= '';
+    my $buffer;
+    my $bytesread;
+    while (($bytesread= POSIX::read( $read, $buffer, 4096))>0) {
+        $result.=$buffer;
+    }
+    POSIX::close($read);
+    return $result;
+}
+
 ############################################################################
 ##
 ## File::Spec

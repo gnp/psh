@@ -122,8 +122,7 @@ sub process_args {
 }
 
 sub process_variable {
-    my $self= shift;
-    my $var= shift;
+    my ($self, $var)= @_;
     my @lines;
     if (ref $var eq 'ARRAY') {
 	@lines= @$var;

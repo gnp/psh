@@ -18,7 +18,7 @@ use_ok 'Psh2::Parser';
 sub test_decompose ($$) {
     my ($line, $expected)= @_;
     my @tmp;
-    eval { @tmp= Psh2::Parser::decompose({}, $line, {}); };
+    eval { @tmp= Psh2::Parser::decompose({}, $line); };
     if ($@) {
 	fail() and diag("decompose: $line with error $@");
     } else {

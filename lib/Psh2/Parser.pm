@@ -18,7 +18,7 @@ my %nesthash=  ('('=> ')', '$(' => ')',
 	       );
 
 my $part2= '\\\'|\\"|q\\[|qq\\[';
-my $part1= '(\\n|\\|\\||\\&\\&|\\||;|\&>|\\&|>>|>|<|\\$\\{|\\$\\(|\\(|\\)|\\{|\\}|\\[|\\])';
+my $part1= '(\\n|\\|\\||\\&\\&|\\||;|\&>|\\$\\&|\\&|>>|>|<|\\$\\{|\\$\\(|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 my %tmp_tokens=
@@ -40,16 +40,7 @@ my %tmp_tokens=
 ############################################################################
 
 sub decompose {
-    my ($psh, $line, $alias_disabled, $no_wordsplit)= @_;
-
-    if ($line=~/^[a-zA-Z0-9]*$/ and index($line,"\n")==-1) { # perl 5.6 bug
-	if ($psh->{aliases} and $psh->{aliases}{$line} and
-	    !$alias_disabled->{$line}) {
-	    local $alias_disabled->{$line}= 1;
-	    return decompose($psh, $psh->{aliases}{$line}, $alias_disabled);
-	}
-	return [$line];
-    }
+    my ($psh, $line, $no_wordsplit)= @_;
 
     my @pieces= ('');
     my $start_new_piece= 0;
@@ -138,24 +129,12 @@ sub decompose {
                  substr($tmp,0,2) eq '${')) {
 		$tmp= expand_dollar($psh,$tmp);
 	    }
+            if (@pieces2>1 and $pieces2[$#pieces2-1] eq '$&') {
+                my $funname= pop @pieces2; pop @pieces2;
+                $tmp= expand_dollar_function($psh,$funname,$tmp);
+            }
             push @pieces2, $tmp;
 	} else {
-	    if ($start_of_command and $psh->{aliases}) {
-		if ($piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s*)$/ or
-		    $piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s.*)$/) {
-		    my ($pre, $main, $post)= ($1, $2, $3);
-
-		    if ($main and $psh->{aliases}{$main} and
-			!$alias_disabled->{$main}) {
-			local $alias_disabled->{$main}= 1;
-			my @tmppiec= @{decompose($psh, $psh->{aliases}{$main},
-						 $alias_disabled, 1)};
-			$tmppiec[0]= $pre.$tmppiec[0];
-			push @pieces2, @tmppiec;
-			$piece= $post;
-		    }
-		}
-	    }
             $start_of_command= 0;
 
             unless ($language_mode) {
@@ -355,7 +334,7 @@ sub _clean_word {
 
 sub make_tokens {
     my ($psh, $line)= @_;
-    my @parts= @{decompose($psh, $line, {})};
+    my @parts= @{decompose($psh, $line)};
 
     my $words=[];
     my $redirects=[];
@@ -489,6 +468,7 @@ sub _parse_simple {
 
     while ($words[0] and length($words[0])>5 and
 	    ($words[0] eq 'noglob' or $words[0] eq 'noexpand' or
+             $words[0] eq 'command' or $words[0] eq 'noalias' or
 	     $words[0] eq 'nobuiltin' or $words[0] eq 'builtin')) {
 	$opt->{$words[0]}= 1;
 	shift @words;
@@ -500,7 +480,14 @@ sub _parse_simple {
 
     if (substr($words[0],0,1) eq '\\') {
 	$words[0]= substr($words[0],1);
+    } elsif (!$opt->{noalias}) {
+        if ($psh->{aliases}{$words[0]}) {
+            my @tmp= split /\s+/, $psh->{aliases}{$words[0]};
+            shift @words;
+            unshift @words, @tmp;
+        }
     }
+
     my $first= $words[0];
     my $line= join ' ', @words;
 
@@ -524,7 +511,7 @@ sub _parse_simple {
 
     @words= @{glob_expansion($psh, \@words)} unless $opt->{noglob};
 
-    unless ($opt->{nobuiltin}) {
+    if (!$opt->{nobuiltin} and !$opt->{command}) {
 	my $tmp;
 	if ($tmp= $psh->is_builtin($first)) {
 	    eval 'use Psh2::Builtins::'.ucfirst($tmp);
@@ -535,22 +522,24 @@ sub _parse_simple {
 	    return [ 'call', 'Psh2::Builtins::'.ucfirst($tmp).'::execute', $options, \@words, $line, undef];
 	}
     }
-    unless ($opt->{builtin}) {
-        my $full_fun_name= $psh->{current_package}.'::'.$first;
-        if (exists $psh->{function}{$full_fun_name}) {
-            return [ 'call', $psh->{function}{$full_fun_name}[0], $options, \@words,
-                     $line, $psh->{function}{$full_fun_name}[1]];
+    if (!$opt->{builtin}) {
+        if (!$opt->{command}) {
+            my $full_fun_name= $psh->{current_package}.'::'.$first;
+            if (exists $psh->{function}{$full_fun_name}) {
+                return [ 'call', $psh->{function}{$full_fun_name}[0], $options, \@words,
+                         $line, $psh->{function}{$full_fun_name}[1]];
+            }
+            foreach my $strategy (@{$psh->{strategy}}) {
+                my $tmp= eval {
+                    $strategy->applies(\@words, $line);
+                };
+                if ($@) {
+                    # TODO: Error handling
+                } elsif ($tmp) {
+                    return [ $strategy, $tmp, $options, \@words, $line, undef];
+                }
+            }
         }
-	foreach my $strategy (@{$psh->{strategy}}) {
-	    my $tmp= eval {
-		$strategy->applies(\@words, $line);
-	    };
-	    if ($@) {
-		# TODO: Error handling
-	    } elsif ($tmp) {
-		return [ $strategy, $tmp, $options, \@words, $line, undef];
-	    }
-	}
 	my $tmp= $psh->which($first);
 	if ($tmp) {
 	    return [ 'execute', $tmp, $options, \@words, $line, undef];
@@ -612,7 +601,7 @@ sub set_internal_variables {
 sub expand_dollar {
     my ($psh, $piece)= @_;
     if (length($piece)>2 and substr($piece,0,2) eq '$(') {
-	return qq['$piece']; # FIX
+        return "'".$psh->process_backtick(substr($piece,2,-1))."'";
     }
     else {
 	if (substr($piece,0,2) eq '${') {
@@ -627,6 +616,19 @@ sub expand_dollar {
         my $var= $psh->get_variable($piece);
         return $var->value($subscript);
     }
+}
+
+sub expand_dollar_function {
+    my ($psh, $name, $args)= @_;
+    if ($name eq 'perl') {
+        return eval substr($args,1,-1);
+    }
+    elsif ($name eq 'substr') {
+    }
+    else {
+        die "unknown function: $name";
+    }
+    return '';
 }
 
 sub parse_variables {
@@ -645,7 +647,7 @@ sub parse_variables {
             shift @$words; shift @$words; shift @$words;
         }
         elsif (@$words>1 and $words->[0]=~/^[a-zA-Z0-9_-]+\=$/ and
-               $words->[1]=~/^\(\s*(.*?)\s*\)$/) {
+               $words->[1]=~/^\(\s*(.*?)\s*\)$/s) {
             $val= $1;
             $key=substr($words->[0],0,length($words->[0])-1);
             my @val= split /\s+/, $val;
@@ -657,7 +659,7 @@ sub parse_variables {
             shift @$words; shift @$words;
             next;
         }
-        elsif ($words->[0]=~/^(.*?)=(.*)$/) {
+        elsif ($words->[0]=~/^([a-zA-Z0-9_-]+?)=(.*)$/s) {
             ($key,$val)= ($1,$2);
             shift @$words;
         }
