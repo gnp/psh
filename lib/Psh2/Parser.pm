@@ -477,12 +477,12 @@ sub parse_line {
 	    my $is_pipe= (@{$token->[2]}>2);
 	    while (@{$token->[2]}) {
 		my $words= shift @{$token->[2]};
-		my $options= shift @{$token->[2]};
+		my $redirects= shift @{$token->[2]};
 		if (!@$words) {
 		    die 'parse: missing command' if $is_pipe;
 		    next;
 		}
-		push @simple, _parse_simple( $words, $options, $psh);
+		push @simple, _parse_simple( $words, $redirects, $psh);
 	    }
 	    push @elements, [ 1, $token->[1], @simple ];
 	} else {
@@ -494,10 +494,12 @@ sub parse_line {
 
 sub _parse_simple {
     my @words= @{shift()};
-    my @options= @{shift()};
+    my @redirects= @{shift()};
     my $psh= shift;
 
     my $opt= {};
+    my $options= { redirects => \@redirects,
+                   opt => $opt };
 
     while ($words[0] and length($words[0])>5 and
 	    ($words[0] eq 'noglob' or $words[0] eq 'noexpand' or
@@ -516,7 +518,7 @@ sub _parse_simple {
     my $line= join ' ', @words;
 
     if (is_group($words[0])) {
-	return ['reparse', undef, \@options, \@words, $line, $opt, undef];
+	return ['reparse', undef, $options, \@words, $line, undef];
     }
 
     if (length($first)>1 and substr($first,-1) eq ':') {
@@ -527,7 +529,7 @@ sub _parse_simple {
 		print STDERR $@;
 		# TODO: Error handling
 	    }
-	    return [ 'call', 'Psh2::Language::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt, undef];
+	    return [ 'call', 'Psh2::Language::'.ucfirst($tmp).'::execute', $options, \@words, $line, undef];
 	} else {
 	    die "parse: unsupported language $tmp";
 	}
@@ -543,18 +545,18 @@ sub _parse_simple {
 		print STDERR $@;
 		# TODO: Error handling
 	    }
-	    return [ 'call', 'Psh2::Builtins::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt, undef];
+	    return [ 'call', 'Psh2::Builtins::'.ucfirst($tmp).'::execute', $options, \@words, $line, undef];
 	}
     }
     unless ($opt->{builtin}) {
         my $full_fun_name= $Psh2::Language::Perl::current_package.'::'.$first;
         if (exists $psh->{function}{$full_fun_name}) {
-            return [ 'call', $psh->{function}{$full_fun_name}[0], \@options, \@words,
-                     $line, $opt, $psh->{function}{$full_fun_name}[1]];
+            return [ 'call', $psh->{function}{$full_fun_name}[0], $options, \@words,
+                     $line, $psh->{function}{$full_fun_name}[1]];
         }
 	my $tmp= $psh->which($first);
 	if ($tmp) {
-	    return [ 'execute', $tmp, \@options, \@words, $line, $opt, undef];
+	    return [ 'execute', $tmp, $options, \@words, $line, undef];
 	}
 	foreach my $strategy (@{$psh->{strategy}}) {
 	    my $tmp= eval {
@@ -563,7 +565,7 @@ sub _parse_simple {
 	    if ($@) {
 		# TODO: Error handling
 	    } elsif ($tmp) {
-		return [ $strategy, $tmp, \@options, \@words, $line, $opt, undef];
+		return [ $strategy, $tmp, $options, \@words, $line, undef];
 	    }
 	}
     }

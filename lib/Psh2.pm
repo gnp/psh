@@ -760,12 +760,12 @@ sub del_option {
 	my @pids= ();
 	my $success;
 	for (my $i=0; $i<@$array; $i++) {
-	    # [ $strategy, $how, $options, $words, $line, $opt ]
-	    my ($strategy, $how, $options, $words, $text, $opt)= @{$array->[$i]};
+	    # [ $strategy, $how, $redirects, $words, $line ]
+	    my ($strategy, $how, $options, $words, $text)= @{$array->[$i]};
 
 	    my $fork= 0;
 	    if ($i<$tmplen or !$fgflag or
-                @$options or
+                @{$options->{redirects}} or
 		$strategy eq 'execute') {
 		$fork= 1;
 	    }
@@ -773,7 +773,7 @@ sub del_option {
 	    if ($tmplen) {
 		($read, $chainout)= POSIX::pipe();
 	    }
-	    foreach (@$options) {
+	    foreach (@{$options->{redirects}}) {
 		if ($_->[0] == Psh2::Parser::T_REDIRECT() and
 		    ($_->[1] eq '<&' or $_->[1] eq '>&')) {
 		    if ($_->[3] eq 'chainin') {

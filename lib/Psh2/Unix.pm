@@ -115,7 +115,7 @@ sub fork {
 	    # Error handling
 	}
 	remove_signal_handlers();
-	_setup_redirects($options);
+	_setup_redirects($options->{redirects});
 	POSIX::setpgid( 0, $pgrp_leader || $$);
 	give_terminal_to( $self, $pgrp_leader || $$ ) if $fgflag and $giveterm;
 	my $status= execute($self, $tmp);
@@ -140,11 +140,11 @@ sub fork {
 }
 
 sub _setup_redirects {
-    my $options= shift;
+    my $redirects= shift;
 
-    return [] if ref $options ne 'ARRAY';
+    return [] if ref $redirects ne 'ARRAY';
 
-    foreach my $option (@$options) {
+    foreach my $option (@$redirects) {
 	if( $option->[0] == Psh2::Parser::T_REDIRECT()) {
 	    my $type= $option->[2];
 	    my $cachefileno;
