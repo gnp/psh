@@ -143,7 +143,7 @@ use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
 	    $perlfunc_expand_arguments $executable_expand_arguments
 	    $history_file $save_history $history_length
 	    $eval_preamble $currently_active $handle_segfaults
-	    @val @wday @mon @strategies %text
+	    @val @wday @mon @strategies %text @bookmarks @netprograms
 	    %prompt_vars %built_ins %strategy_which %strategy_eval);
 
 
@@ -1665,7 +1665,14 @@ sub minimal_initialize
 			  'export'   => \&builtin_export
 	);
 
-	# The following accessible variable are undef during the
+	# We define these variables here so the user can easily add
+	# to them with a push in her .pshrc file
+	@bookmarks=('http://','ftp://');
+	@netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute',
+					  'netscape','lynx','mozilla','wget');
+
+
+	# The following accessible variables are undef during the
 	# .pshrc file:
 	undef $prompt;
 	undef $save_history;
