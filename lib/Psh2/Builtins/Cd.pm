@@ -1,7 +1,5 @@
 package Psh2::Builtins::Cd;
 
-use strict;
-
 =item * C<cd DIR>
 
 Change the working directory to DIR or home if DIR is not specified.
