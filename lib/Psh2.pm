@@ -91,8 +91,6 @@ sub process {
 	unless (defined $input) {
 	    last;
 	}
-	$self->reap_children();
-
 	my $tmp= eval { Psh2::Parser::parse_line($self, join("\n",@store, $input)); };
 	if ($@) {
 	    print STDERR $@;
@@ -106,6 +104,7 @@ sub process {
 	if ($tmp and @$tmp) {
 	    _eval($self, $tmp);
 	}
+	$self->reap_children();
     }
 }
 

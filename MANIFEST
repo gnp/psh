@@ -12,6 +12,8 @@ lib/Psh2.pm
 lib/Psh2/Builtins/Alias.pm
 lib/Psh2/Builtins/Bg.pm
 lib/Psh2/Builtins/Cd.pm
+lib/Psh2/Builtins/Delenv.pm
+lib/Psh2/Builtins/Dirs.pm
 lib/Psh2/Builtins/Echo.pm
 lib/Psh2/Builtins/Exec.pm
 lib/Psh2/Builtins/Exit.pm
