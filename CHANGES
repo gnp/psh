@@ -1,6 +1,36 @@
 CHANGES
 
 ------------------------------------------------------------
+0.00205
+------------------------------------------------------------
+
+  * Changed prompting to pass prompt string into iget(),
+    which passes it on to Term::ReadLine::readline or
+    prints it out if the ReadLine module is not available.
+    Thanks to Sam Tregar and tmb@lumo.com.
+
+  * Changed history handling so that empty lines and those
+    consisting of entirely whitespace are not recorded.
+
+  * Fixed a couple of typos.
+
+  * Changed the regular expression for "smart mode" to
+    allow "vi +3 psh" in addition to "ls -l".
+
+  * Now uses Getopt::Std for option processing.
+
+  * Fixed the code that detects the presence of
+    Term::ReadLine.
+
+  * Made more use of debug mode to print out advisory
+    information.
+
+  * Use zero instead of undef to set Term::ReadLine::MinLine
+    so that we don't get undef usage trouble in the guts of
+    Term::ReadLine::Gnu.
+
+
+------------------------------------------------------------
 0.00204
 ------------------------------------------------------------
 

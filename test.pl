@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
 
-exec 'psh';
+exec 'psh -r pshrc';
 
