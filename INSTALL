@@ -6,11 +6,10 @@ most extensively tested on GNU/Linux systems with perl 5.6/5.8.
 
 Requires Perl Modules:
 - POSIX, Getopt::Std, Pod::Text
-
-Optional and recommended Perl Modules:
 - Term::ReadLine::Gnu for the readline frontend
 or Term::EditLine for the editline frontend
-- Pod::Text::Color for colored help pages
+
+Optional and recommended Perl Modules:
 - Locale::gettext for localization
 - Test::More for the tests in t/
 

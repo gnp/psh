@@ -204,7 +204,7 @@ sub init_frontend {
 sub init_interactive {
     my $self= shift;
 
-    init_frontend();
+    $self->init_frontend();
     setup_signal_handlers();
 }
 

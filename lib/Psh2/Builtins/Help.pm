@@ -31,20 +31,14 @@ sub display_pod {
     my $parser;
 
     eval {
-	require Pod::Text::Color;
-	$parser= Pod::Text::Color->new( sentence => 0,
-					indent => 2);
+        require Pod::Text;
+        $parser= Pod::Text->new( sentence => 0,
+                                 indent => 2);
     };
     if ($@) {
-	eval {
-	    require Pod::Text;
-	    $parser= Pod::Text->new( sentence => 0,
-				     indent => 2);
-	};
-	if ($@) {
-	    $psh->printerr($@);
-	    $psh->print($text);
-	}
+        $psh->printerr($@);
+        $psh->print($text);
+        return;
     }
     my $tmp= POSIX::tmpnam();
 
