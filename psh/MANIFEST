@@ -19,7 +19,6 @@ lib/Psh.pm
 lib/Psh/Job.pm
 lib/Psh/Joblist.pm
 lib/Psh/Completion.pm
-lib/Psh/Completion/Defaults.pm
 lib/Psh/Locale/Base.pm
 lib/Psh/Locale/Default.pm
 lib/Psh/Locale/French.pm
