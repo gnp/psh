@@ -241,7 +241,7 @@ sub decompose {
                 } else {
                     $space=0;
                 }
-                @tmp= map { s/\\//g;$_ } @tmp;
+                @tmp= map { s/\\(.)/$1/g;$_ } @tmp;
                 push @pieces3, @tmp;
             }
         }
