@@ -65,12 +65,20 @@ sub display_pod {
 		use Pod::Text;
 		Pod::Text::pod2text($tmp,*STDOUT);
 	};
-	if( $@) {
-		print $text;
-	}
+	print $text if $@;
 
-	1 while unlink($tmp); #Possibly pointless VMSism
+	unlink($tmp);
 }
+
+sub inc_shlvl {
+	if (! $ENV{SHLVL}) {
+		$Psh::login_shell = 1;
+		$ENV{SHLVL} = 1;
+	} else {
+		$Psh::login_shell = 0;
+		$ENV{SHLVL}++;
+	}
+}                                                                               
 
 sub reap_children {1};
 

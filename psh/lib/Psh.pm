@@ -46,7 +46,7 @@ use vars qw($bin $news_file $cmd $echo $host $debugging
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
-			$rc_file
+			$rc_file $login_shell
 			@val @wday @mon @strategies @unparsed_strategies @history
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval);
@@ -1000,6 +1000,8 @@ sub minimal_initialize
 	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
 	$ENV{PWD} = cwd;
+
+	Psh::OS::inc_shlvl();
 
 	Psh::OS::setup_signal_handlers();
 

@@ -7,6 +7,7 @@ use Config;
 use File::Spec;
 use Sys::Hostname;
 use FileHandle;
+use User::pwent;
 
 use Psh::Util ':all';
 
@@ -44,11 +45,11 @@ sub get_known_hosts {
 #
 sub get_all_users {
 	my @result= ();
-	setpwent;
-	while( my ($name)= getpwent) {
+	CORE::setpwent;
+	while (my ($name) = CORE::getpwent) {
 		push(@result,'~'.$name);
 	}
-	endpwent;
+	CORE::endpwent;
 	return @result;
 }
 
@@ -67,11 +68,9 @@ sub display_pod {
 		use Pod::Text;
 		Pod::Text::pod2text($tmp,*STDOUT);
 	};
-	if( $@) {
-		print $text;
-	}
+	print $text if $@;
 
-	1 while unlink($tmp); #Possibly pointless VMSism
+	unlink($tmp);
 }
 
 #
@@ -84,12 +83,31 @@ sub exit() {
 }
 
 sub get_home_dir {
-	my $user= shift;
-	return $ENV{HOME} if( ! $user && $ENV{HOME} );
-	return (getpwnam($user||$ENV{USER}))[7]
+	my $user = shift || $ENV{USER};
+	return $ENV{HOME} if ((! $user) && (-d $ENV{HOME}));
+	my $user_pwent = getpwnam($user);
+	return $user_pwent->dir;
 }
 
 sub get_path_extension { return (''); }
+
+#
+# int inc_shlvl ()
+#
+# Increments $ENV{SHLVL}. Also checks for login shell status and does
+# appropriate OS-specific tasks depending on it.
+#
+sub inc_shlvl {
+	my $ruid_pwent = getpwuid($<);
+	if ((! $ENV{SHLVL}) && ($ruid_pwent->shell eq $0)) { # would use $Psh::bin, but login shells are guaranteed full paths
+		$Psh::login_shell = 1;
+		$ENV{SHLVL} = 1;
+	} else {
+		$Psh::login_shell = 0;
+		$ENV{SHLVL}++;
+	}
+}
+
 
 ###################################################################
 # JOB CONTROL
