@@ -113,7 +113,7 @@ sub bi_theme {
 			   File::Spec->catdir(File::Spec->rootdir,'usr','local','share',
 								  'psh','themes'),
 			   File::Spec->catdir(Psh::OS::get_home_dir(),'.psh','share','themes'),
-			   File::Spec->catdir(File::Spec->rootdir,'psh'));
+			   File::Spec->catdir(File::Spec->rootdir,'psh','themes'));
 	if ($line eq 'list') {
 		my @result=();
 		foreach my $dir (@dirs) {
