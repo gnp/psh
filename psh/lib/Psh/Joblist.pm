@@ -118,7 +118,7 @@ __END__
 
 =head1 NAME
 
-Psh::Joblist - A data structure suitable for handling job lists like bash´s
+Psh::Joblist - A data structure suitable for handling job lists like bash's
 
 =head1 SYNOPSIS
 
