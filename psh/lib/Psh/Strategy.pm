@@ -13,7 +13,7 @@ my @lvl2order=();
 my @lvl3order=();
 
 sub CONSUME_LINE { 1; }
-sub CONSUME_WORDS { 2; }
+sub CONSUME_WORDS { 2; } # currently unsupported
 sub CONSUME_TOKENS { 3; }
 
 #####################################################################
@@ -43,7 +43,6 @@ sub get {
 sub remove {
 	my $name= shift;
 	@order= grep { $name ne $_->name } @order;
-	delete $loaded{$name};
 	regenerate_cache();
 }
 
@@ -148,13 +147,20 @@ sub name {
 }
 
 sub runs_before {
-	return @{$_[0]->{runs_before}};
+	return ();
 }
 
 sub consumes {
-	return $_[0]->{consumes};
+	die 'Abstract method';
 }
 
+sub applies {
+	die 'Abstract method';
+}
+
+sub execute {
+	die 'Abstract method';
+}
 
 1;
 
@@ -177,5 +183,63 @@ Returns a list of active Psh::Strategy objects.
   my $obj= Psh::Strategy::get('name')
 
 Loads and initializes a certain Psh::Strategy object
+
+
+=head1 DEVELOPING STRATEGIES
+
+You have to inherit from Psh::Strategy and you MUST at least
+override the functions C<consumes>, C<applies>, C<execute>.
+You CAN also override the function C<runs_before>
+
+=over 4
+
+=item * consumes
+
+Returns either CONSUME_LINE, CONSUME_WORDS, CONSUME_TOKENS.
+CONSUME_LINE means you want to receive the whole input line
+unparsed. CONSUME_WORDS means you want to receive the whole
+input line tokenized (currenty unimplemented). CONSUME_TOKENS
+means that you want to receive a sub-part of the line, tokenized
+(this is probably what you want)
+
+=item * applies
+
+Returns undef if the strategy does not want to handle the input.
+Returns a human-readable description if it wants to handle the input.
+
+If you specified CONSUME_LINE, this method will be called as
+  $obj->applies(\$inputline);
+
+If you specified CONSUME_TOKENS, this method will be called as
+  $obj->applies(\$inputline,\@tokens,$piped_flag)
+
+=item * execute
+
+If you specified CONSUME_LINE, this method will be called as
+  $obj->execute(\$inputline,\@tokens,$how,$piped_flag)
+
+C<$how> is what the call to applies returned;
+
+Your execute function should return an array of the form:
+
+  ($evalcode, \@words, $forcefork, @return_val)
+
+If C<$evalcode>, <@words> and <$forcefork> are undef, execution is finished
+after this call and C<@return_val> will be used as return value.
+
+But C<$evalcode> can also be a Perl sub - in which case it is evaluated
+later on, or a string - in which case it's a filename of a program to
+execute. C<@words> will then be used as arguments for the program.
+
+C<$forcefork> may be used to force a C<fork()> call even for the perl
+subs.
+
+=item * runs_before
+
+Returns a list of names of other strategies. It is guaranteed that
+the evaluation strategy will be tried before those other named strategies
+are tried.
+
+=back
 
 =cut
