@@ -13,7 +13,6 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 
 my @user_completions;
 my $APPEND="not_implemented";
-my $EMPTY_AC='';
 my $GNU=0;
 my $ac; # character to append
 
@@ -34,7 +33,6 @@ sub init
 	} elsif( $Psh::term->ReadLine eq "Term::ReadLine::Gnu") {
 		$GNU=1;
 		$APPEND='completion_append_character';
-		$EMPTY_AC="\0";
 	}
 
 	# Wow, both ::Perl and ::Gnu understand it
@@ -170,7 +168,7 @@ sub cmpl_symbol
 				ref *{"$package$sym"}{SCALAR} eq 'SCALAR';
 			push @tmp,  "\@$sym" if
 				ref *{"$package$sym"}{ARRAY}  eq 'ARRAY';
-			push @tmp,   "\%$sym" if
+			push @tmp,  "\%$sym" if
 				ref *{"$package$sym"}{HASH}   eq 'HASH';
 			push @tmp,   "\&$sym" if
 				ref *{"$package$sym"}{CODE}   eq 'CODE';
@@ -183,9 +181,18 @@ sub cmpl_symbol
 		# Hack Alert ;-)
 		next if(! eval "defined($firstchar$package$rest)" &&
 				! eval "tied($firstchar$package$rest)" &&
+				! eval "\%$package$rest" &&
 				$rest ne "ENV" && $rest ne "INC" && $rest ne "SIG" &&
 				$rest ne "ARGV" && !($rest=~ /::$/) );
 		if( starts_with($tmp,$text)) {
+		    if($firstchar eq "\$" && eval "\%$package$rest" &&
+			   !($rest=~ /::$/)) {
+				$ac='{';
+			} elsif( $firstchar eq '&') {
+				$ac='(';
+			} else {
+				$ac='';
+			}
 			if( $strip_package) {
 				push @result, $firstchar.$rest;
 			} else {
@@ -193,8 +200,6 @@ sub cmpl_symbol
 			}
 		}
 	}
-	$ac=$EMPTY_AC if @result;
-	$ac='(' if @result==1 && substr($result[0],0,1) eq '&';
 	return @result;
 }
 
