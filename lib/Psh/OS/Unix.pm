@@ -140,16 +140,19 @@ sub _give_terminal_to
 
 
 #
-# void _wait_for_system(int PID, [bool QUIET_EXIT])
+# void _wait_for_system(int PID, [bool QUIET_EXIT], [bool NO_TERMINAL])
 #
 # Waits for a program to be stopped/ended, prints no message on normal
 # termination if QUIET_EXIT is specified and true.
+#
+# If NO_TERMINAL is specified and true it won't try to transfer
+# terminal ownership
 #
 
 sub _wait_for_system
 {
 	my($pid, $quiet) = @_;
-        if (!defined($quiet)) { $quiet = 0; }
+	if (!defined($quiet)) { $quiet = 0; }
 
 	my $psh_pgrp = getpgrp;
 
@@ -161,8 +164,11 @@ sub _wait_for_system
 
 	my $term_pid= $job->{pgrp_leader}||$pid;
 
+	_give_terminal_to($term_pid);
+
+	my $output='';
+
 	while (1) {
-		_give_terminal_to($term_pid);
 		if (!$job->{running}) { $job->continue; }
 		my $returnpid;
 		{
@@ -170,11 +176,14 @@ sub _wait_for_system
 			$returnpid = waitpid($pid,&WUNTRACED);
 			$pid_status = $?;
 		}
-		_give_terminal_to($psh_pgrp);
 		last if $returnpid<1;
-		_handle_wait_status($returnpid, $pid_status, $quiet);
+		# Collect output here - we cannot print it while another
+		# process might possibly be in the foreground;
+		$output.=_handle_wait_status($returnpid, $pid_status, $quiet, 1);
 		last if $returnpid == $pid;
 	}
+	_give_terminal_to($psh_pgrp);
+	Psh::Util::print_out($output) if length($output);
 }
 
 #
@@ -185,7 +194,7 @@ sub _wait_for_system
 #
 
 sub _handle_wait_status {
-	my ($pid, $pid_status, $quiet) = @_;
+	my ($pid, $pid_status, $quiet, $collect) = @_;
 	# Have to obtain these before we potentially delete the job
 	my $job= $Psh::joblist->get_job($pid);
 	my $command = $job->{call};
@@ -199,7 +208,6 @@ sub _handle_wait_status {
 		} else {
 			$verb= "\u$Psh::text{error}";
 		}
-		Psh::Util::print_debug("Status: $status\n");
 		$Psh::joblist->delete_job($pid);
 	} elsif (&WIFSIGNALED($pid_status)) {
 		$verb = "\u$Psh::text{terminated} (" .
@@ -211,8 +219,12 @@ sub _handle_wait_status {
 		$job->{running}= 0;
 	}
 	if ($verb && $visindex>0) {
-		Psh::Util::print_out( "[$visindex] $verb $pid $command\n");
+		my $line="[$visindex] $verb $pid $command\n";
+		return $line if $collect;
+		
+		Psh::Util::print_out($line );
 	}
+	return '';
 }
 
 
@@ -262,7 +274,8 @@ sub execute_complex_command {
 
 			($pid,@tmp)= _fork_process($eval_thingie,$words,
 									   $fgflag,$text,$options,
-									   $pgrp_leader,$termflag,$forcefork);
+									   $pgrp_leader,$termflag,
+									   $forcefork);
 
 			if( !$i && !$pgrp_leader) {
 				$pgrp_leader=$pid;
@@ -356,7 +369,7 @@ sub _remove_redirects {
 # void fork_process( code|program, words,
 #                    int fgflag, text to display in jobs,
 #                    redirection options,
-#                    pid of pgroupleader, set terminal flag,
+#                    pid of pgroupleader, do not set terminal flag,
 #                    force a fork?)
 #
 
@@ -381,12 +394,13 @@ sub _fork_process {
 			Psh::Util::print_error_i18n('fork_failed');
 			return (-1,undef);
 		}
+
 		$Psh::OS::Unix::forked_already=1;
 		close(READ) if( $pgrp_leader);
 		_setup_redirects($options);
-		remove_signal_handlers();
 		setpgid(0,$pgrp_leader||$$);
-		_give_terminal_to($$) if $fgflag && !$termflag;
+		_give_terminal_to($pgrp_leader||$$) if $fgflag && !$termflag;
+		remove_signal_handlers();
 
 		if( ref($code) eq 'CODE') {
 			&{$code};
@@ -405,6 +419,7 @@ sub _fork_process {
 		}
 	}
 	setpgid($pid,$pgrp_leader||$pid);
+	_give_terminal_to($pgrp_leader||$pid) if $fgflag && !$termflag;
 	return ($pid,undef);
 }
 
@@ -670,17 +685,15 @@ Psh::OS::Unix - contains Unix specific code
 
 =head1 SYNOPSIS
 
-	use Psh::OS;
+	use Psh::OS::Unix;
 
 =head1 DESCRIPTION
 
-TBD
+Implements the Unix specific parts of Psh::OS
 
 =head1 AUTHOR
 
-blaaa
-
-=head1 SEE ALSO
+various
 
 =cut
 

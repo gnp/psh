@@ -180,7 +180,7 @@ my $input;
 	'executable' => sub {
 		@newargs= $executable_expand_arguments?variable_expansion($_[1]):
 		  $_[1];
-		@newargs = Psh::Parser::glob_expansion(\@newargs,' ');
+		@newargs = Psh::Parser::glob_expansion(\@newargs);
 		@newargs = map { Psh::Parser::unquote($_)} @newargs;
 
 		return ("$_[2] @newargs", ["$_[2]",@newargs], 0, undef, );
