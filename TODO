@@ -14,7 +14,7 @@ We need prompt support. Later on we can add the psh1 "theme" system.
 Loose-Ideas:
 - >{} and <{} redirects
 - Auto-directory-changing
-- Error Correction
+- Error Correction - see aibash project for ideas
 - we have "sub" already for re-definable Perl subs. We should also have "function" for shell functions and maybe something for C functions.
 
 
