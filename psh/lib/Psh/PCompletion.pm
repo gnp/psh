@@ -294,7 +294,8 @@ sub pcomp_list {
 	
     # -S suffix
     @l = map { $_ . $cs->{suffix} } @l if defined $cs->{suffix};
-	
+
+	unshift @l,'';
     return @l;
 }
 

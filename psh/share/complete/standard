@@ -1,5 +1,5 @@
 #!pshcomplete
-# gzip compress zcat zmore gunzip uncompress gzcat
+# gzip compress zcat zmore gunzip uncompress gzcat strip mkdir rmdir chown ln more less cat su nohup exec nice eval trace truss strace sotruss gdb sudo make gmake pmake configure umount mount
 
 sub _make_targets {
     my ($cur, $line, $start, $cmd) = @_;
@@ -74,3 +74,14 @@ sub _configure_func {
 }
 complete -F _configure_func configure
 
+sub _umount_func {
+	open( MOUNT, "mount |");
+	my @result=();
+	while(<MOUNT>) {
+	  push @result, (split(' '))[0];
+    }
+    close(MOUNT);
+    return @result;
+}
+
+complete -F _umount_func umount mount

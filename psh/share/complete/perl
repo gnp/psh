@@ -13,10 +13,6 @@ sub _perldoc {
         return @Psh::Completion::keyword;
     }
  
-    if ($cur eq '-') {
-        return ('-f ','-r ','-i ','-h ','-t ','-u ',
-		'-m ','-n ','-l ','-F ','-v ','-X ','-q ','-U ');
-    }
 	return ();
 }
 

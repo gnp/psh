@@ -1,0 +1,4 @@
+#!pshcomplete
+# apt-get
+
+complete -W "update dist-upgrade install remove" apt-get
