@@ -45,7 +45,7 @@ use vars qw($bin $news_file $cmd $echo $host $debugging
 			$VERSION $term @absed_path $readline_saves_history
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
-            $result_array $which_regexp $ignore_die
+			$result_array $which_regexp $ignore_die $old_shell
 			@val @wday @mon @strategies @unparsed_strategies @history
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval);
@@ -961,16 +961,16 @@ sub news
 
 sub minimal_initialize
 {
-	$|                           = 1;                # Set ouput autoflush on
+	$|                           = 1;                # Set output autoflush on
 
 	#
-    # Set up accessible psh:: package variables:
+	# Set up accessible psh:: package variables:
 	#
 
-    @strategies                  = @default_strategies;
+	@strategies                  = @default_strategies;
 	@unparsed_strategies         = @default_unparsed_strategies;
 	$eval_preamble               = 'package main;';
-    $currently_active            = 0;
+	$currently_active            = 0;
 	$result_array                = '';
 	$perlfunc_expand_arguments   = 0;
 	$executable_expand_arguments = 1;
@@ -981,10 +981,8 @@ sub minimal_initialize
 
 	$news_file                   = "$bin.NEWS";
 
-	# I think that the "SHELL" environment variable is supposed to
-	# be the login shell (at least no other shell I tried set it), so
-	# lets set some other variable:
-	$ENV{CURRENT_SHELL} = $0;
+	$old_shell = $ENV{SHELL};
+	$ENV{SHELL} = $0;
 	$ENV{PWD} = cwd;
 
 	Psh::OS::setup_signal_handlers();

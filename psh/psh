@@ -86,6 +86,12 @@ END {	# try and write the history no matter how we exit
 	}
 }
 
+
+END {	# restore the old $ENV{SHELL}
+	$ENV{SHELL} = $Psh::old_shell;
+}
+
+
 exit 0;
 
 
