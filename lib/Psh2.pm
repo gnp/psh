@@ -447,18 +447,22 @@ sub _escape {
 #
 
 sub _glob {
-    my ($level, $dir, $auto_recurse, $opts, @re)= @_;
-    $level++;
-    if ($level>20) {
+    my ($self, $level, $dir, $auto_recurse, $opts, @re)= @_;
+    if (++$level>20) {
 	die "glob: too deep recursion!";
     }
+
+    if ($re[0] eq '\.\.') {
+        shift @re;
+        $dir= abs_path($self, "$dir/../");
+    }
+    my $regexp= $re[0];
 
     opendir(DIR, $dir) or return ();
     my @files= grep { $_ ne '.' and $_ ne '..' } readdir(DIR);
     closedir(DIR);
 
     my @results=();
-    my $regexp= $re[0];
     if ($regexp eq '.*.*' or $regexp eq '**') {
 	if ($auto_recurse) {
 	    die "No double auto-recurse possible!";
@@ -470,7 +474,7 @@ sub _glob {
 	@files= map { catdir_fast($dir,$_)} @files;
 	foreach my $tmp (@files, $dir) {
 	    if (-d $tmp) {
-		push @results, _glob($level, $tmp, 1, $opts, @re);
+		push @results, _glob($self, $level, $tmp, 1, $opts, @re);
 	    }
 	}
 	return @results;
@@ -488,7 +492,7 @@ sub _glob {
 	foreach (@files) {
 	    my $tmp= catdir_fast($dir,$_);
 	    if (-d $tmp) {
-		push @results, _glob($level, $tmp, 1, $opts, @re);
+		push @results, _glob($self, $level, $tmp, 1, $opts, @re);
 	    }
 	}
     }
@@ -504,7 +508,7 @@ sub _glob {
     if (@re) {
 	foreach (@files) {
 	    if (-d $_) {
-		push @results, _glob($level, $_, 0, $opts, @re);
+		push @results, _glob($self, $level, $_, 0, $opts, @re);
 	    }
 	}
 	return @results;
@@ -565,7 +569,11 @@ sub glob {
 	$pattern=~ s/\?/./g;
 	@re= split /\//, $pattern;
     }
-    return _glob( 0, $dir, 0, $opts, @re );
+    if (@re and $re[0] eq '') { # absolute path pattern
+        shift @re;
+        $dir= $self->rootdir();
+    }
+    return $self->_glob( 0, $dir, 0, $opts, @re );
 }
 
 sub files_ending_with {
