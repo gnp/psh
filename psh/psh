@@ -78,7 +78,7 @@ my @completion_buffer      = ();
 my %perl_builtins;
 my %perl_builtins_noexpand;
 my @absed_path    = ();
-
+my %signal_description;
 
 
 ##############################################################################
@@ -580,6 +580,8 @@ sub builtin_fg
 	$arg =~ s/\%//;
 
 	restart_job(1, $arg - 1);
+
+	return undef;
 }
 
 
@@ -595,6 +597,8 @@ sub builtin_bg
 	$arg =~ s/\%//;
 
 	restart_job(0, $arg - 1);
+
+	return undef;
 }
 
 
@@ -976,6 +980,35 @@ sub matches_perl_binary
 	return 0;
 }
 
+
+#
+# string signal_name( int )
+# Looks up the name of a signal
+#
+
+sub signal_name {
+	my $signalnum = shift;
+	my @numbers= split ",",$Config{sig_num};
+	my @names= split " ",$Config{sig_name};
+	for( my $i=0; $i<$#numbers; $i++)
+	{
+		return $names[$i] if( $numbers[$i]==$signalnum);
+	}
+	return $signalnum;
+}
+
+#
+# string signal_description( int signal_number | string signal_name )
+# returns a descriptive name for the POSIX signals
+#
+
+sub signal_description {
+	my $signal_name= signal_name(shift);
+	if( exists $signal_description{$signal_name}) {
+		return "SIG$signal_name - $signal_description{$signal_name}";
+	}
+	return "signal $signal_name";
+}
 
 #
 # EVALUATION STRATEGIES:
@@ -1831,6 +1864,19 @@ sub initialize
 	@wday      = qw(Sun Mon Tue Wed Thu Fri Sat);
 	@mon       = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
+	%signal_description = (
+						   'TTOU' => 'TTY output',
+						   'TTIN' => 'TTY input',
+						   'KILL' => 'killed',
+						   'FPE'  => 'floating point exception',
+						   'SEGV' => 'segmentation fault',
+						   'PIPE' => 'broken pipe',
+						   'BUS'  => 'bus error',
+						   'ABRT' => 'aborted',
+						   'ILL'  => 'illegal instruction',
+						   'TSTP' => 'stop typed at TTY'
+						   );
+
 	@val = ();
 }
 
@@ -2112,19 +2158,14 @@ sub my_system
 	}
 
 	eval {
-	        # Markus Peter's version; may be better in some ways,
-	        # but I couldn't find any way to do the setpgrp
-	        #  open(TMPOUT,">-");
-		#  open(TMPIN,"-");
-		#  my $pid= open2(">&TMPOUT", "<&TMPIN", $call);
-	        my $pid;
+		my $pid;
 		unless ($pid = fork) { #child
 		  open(STDIN,"-");
 		  open(STDOUT,">-");
 		  open(STDERR,">&STDERR");
 		  remove_signal_handlers();
 		  setpgid(getpid(),getpid());
-		  if ($fgflag) { give_terminal_to(getpid()); }
+		  if( $fgflag) { give_terminal_to(getpid()); }
 		  exec $call;
 		  print_error("Error (exec $call) failed.");
 		  exit -1;
@@ -2174,13 +2215,10 @@ sub wait_for_system
 	  }
 	  give_terminal_to($psh_pgrp);
 	  print_debug("[[Just gave myself back the terminal. $pid $returnpid $pid_status]]\n");
+	  handle_wait_status($returnpid, $pid_status, $quiet);
 	  if ($returnpid == $pid) { last; }
-	  # TODO: What does $returnpid != $pid mean? Could it in fact
-	  # happen?
-	  print_error("Waiting for $pid, got $returnpid. The most recent author didn't know what that meant. Please fix. \n");
 	}
-	handle_wait_status($pid, $pid_status, $quiet);
-      }
+}
 
 #
 # void handle_wait_status(int PID, int STATUS, bool QUIET_EXIT)
@@ -2200,10 +2238,12 @@ sub handle_wait_status {
     if (!$quiet) { $verb = 'Done'; }
     delete_from_joblist($pid);
   } elsif (&WIFSIGNALED($pid_status)) {
-    $verb = 'Terminated (signal ' . WTERMSIG($pid_status) . ')';
+    $verb = 'Terminated ( ' .
+		signal_description(WTERMSIG($pid_status)) . ')';
     delete_from_joblist($pid);
   } elsif (&WIFSTOPPED($pid_status)) {
-    $verb = 'Stopped (signal ' . WSTOPSIG($pid_status) . ')';
+    $verb = 'Stopped ( ' .
+		signal_description(WSTOPSIG($pid_status)) . ')';
     record_job_running($pid,0);
   }
   if ($verb) {
@@ -2220,20 +2260,9 @@ sub handle_wait_status {
 
 sub reap_children
 {
-	for($i = 0; $i <= $#jobs_order; $i++) {
-		my $visindex = $i+1;
-		my $pid      = $jobs_order[$i];
-		my $command  = get_job_command($pid);
-
-	        my $retval = waitpid($pid, &WNOHANG);
-
-    	        if ($retval == $pid) {
-			delete_from_joblist( $pid);
-			print_out( "[$visindex] Done $pid $command\n");
-                } elsif ($retval < 0) { # process no longer exists
-		        delete_from_joblist( $pid);
-                        print_error( "[$visindex] Error, assuming done $pid $command\n");
-		}
+	my $returnpid=0;
+	while (($returnpid = waitpid(-1, &WNOHANG | &WUNTRACED)) > 0) {
+		handle_wait_status($returnpid, $?);
 	}
 }
 
@@ -2295,7 +2324,7 @@ sub restart_job
 		}
 		
 		if ($job_to_start < 0) { # failing that, just use
-                                         # highest-numbered job
+                                 # highest-numbered job
 		  $job_to_start = scalar(@jobs_order) - 1;
 		}
 
@@ -2317,11 +2346,12 @@ sub restart_job
 			}
 			my $visindex = get_job_number($pid);
 			print_out("[$visindex] $verb $pid $command\n");
-			if (!$qRunning) { continue_job($pid); }
 
 			if($fg_flag) {
 #				tcsetpgrp($pid); # TODO: Is this right?
 				eval { wait_for_system($pid, 0); };
+			} elsif( !$qRunning) {
+				continue_job($pid);
 			}
 		}
 	}
@@ -2455,20 +2485,10 @@ sub get_job_command
 # Returns true if the job with the given PID exists and is currently
 # running (as far as psh can tell), false otherwise.
 #
-# Also checks wether any untraced children terminated
-# (therefore the strange while is necessary)
-#
 
 sub is_job_running
 {
 	my ($pid)     = @_;
-	my $returnpid;
-
-	while (($returnpid = waitpid($pid, &WNOHANG | &WUNTRACED)) > 0) {
-		$returnpid = waitpid($pid, &WNOHANG | &WUNTRACED);
-		if ($returnpid == $pid) { handle_wait_status($returnpid, $?); }
-	}
-
 	return $job_running{$pid};
 }
 
