@@ -2,11 +2,12 @@ package Psh::Builtins::Fg;
 
 use Psh::Util ':all';
 
-=item * C<fg JOB>
+=item * C<fg [%JOB|COMMAND]>
 
 Bring a job into the foreground. If JOB is omitted, uses the
 highest-numbered stopped job, or, failing that, the highest-numbered job.
-JOB may either be a job number or a word that occurs in the command used to create the job.
+JOB may either be a job number or a command. If you specify a command
+it will launch a new program (this is for consisteny with the bg command)
 
 =cut
 
@@ -20,10 +21,14 @@ sub bi_fg
 	}
 
 	$arg = -0 if (!defined($arg) or ($arg eq ''));
-	$arg =~ s/\%//;
-	if( $arg =~ /[^0-9]/) {
+	if( $arg !~ /^\%/) {
 		Psh::evl($arg);
 		return undef;
+	}
+	$arg =~ s/\%//;
+
+	if ( $arg !~ /^\d+$/) {
+		$arg= $Psh::joblist->find_last_with_name($arg,0);
 	}
 
 	Psh::OS::restart_job(1, $arg - 1);

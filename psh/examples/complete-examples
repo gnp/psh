@@ -140,8 +140,8 @@ complete -a unalias
 #
 
 # I need to know how these commands of psh work more.  FIXIT!!!
-complete -A stopped -P '%' bg
-complete -j -P '%' fg jobs disown
+complete -A stopped -P % bg
+complete -j -P % fg jobs disown
 
 # this is not quite right at this point
 # need a way to get output of builtin --- FIXIT!!!
