@@ -76,16 +76,36 @@ function, call the subroutine associated with that built-in.
 
 If the first word of the input line matches either a built-in Perl
 function, or a defined subroutine in the main:: package, pass the line
-to eval. Commas may be automatically inserted between arguments if
-needed, depending on the $psh::perlfunc_insert_commas configuration
-variable, see below.
+to eval. If $psh::perlfunc_expand_arguments is true and the line
+contains no parens, or braces or commas (except for {a,b,c} as in
+shell brace-expansion), then this strategy tries to
+interpret the arguments on the command line in a "shell-like" manner:
+strings are literal except for variable expansion, brace expansion,
+and glob expansion. 
+
+The idea of this strategy is to allow perl functions, especially
+subroutines in main, to be called like "ordinary commands" (i.e.,
+executables on disk). Or put another way, the idea is to replace
+bash's "shell function" capacity with ordinary Perl subroutines. The
+slogan is, "If the command line looks like an ordinary shell command,
+interpret it like one, even if the first word is a Perl subroutine."
+
+=item * C<perlscript>
+
+If the first word of the input line matches the name of a file the
+path $ENV{PATH} which starts with #!/.../perl, and that perl is the
+same as the Perl under which psh is running, psh will fork and run
+the script using the already-loaded Perl interpreter. The idea is to
+save the exec half of the fork-exec that the executable strategy would 
+do; typically the exec is more expensive. Right now this strategy can
+only handle the B<-w> command-line switch on the #! line.
 
 =item * C<executable>
 
 If the first word of the input line matches the name of an executable
 file in the path given by $ENV{PATH}, then pass the line to
 system. Perl variable substitution will be done on the line first if
-the $psh::executable_interpolate_arguments configuration variable is
+the $psh::executable_expand_arguments configuration variable is
 true. 
 
 =item * C<eval>
@@ -216,6 +236,12 @@ The name of the current shell.
 
 The command serial number in the currently-executing processing loop.
 
+=item $psh::currently_active (0)
+
+The pid of the process B<psh> will currently forward signals to, or 0
+if B<psh> will handle the signals internally. Usually
+0 unless B<psh> is waiting for a process in the "foreground".
+
 =item $psh::debugging (1 if -d option specified, 0 if not)
 
 Whether B<psh>'s internal debugging output should be produced.
@@ -235,7 +261,13 @@ Note that scalar values are
 pushed directly onto @psh::val, but array values are pushed by
 reference. 
 
-=item $psh::executable_interpolate_arguments (0)
+=item $psh::eval_preamble ("package main;")
+
+Every Perl expression that psh evaluates as part of its read-eval loop
+is prepended with this string, intended primarily to set the expected
+package context.
+
+=item $psh::executable_expand_arguments (0)
 
 If this variable is true, then the following
 procedure is applied to each argument ARG of the command line before
@@ -265,13 +297,16 @@ The number of lines of command history to keep.
 
 A file giving news for the shell.
 
-=item $psh::perlfunc_insert_commas (0)
+=item $psh::perlfunc_expand_arguments (1)
 
-If this variable is true, then on command lines interpreted by the
-perlfunc strategy, commas will be inserted between the arguments as
-long as the command line contains no parens, braces, or commas. For 
-example, 'print "hello" $dolly' will be sent to eval as 'print
-"hello",$dolly'.
+If this variable is true, then command lines interpreted by the
+perlfunc strategy which contain no parens, or  braces or commas except 
+in bash-like brace-expansion expressions, will not
+be simply evaluated. Rather, they will be interpreted much like
+traditional shells do: the line will be spilt into words, which
+undergo globbing, brace expansion, and variable expansion, and the
+resulting array of words is passed to the specified function as its
+arguments. 
 
 =item $psh::prompt ('\s\$')
 
@@ -424,7 +459,17 @@ an array context.
 The loop inside C<psh> will clobber C<$1> and other variables because
 it uses matches to implement some of its special functions.
 
-Very little error checking is done.
+Very little error checking is done. For example, if you evaluate
+!blork by the bang strategy and there is no command "blork" on your
+system, you get no feedback whatsoever.
+
+Right now, job control simply assumes that the POSIX interface is
+fully implemented. There should be a way to turn job control off if
+this is not the case.
+
+The "exit status" of programs invoked in the foreground by the
+"executable" strategy (or even the "bang" strategy) isn't available
+from within psh.
 
 Note that since expressions like 'use foo' return undef when sent to
 eval(), it is not possible to use that return value as indication of
@@ -453,7 +498,7 @@ there is a Perl shell module called F<PSH.pm> which is quite similar
 to this B<psh>. It is designed to provide a command line that can be called
 inside some other program via C<PSH::prompt();>, but a small file
 F<psh.pl> is also included that uses PSH to provide a standalone
-shell.
+shell. Perhaps some merger of these efforts would be beneficial to all?
 
 =head1 FILES
 

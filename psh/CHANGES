@@ -1,6 +1,130 @@
 CHANGES
 
 ------------------------------------------------------------
+0.004pre1 (Limited Release)                     [1999-12-04]
+------------------------------------------------------------
+
+KNOWN BUGS:
+
+  * You have to say 'exit' twice to get out.
+
+  * 'ls -l' works, but 'ls' doesn't
+
+Concerning these two main issues:
+
+
+  1) The lexicals in psh were masking main package variables
+     in eval.
+
+  2) All of the child processes for background jobs were in
+     'psh's process group, which was also the foreground
+     process group of the terminal controlling psh. This
+     meant that a Control-C to psh would send SIGINT to psh
+     *and* to all its children. (Try this in an earler
+     version of psh: do xclock &, then xcalc &, and then hit
+     control-C.) Not what you really want in job control.
+     This led me to read the source for bash 2.03 (jobs.c in
+     particular), and I mimicked POSIX job control from
+     there. This involved changing the forking code so that
+     each child could set its own process group.  Some of
+     the lines of Perl I wrote are still magic to me, and
+     there may be some unnecessary ones that I put in trying
+     to get it all to work. Perhaps a Unix signal/job control
+     expert could look it over someday. But it seems to work,
+     at least for me, now...
+
+Contributions from Glen Whitney are:
+
+  * In gw2, the fact that handle_message would die from the
+    main loop meant that installing a builtin with a bug in
+    it and trying to execute it would cause psh to die. That
+    seemed bad, so I added an extra eval protecting the call
+    to $strategy_eval{$strat} so that problems in there
+    wouldn't die all the way back to the main loop.
+
+  * Fixed a few typos: $pid => $temp in builtin_kill; next;
+    => return undef; if no strategy succeeded.
+
+  * Added functions to perform various shell-like expansions
+    on command words, that evaluation strategies may use.
+
+  * Changed the perlfunc strategy to try to evaluate simple
+    command lines beginning with the name of a perl function
+    as if they were shell commands, with the words of the
+    expanded argument line passed to the perl function as
+    arguments. This lets perl functions play a similar role
+    in psh that shell functions do in bash.
+
+  * Fixed problem (1) by moving protected_eval and
+    variable_expansion to the top of the file.
+
+  * Renamed perlfunc_insert_commas and
+    executable_interpolate_arguments to perlfunc_expand_arguments
+    and executable_expand_arguments to have consistent terminology
+    with other shells and to indicate that they are now trying to
+    do the same thing.
+
+  * Made perlfunc_expand_arguments default to true. 
+
+  * Added perlscript strategy, which runs the script in a
+    copy of the current interpreter, without execing.
+
+  * Allowed eval and perlfunc strategies to run in the background
+    also, if the command lines end in &. (So you can say
+    sleep(100)& and continue working in the main psh, although
+    that's not a very useful example.)
+
+  * Made decompose split off & from the last word, to move a tiny
+    step closer to uniform treatment of &.
+
+  * Fixed problem (2) by mimicking bash-2.03 job control using
+    the POSIX module. This means that psh-gw3 will definitely not
+    work on non-POSIX platforms. The job control should be cleaned
+    up a bit (I think) and made able to be turned off and on.
+
+Changes from Simon Huggins:
+
+  * Control-C aborts Readline, printing a new line.
+
+  * Prompt strings can have escapes like \07 (ASCII BEL) or
+    \10 (ASCII LF).
+
+Changes from Markus Peter:
+
+  * Fix a nasty bug in executable completion which
+    will change the current working directory
+    unwantedly
+
+  * Just entering "alias" without a command to
+    alias will display an error message now. The
+    way Glen included the aliases into the regular
+    built_in system is clever because of its elegency
+    but I cannot imagine a proper way a list of
+    aliases or displaying what an alias does would
+    still work with this system. If there are no
+    objections I´ll add the old alias code as
+    new evaluation strategy.
+
+  * \h in prompts agains uses the short hostname
+    as bash does (vanished with the gw1 patch),
+    you can now use \H for the longname
+
+  * Fixed a bug in is_job_running (still running
+    children could under certain circumstances be
+    removed from the joblist)
+
+Plus:
+
+  * Block comments and moving subroutines around into groups
+
+  * Reformatting contributed code to project indentation style.
+
+  * A few more TODO items.
+
+  * Regenerated README from psh.pod.
+
+
+------------------------------------------------------------
 0.003-gw2 (Limited Release)
 ------------------------------------------------------------
 
