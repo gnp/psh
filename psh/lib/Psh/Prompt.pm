@@ -120,7 +120,7 @@ sub prompt_string
 
 	# Substitute program execution (for bash compatibility)
 	$temp=~ s/\\\$\(/\$\(/g;
-	while ($temp =~ m/^(.*)\$\((.+?)\)(.*)$/) {
+	while ($temp =~ m/^(.*)\$\((.+?)\)(.*)$/s) {
 		my $sub='';
 		my ($save1, $code, $save2) = ($1, $2, $3);
 		eval {
