@@ -25,4 +25,10 @@ sub bi_printenv
 }
 
 
+sub cmpl_printenv {
+	my( $text, $pre, $start, $line, $startchar) = @_;
+	return 1,grep { Psh::Util::starts_with($_,$text)} keys %ENV;
+}
+
+
 1;
