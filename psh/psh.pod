@@ -564,6 +564,9 @@ an array context.
 
 =head1 LIMITATIONS
 
+Due to limitations of the Win32 type of operating system there's no
+job control available on those systems.
+
 The loop inside C<psh> will clobber C<$1> and other variables because
 it uses matches to implement some of its special functions.
 
