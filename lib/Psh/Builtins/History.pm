@@ -7,6 +7,11 @@ use Psh::Util ':all';
 
 Prints out [the last n] entries in the history
 
+=item * C<history> text [n]
+
+Searches [the last n] entries in the command history and
+prints them if they contain "text".
+
 =cut
 
 
@@ -14,14 +19,24 @@ sub bi_history
 {
 	my $i;
 	my $num = @Psh::history;
+	my $grep= undef;
 
 	return undef unless $num;
 
-	if ($_[0] && $_[0]=~/^\d+$/) {
-		$num=$_[0] if $_[0]<$num;
+	if ($_[1]) {
+		my @args=@{$_[1]};
+		while (my $arg=shift @args) {
+			if ($arg=~/^\d+$/) {
+				$num=$arg if $arg<$num;
+			}
+			if ($arg=~/^\S+$/) {
+				$grep=$arg;
+			}
+		}
 	}
 
 	for ($i=@Psh::history-$num; $i<@Psh::history; $i++) {
+		next if $grep and $Psh::history[$i]!~/\Q$grep\E/;
 		print_out(' '.sprintf('%3d',$i+1).'  '.$Psh::history[$i]."\n");
 	}
 	return undef;

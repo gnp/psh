@@ -625,17 +625,21 @@ sub iget
 	return undef unless defined $line;
 	chomp $line;
 
-	if ($line && $line !~ m/^\s*$/) {
-		if (!@history || $history[$#history] ne $line) {
-			$term->addhistory($line) if $term;
-			push(@history, $line);
-			if( @Psh::history>$Psh::history_length) {
-				splice(@Psh::history,0,-$Psh::history_length);
-			}
+    add_history($line);
+	return $line . "\n";         # This is expected by other code.
+}
+
+sub add_history
+{
+	my $line=shift;
+	return unless $line or $line =~ /^\s*$/;
+	if (!@history || $history[$#history] ne $line) {
+		$term->addhistory($line) if $term;
+		push(@history, $line);
+		if( @Psh::history>$Psh::history_length) {
+			splice(@Psh::history,0,-$Psh::history_length);
 		}
 	}
-
-	return $line . "\n";         # This is expected by other code.
 }
 
 sub save_history

@@ -80,16 +80,20 @@ sub variable_expansion
 
 	for $Psh::word (@{$Psh::arref}) {
 		if    ($Psh::word =~ m/^\'/) { push @Psh::retval, $Psh::word; }
-		elsif ($Psh::word =~ m/^\"/) { 
-			local $Psh::val = eval("$Psh::eval_preamble $Psh::word");
+		elsif ($Psh::word =~ m/^\"/) {
+			local $Psh::word2= $Psh::word;
+			$Psh::word2 =~ s/\\/\\\\/g;
+			local $Psh::val = eval("$Psh::eval_preamble $Psh::word2");
 
 			if ($@) { push @Psh::retval, $Psh::word; }
 			else    { push @Psh::retval, "\"$Psh::val\""; }
 		} else {
-			local $Psh::val = eval("$Psh::eval_preamble \"$Psh::word\"");
+			local $Psh::word2= $Psh::word;
+			$Psh::word2 =~ s/\\/\\\\/g;
+			local $Psh::val = eval("$Psh::eval_preamble \"$Psh::word2\"");
 
 			if ($@) { push @Psh::retval, $Psh::word; }
-			else    { push @Psh::retval, split(" ",$Psh::val); }
+			else    { push @Psh::retval, split(/(?<!\\) /,$Psh::val); }
 		}
 	}
 
