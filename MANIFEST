@@ -11,6 +11,7 @@ docs/psh2.pod
 docs/design
 lib/Psh2.pm
 lib/Psh2/Builtins/Alias.pm
+lib/Psh2/Builtins/Beep.pm
 lib/Psh2/Builtins/Bg.pm
 lib/Psh2/Builtins/Cd.pm
 lib/Psh2/Builtins/Delenv.pm

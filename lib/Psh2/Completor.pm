@@ -50,7 +50,7 @@ sub filenames {
 
     if ($insert) {
         my $prepend='';
-        if ($insert=~/[^a-zA-Z0-9_\/-]/) {
+        if ($insert=~/[^.a-zA-Z0-9_\/-]/) {
             $prepend='"';
             $append= '"'.$append if $append;
         }
@@ -59,7 +59,7 @@ sub filenames {
         $returnline.=$self->{rest_of_line};
     }
 
-    if ($tocomplete=~ m:/:) {
+    if (@tmp and $tmp[0]=~ m:/:) {
         @tmp= map { s:^.*/::; $_ } @tmp;
     }
 
