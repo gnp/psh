@@ -2,9 +2,6 @@ package Psh2;
 
 use strict;
 
-require POSIX;
-require Psh2::Parser;
-
 if ($^O eq 'MSWin32') {
     require Psh2::Windows;
 } else {
@@ -12,6 +9,10 @@ if ($^O eq 'MSWin32') {
 }
 
 build_builtin_list();
+
+require POSIX;
+require Psh2::Parser;
+
 
 sub AUTOLOAD {
     no strict;
@@ -355,8 +356,9 @@ sub _recursive_glob {
     opendir( DIR, $dir) || return ();
     my @files= readdir(DIR);
     closedir( DIR);
+    $pattern= qr{^$pattern$};
     my @result= map { catdir(undef, $dir,$_) }
-      grep { /^$pattern$/ } @files;
+      grep { $_ =~ $pattern } @files;
     foreach my $tmp (@files) {
 	my $tmpdir= catdir(undef, $dir,$tmp);
 	next if ! -d $tmpdir || !no_upwards($tmp);
@@ -398,7 +400,7 @@ sub glob {
 	$pattern=~ s|^\~([^/]+)|&get_home_dir($1)|e;
     }
     
-    return $pattern if $pattern !~ /[*?]/;
+    return $pattern if $pattern !~ /[*?\[\]]/;
     
     # Special recursion handling for **/anything globs
     if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
@@ -412,12 +414,15 @@ sub glob {
 	$pattern=~s/\?/./g;
 	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
 	@result= map { substr($_,$tlen) } _recursive_glob($pattern,$dir);
-    } elsif( $pattern=~ m:/:) {
+    } elsif( index($pattern,'/')>-1 or 
+	     index($pattern,'[')>-1) {
+	print STDERR "Slow glob!\n";
 	# Too difficult to simulate, so use slow variant
 	my $old=$ENV{PWD};
 	CORE::chdir $dir;
 	$pattern=_escape($pattern);
-	@result= eval { CORE::glob($pattern); };
+	my $coderef= eval '\&CORE::glob';
+	@result= eval { &$coderef($pattern); };
 	CORE::chdir $old;
     } else {
 	# The fast variant for simple matches
@@ -425,9 +430,10 @@ sub glob {
 	$pattern=~s/\*/.*/g;
 	$pattern=~s/\?/./g;
 	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
-	
+	$pattern= qr{^$pattern$};
+
 	opendir( DIR, $dir) || return ();
-	@result= grep { /^$pattern$/ } readdir(DIR);
+	@result= grep { $_ =~ $pattern } readdir(DIR);
 	closedir( DIR);
     }
     return @result;
@@ -572,8 +578,10 @@ sub list_option {
 		    $_= lc($_);
 		    $builtin{$_}= 1;
 		}
+		$unshift= $tmp;
 	    }
 	}
+	unshift @INC, $unshift;
     }
 }
 
