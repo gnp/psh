@@ -1,4 +1,4 @@
-q#
+#
 # CHANGES.pod
 #
 # A reverse-chronological order list of changes to the Perl Shell.
