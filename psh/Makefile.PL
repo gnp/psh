@@ -22,7 +22,8 @@ WriteMakefile (
 
 		'lib/Psh/Locale/Base.pm'    => '$(INST_LIBDIR)/Psh/Locale/Base.pm',
 		'lib/Psh/Locale/Default.pm' => '$(INST_LIBDIR)/Psh/Locale/Default.pm',
-		'lib/Psh/Locale/German.pm'  => '$(INST_LIBDIR)/Psh/Locale/German.pm'
+		'lib/Psh/Locale/German.pm'  => '$(INST_LIBDIR)/Psh/Locale/German.pm',
+		'lib/Psh/Locale/Spanish.pm'  => '$(INST_LIBDIR)/Psh/Locale/Spanish.pm',
 			   },
 	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
 );
