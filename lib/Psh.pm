@@ -757,56 +757,58 @@ sub finish_initialize
 	}
 
 
-    #
-    # Set up Term::ReadLine:
-    #
-	eval "use Term::ReadLine;";
-
-	if ($@) {
-		$term = undef;
-		print_error_i18n(no_readline);
-	} else {
-		eval { $term= Term::ReadLine->new('psh'); };
-		if( $@) {
-			# Try one more time after a second, maybe the tty is
-			# not setup
-			sleep 1;
+	if (-t STDIN) {
+		#
+		# Set up Term::ReadLine:
+		#
+		eval "use Term::ReadLine;";
+		
+		if ($@) {
+			$term = undef;
+			print_error_i18n(no_readline);
+		} else {
 			eval { $term= Term::ReadLine->new('psh'); };
 			if( $@) {
-				print_error_i18n(readline_error,$@);
-				$term= undef;
+				# Try one more time after a second, maybe the tty is
+				# not setup
+				sleep 1;
+				eval { $term= Term::ReadLine->new('psh'); };
+				if( $@) {
+					print_error_i18n(readline_error,$@);
+					$term= undef;
+				}
+			}
+			if( $term) {
+				$term->MinLine(10000);   # We will handle history adding
+				# ourselves (undef causes trouble).
+				$term->ornaments(0);
+				print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
+				if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
+					$readline_saves_history = 1;
+					$term->StifleHistory($history_length); # Limit history
+				}
+				&Psh::Completion::init();
+				$term->Attribs->{completion_function} =
+				  \&Psh::Completion::completion;
 			}
 		}
-		if( $term) {
-			$term->MinLine(10000);   # We will handle history adding
-			# ourselves (undef causes trouble).
-			$term->ornaments(0);
-			print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
-			if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
-				$readline_saves_history = 1;
-				$term->StifleHistory($history_length); # Limit history
+
+		#
+		# Set up Term::Size:
+		#
+		eval "use Term::Size 'chars'";
+		
+		if ($@) {
+			print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
+			eval "use Term::ReadKey";
+			if( $@) {
+				print_debug_class('i',"[Term::ReadKey not available - no resize handling!]\n");
 			}
-			&Psh::Completion::init();
-			$term->Attribs->{completion_function} =
-				\&Psh::Completion::completion;
 		}
+		else    { print_debug_class('i',"[Using &Term::Size::chars().]\n"); }
+
+		Psh::OS::reinstall_resize_handler();
 	}
-
-    #
-    # Set up Term::Size:
-    #
-	eval "use Term::Size 'chars'";
-
-	if ($@) {
-		print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
-		eval "use Term::ReadKey";
-		if( $@) {
-			print_debug_class('i',"[Term::ReadKey not available - no resize handling!]\n");
-		}
-	}
-	else    { print_debug_class('i',"[Using &Term::Size::chars().]\n"); }
-
-	Psh::OS::reinstall_resize_handler();
 	# ReadLine objects often mess with the SIGWINCH handler
 
 	if (defined($term) and $save_history) {
