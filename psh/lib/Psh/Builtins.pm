@@ -29,6 +29,7 @@ use Cwd;
 use Cwd 'chdir';
 use Psh::Util qw(:all print_list);
 use Psh::OS;
+use Pod::Text;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -572,12 +573,9 @@ sub bi_help
 {
 	my $arg= shift;
 	if( $arg) {
-	        #TODO : We've got POD directives in all of these help
-	        #strings; how can we interpret them to get pretty
-	        #output ?
 		my $tmp= eval '$Psh::Builtins::help_'.$arg;
 		if( $tmp ) {
-		        print $tmp."\n";
+			Psh::OS::display_pod("=over 4\n".$tmp."\n=back\n");
 		} else {
 			print_error_i18n('no_help',$arg);
 		}
@@ -647,6 +645,7 @@ L<psh>
 # indent-tabs-mode:t
 # c-basic-offset:4
 # perl-indent-level:4
+# perl-label-offset:0
 # End:
 
 

@@ -20,8 +20,31 @@ sub get_hostname { return 'localhost'; }
 # (it can be anywhere in PATH I think)
 sub get_known_hosts { return (); }
 
-
 sub exit { CORE::exit( shift); }
+
+
+#
+# void display_pod(text)
+#
+sub display_pod {
+	my $tmp= POSIX::tmpnam;
+	my $text= shift;
+
+	open( TMP,">$tmp");
+	print TMP $text;
+	close(TMP);
+
+	eval {
+		use Pod::Text;
+		Pod::Text::pod2text($tmp,*STDOUT);
+	};
+	if( $@) {
+		print $text;
+	}
+
+	1 while unlink($tmp); #Possibly pointless VMSism
+}
+
 
 # not necessary I think on Win32
 sub reap_children {};
