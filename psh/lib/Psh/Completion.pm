@@ -23,7 +23,7 @@ sub init
 
 	# Only ::Gnu understand it, and ::Perl ignores it silently.
 	$attribs->{completion_display_matches_hook}
-	    = \&perl_symbol_display_match_list;
+	    = \&display_match_list;
 }
 
 {
@@ -126,19 +126,16 @@ sub cmpl_directories
 
 	@result= grep { -d $_ } Psh::OS::glob("$globtext*");
 
-	if(@result==1) {
-		if( -d $result[0]) {
-			$ac='/'.$prepend;
-		} elsif( $prepend eq '"') {
-			$ac=$prepend;
-		}
-	}
+	$ac=$prepend||'';
+
+	@result= map { $_.'/' } @result;
 
 	foreach (@result) {
-		if( m|/([^/]+$)| ) {
+		if( m|/([^/]+/?)$| ) {
 			$_=$1;
 		}
 	}
+
 	return @result;
 }
 
@@ -504,15 +501,18 @@ sub completion
 	return @tmp;
 }
 
-sub perl_symbol_display_match_list {
+sub display_match_list {
     my($matches, $num_matches, $max_length) = @_;
 	shift @$matches;
 
     map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@{$matches});
-	map { $_ =~ s/^([^\/]+)\/$/\001\e[01;34m\002$1\001\e[00m\002\//; } (@{$matches});
-    #$Psh::term->display_match_list($matches);
-	Psh::Util::print_list($matches,$max_length);
-    $Psh::term->forced_update_display;
+	#map { $_ =~ s/^([^\/]+)\/$/\001\e[01;34m\002$1\001\e[00m\002\//; } (@{$matches});
+    $Psh::term->display_match_list($matches);
+	#print STDOUT "\n";
+	#Psh::Util::print_list($matches,$max_length);
+    eval {
+		$Psh::term->forced_update_display if defined $Psh::term;
+	};
 }
 
 1;

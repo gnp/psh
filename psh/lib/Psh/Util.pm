@@ -52,6 +52,7 @@ sub print_error
 sub _print_i18n
 {
 	my( $stream, $text, @rest) = @_;
+	return unless $stream;
 	$text= Psh::Locale::get_text($text);
 	for( my $i=1; $i<=@rest; $i++)
 	{
