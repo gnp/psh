@@ -12,7 +12,7 @@ TODO
 psh
 psh.NEWS
 psh.pod
-test.pl
+tryme
 lib/Psh.pm
 lib/Psh/Job.pm
 lib/Psh/Joblist.pm
