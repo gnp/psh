@@ -1,0 +1,180 @@
+=head1 NAME
+
+psh - Perl Shell
+
+
+=head1 SYNOPSIS
+
+A fairly simple read-eval loop. The C<-w> flag and 'C<use strict>' are
+not employed so that the user is not bound by their stipulations.
+Setting C<$^W = 1> will turn on warnings, and calling 'C<use strict>'
+will (almost) do the usual thing if called by the user (see LIMITATIONS,
+below).
+
+
+=head1 DESCRIPTION
+
+Each line of input is read and immediately evaluated.
+
+Multiline input may be entered by starting with a line like C<E<lt>E<lt>XXX>,
+followed by lines of input not having C<XXX> on a line by itself,
+followed by such a line. If C<XXX> is not specified, then the first
+blank line terminates the input.
+
+An input line beginning with `!' will be given as a parameter to
+the C<system()> Perl function.
+
+An input line beginning with `.' followed by a space and a file name
+will cause the contents of the specified file to be read in and
+evaluated.
+
+If C<$ENV{HOME}> is set, and the file C<$ENV{HOME}/.pshrc> is present,
+it will be read in and evaluated before processing begins. If not,
+but C<.pshrc> is present in the current directory, it will be
+read and executed.
+
+
+=head2 PROMPT STRINGS
+
+Setting the variable C<$psh::prompt> to a string will cause that string
+to be used as the prompt-string. Setting it to a subroutine reference
+causes the result of running that subroutine to be used each time.
+For example,
+
+  $psh::prompt = sub { $i++; "psh [$i]\$ "; }
+
+will cause the prompt to be C<psh [1]$> followed by C<psh [2]$>, and so on.
+
+C<psh> uses some of the same ``prompting variables'' as C<bash>. They are
+accessed by placing a backslash followed by the code in the prompt string,
+either hard coded, or as returned by the prompt string function. The
+variables supported are:
+
+=over 4
+
+=item d The date in ``Weekday Month Day'' format
+
+=item h The hostname
+
+=item n A carriage return and line feed
+
+=item s The name of the shell
+
+=item t The current time in HH:MM:SS format
+
+=item u The username of the current user
+
+=item w The current working directory
+
+=item W The basename of the current working directory
+
+=item # The command number of the current command
+
+=item $ `#' if the effective UID is zero, else `$'
+
+=back
+
+Custom prompting variables may be added by adding entries to the array
+C<%psh::prompt_vars> keyed by the single character code. The entries
+should be subroutine references that return the replacment string.
+
+
+=head2 BUILT-IN FUNCTIONS
+
+The following functions are built into C<psh>:
+
+=over 4
+
+=item * C<cd>
+
+Change the working directory.
+
+=item * C<exit>
+
+Exit out of the shell.
+
+=item * C<which>
+
+Search the directories in the C<PATH> environment variable for an executable
+of the name given. Return the path of the first such executable found.
+
+=back
+
+
+=head1 LIMITATIONS
+
+The loop inside C<psh> will clobber C<$1> and other variables because
+it uses matches to implement some of its special functions.
+
+Very little error checking is done.
+
+The effect of `use foo' is not as expected. Such statements, when
+sent to Perl's eval() function, cause eval() to return undef, which is
+supposed to indicate an error. Simple detection of isolated use statements
+could be hacked in, but it would not be general, and would therefore
+be fragile.
+
+
+=head1 OTHER PERL SHELLS
+
+Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
+page 161 of the Camel Book (2nd Edition).
+
+Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
+psh-0.001 announcement on C<http://freshmeat.net>, which contained this
+gem that leverages the Perl debugger: C<perl -d -e 1>;
+
+
+=head1 FILES
+
+C<psh> - The Perl Shell executable script.
+
+C<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
+current directory.
+
+
+=head1 AUTHOR
+
+Gregor N. Purdy, E<lt>F<gregor@focusresearch.com>E<gt>
+
+
+=head1 CREDITS
+
+The following people made contributions to this project.
+
+=over 4
+
+=item ReadLine Support
+
+Code examples showing how to apply the Term::ReadLine package were contributed
+by Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> (in his C<pash.pl> program,
+which is his own Perl shell).
+
+=item Symbol Table Dumping
+
+Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> also had an example of a symbol
+table printing function that was used as the starting point for the C<psh>
+function C<psh::symbols()>. The C<psh> version adds the ability to specify a
+package name, and it also filters out some special variables. The implementation
+technique is also different from Billy's.
+
+=item Prompt String Variables
+
+Matthew D. Allen E<lt>F<s2mdalle@titan.vcu.edu>E<gt> contributed an enhanced
+prompt string handling routine that emulates the C<bash> prompt variables. This
+was expanded into the form now present.
+
+=item Typo Spotting
+
+Allan Kelly E<lt>F<akelly@holyrood.ed.ac.uk>E<gt> found some problems with the
+generated documentation.
+
+=back
+
+
+=head1 COPYRIGHT
+
+Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
+This script is free software. It may be copied or modified according
+to the same terms as Perl itself.
+
