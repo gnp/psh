@@ -91,13 +91,14 @@ sub bi_fc
 	} else {
 		my $file= Psh::OS::tmpnam();
 		my $editor= $opt->{e}||$ENV{FCEDIT}||$ENV{EDITOR}||'vi';
-		my $fh= new FileHandle("> $file");
 		my $from=my $to=$#Psh::history;
 		($from,$to)=$ARGV[0]=~/(\d+)-(\d+)/ if $ARGV[0]=~/-/;
-		for (my $i=$from; $i<=$to; $i++) {
-			print $fh $Psh::history[$i-1]."\n";
+		if (open(FILE,"> $file")) {
+			for (my $i=$from; $i<=$to; $i++) {
+				print $fh $Psh::history[$i-1]."\n";
+			}
+			close(FILE);
 		}
-		$fh->close();
 		system("$editor $file");
 		Psh::process_file($file);
 	}

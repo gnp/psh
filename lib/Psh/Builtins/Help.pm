@@ -8,7 +8,7 @@ sub get_pod_from_file {
 		open(FILE, "< $tmpfile");
 		my $add=0;
 		while(<FILE>) {
-			if( !$add && /\=item \* C\<$arg/) {
+			if( !$add && /\=item \* C\<$arg[ >]/) {
 				$tmp="\n".$_;
 				$add=1;
 			} elsif( $add) {
@@ -52,7 +52,7 @@ sub bi_help
 				$tmp= get_pod_from_file($tmpfile,$arg);
 				last if $tmp;
 			}
-			unlink($tmpfile) if $tmpfile;
+			#unlink($tmpfile) if $tmpfile;
 		}
 		if( $tmp ) {
 			Psh::OS::display_pod("=over 4\n".$tmp."\n=back\n");
