@@ -62,6 +62,10 @@ will only print commands containing that text.
 The builtin B<fc> now understands the switch C<-p>. Also it's more behaviour
 compatible with bash's fc
 
+=item *
+
+New builtin B<bind> which does keybindings (similar to bash). - Andrew Turner [2000-08-11]
+
 =head2 Internals
 
 =item *
