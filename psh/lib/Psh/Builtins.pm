@@ -6,7 +6,7 @@ Psh::Builtins - package for Psh builtins, possibly loading them as needed
 
 =head1 SYNOPSIS
 
-  use Psh::Builtins (:all);
+  use Psh::Builtins;
 
 =head1 DESCRIPTION
 
@@ -22,11 +22,33 @@ modules.
 
 package Psh::Builtins;
 
+###############################################################
+# Short description:
+# (I included it here because it's not supposed to be in the
+#  user documentation)
+#
+# There are x types of functions in this package
+# 1) bi_builtin functions in Psh::Builtins - these are
+#    the builtin definitions
+# 2) bi_builtin functions in Psh::Builtins::Fallback - these
+#    are last resort fallback builtins for non-unix platforms
+#    so psh can offer minimum functionality for them even without
+#    stuff like GNU fileutils etc.
+# 3) cmpl_builtin functions in Psh::Builtins - these are
+#    functions called by the TAB completer to complete text for
+#    the builtins. They return a list. The first element of the
+#    list is a flag which specifies wether the completions should
+#    add to the standard completions or replace them. See the code
+#    for more information
+# 4) Utility and internal functions
+###############################################################
+
 use strict;
 use vars qw($VERSION);
 
 use Cwd;
 use Cwd 'chdir';
+use Config;
 use Psh::Util qw(:all print_list);
 use Psh::OS;
 use Pod::Text;
@@ -52,11 +74,18 @@ sub _do_setenv
 	my $arg = shift;
 	if( $arg=~ /^\s*(\w+)(\s+|\s*=\s*)(.+)/ ) {
 		my $var= $1;
-		$var =~ s/^\$//;
-		# Use eval so that variables may appear on RHS
-		# (expression $3); use protected_eval so that lexicals
-		# in this file don't shadow package variables
-        	Psh::protected_eval("\$ENV{$var}=\"$3\"", 'do_setenv');
+		my $value= $3;
+		if( $value=~ /^\'(.*)\'\s*$/ ) {
+			# If single quotes were used, do not interpret
+			# variables
+			$ENV{$var}=$1;
+		} else {
+			$var =~ s/^\$//;
+			# Use eval so that variables may appear on RHS
+			# ($value); use protected_eval so that lexicals
+			# in this file don't shadow package variables
+			Psh::protected_eval("\$ENV{$var}=\"$value\"", 'do_setenv');
+		}
 		return $var;
 	} elsif( $arg=~ /(\w+)/ ) {
 		my $var= $1;
@@ -64,8 +93,8 @@ sub _do_setenv
 		Psh::protected_eval("\$ENV{$var}=\$$var if defined(\$$var);",
 			       'do_setenv');
 		return $var;
-        }
-        return '';
+	}
+	return '';
 }
 
 $Psh::Builtins::help_setenv = '
@@ -178,7 +207,7 @@ directory".
 
 $Psh::Builtins::help_kill = '
 
-=item * C<kill [SIGNAL] [%JOB | PID]>
+=item * C<kill [SIGNAL] [%JOB | PID] | -l>
 
 Send SIGNAL (which defaults to TERM) to the given process, specified
 either as a job (%NN) or as a pid (a number).
@@ -195,13 +224,17 @@ sub bi_kill
 	my @args = split(' ',$_[0]);
 	my ($sig, $pid, $job);
 
-	if (scalar(@args) == 1) {
+	if (scalar(@args) == 1 &&
+		$args[0] eq '-l') {
+		print_out($Config{sig_name}."\n");
+		return undef;
+	} elsif (scalar(@args) == 1) {
 		$pid = $args[0];
 		$sig = 'TERM';
 	} elsif (scalar(@args) == 2) {
 		($sig, $pid) = @args;
 	} else {
-		print_error("kill: usage: kill <sig> <pid>\n");
+		print_error("kill: usage: kill <sig> <pid>| -l \n");
 		return 1;
 	}
 
@@ -238,6 +271,15 @@ sub bi_kill
 	}
 
 	return 0;
+}
+
+# Completion function for kill
+sub cmpl_kill {
+	my( $text, undef, $starttext) = @_;
+
+	return (1) if( $starttext=~ /^kill\s+\w+\s+/);
+	return (1,grep { Psh::Util::starts_with($_,$text) } 
+	         split / /, $Config{sig_name});
 }
 
 $Psh::Builtins::help_which = '
@@ -299,21 +341,20 @@ alias with that name.
 =cut ';
 
 # Cannot use "static" variables anymore as I do not know how to
-# lookup the function otherwise
+# lookup the function then
 my %aliases = ();
 	
 sub bi_alias
 {
 	my $line = shift;
 	my ($command, $firstDelim, @rest) = Psh::Parser::decompose('([ \t\n=]+)', $line, undef, 0);
-	if (!defined(@rest)) { @rest = (); }
 	my $text = join('',@rest); # reconstruct everything after the
 	# first delimiter, sans quotes
 	if (($command eq "") && ($text eq "")) {
 		my $wereThereSome = 0;
 		for $command (sort keys %aliases) {
-		        my $aliasrhs = $aliases{$command};
-            		$aliasrhs =~ s/\'/\\\'/g;
+			my $aliasrhs = $aliases{$command};
+			$aliasrhs =~ s/\'/\\\'/g;
 			print_out("alias $command='$aliasrhs'\n");
 			$wereThereSome = 1;
 		}
@@ -321,16 +362,16 @@ sub bi_alias
 			print_out("No aliases.\n");
 		}
 	} elsif( $text eq '') {
-	        my $aliasrhs = $aliases{$command};
+		my $aliasrhs = $aliases{$command};
 		$aliasrhs =~ s/\'/\\\'/g;
 		print_out("alias $command='$aliasrhs'\n");
 	} elsif ($text eq '-a') {
-	        print_error("Can't alias '-a'.\n");
+		print_error("Can't alias '-a'.\n");
 	} else {
 		print_debug("[[ Aliasing '$command' to '$text']]\n");
 		# my apologies for the gobbledygook
-		my $string_to_eval = "\$Psh::built_ins{$command} = "
-			. " sub { local \$Psh::built_ins{$command} = undef; Psh::evl(q($text) .' '. shift); }";
+		my $string_to_eval = "\$Psh::built_ins{'$command'} = "
+			. " sub { local \$Psh::built_ins{'$command'} = undef; Psh::evl(q($text) .' '. shift); }";
 		print_debug("[[ alias evaluating: $string_to_eval ]]\n");
 		eval($string_to_eval);
 		if ($@) { print_error($@); return 1; }
@@ -366,6 +407,13 @@ sub bi_unalias {
 	}
 	return 0;
 }
+
+
+sub cmpl_unalias {
+	my $text= shift;
+	return (1,grep { Psh::Util::starts_with($_,$text) } get_alias_commands());
+}
+
 
 # 
 # bool _is_aliased( string COMMAND )
@@ -581,17 +629,39 @@ sub bi_help
 		}
 	} else {
 		print_out_i18n('help_header');
-		no strict 'refs';
-		my @list= ();
-		my @sym = keys %{*{'Psh::Builtins::'}};
-		for my $sym (sort @sym) {
-			push @list, substr($sym,3) if substr($sym,0,3) eq 'bi_' &&
-				ref *{'Psh::Builtins::'.$sym}{CODE} eq 'CODE';
-		}
-		print_list(@list);
+		print_list(get_builtin_commands());
 	}
     return undef;
 }
+
+sub cmpl_help {
+	my $text= shift;
+	return (1,grep { Psh::Util::starts_with($_,$text) } get_builtin_commands());
+}
+
+
+
+#####################################################################
+# Utility functions
+#####################################################################
+
+# Returns a list of aliases commands
+sub get_alias_commands {
+	return keys %aliases;
+}
+
+# Returns a list of builtins
+sub get_builtin_commands {
+	no strict 'refs';
+	my @list= ();
+	my @sym = keys %{*{'Psh::Builtins::'}};
+	for my $sym (sort @sym) {
+		push @list, substr($sym,3) if substr($sym,0,3) eq 'bi_' &&
+			ref *{'Psh::Builtins::'.$sym}{CODE} eq 'CODE';
+	}
+	return @list;
+}
+
 
 #####################################################################
 # 'Fallback' builtins are following now
