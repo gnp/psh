@@ -45,7 +45,7 @@ use vars qw($bin $cmd $echo $host $debugging
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
-			$rc_file $login_shell $change_title $window_title
+		    $login_shell $change_title $window_title
 			@val @wday @mon @strategies @unparsed_strategies @history
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval %fallback_builtin);
@@ -775,14 +775,10 @@ sub process_rc
 	my $opt_r= shift;
 	my @rc;
 
-	print_debug("[ LOOKING FOR $rc_file ]\n");
-
 	if ($opt_r) {
 		push @rc, $opt_r;
 	} else {
-		my $home= Psh::OS::get_home_dir();
-		if ($home) { push @rc, File::Spec->catfile($home,$rc_file) };
-		push @rc, "$rc_file" unless $home eq cwd;
+		push @rc, Psh::OS::get_rc_files();
 	}
 
 	foreach my $rc (@rc) {
