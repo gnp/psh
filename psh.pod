@@ -31,28 +31,43 @@ C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
 
 =head1 OPTIONS
 
-The following command line options are available:
+The command-line arguments to B<psh> are:
+
+ psh [-d] [-w] [-r RC_FILE] [FILE1 FILE2 ....]
 
 =over 4
 
 =item * B<-w>
 
-Enables Perl's warning mode.
+Enables Perl's warning mode. The B<-w> switch runs perl with the
+B<"-w"> switch and "use strict;".
 
 =item * B<-d>
 
-Enables B<psh>'s debugging mode.
+The B<-d> option puts B<psh> into "debugging" mode, which prints
+diagnostic output, including primarily the result of the "which"
+builtin before every execution. Note that you can also enter/leave this
+debugging mode in a running B<psh> via the C<$psh::debugging> variable.
+
+=item * B<-r> I<file>
+
+The B<-r> option specifies a file of commands to be read in and
+evaluated before processing begins. If it is not set, and
+C<$ENV{HOME}> is set, and the file F<$ENV{HOME}/.pshrc> is present, it
+will be used. If B<-r> is not specified and the current directory is
+different from C<$ENV{HOME}> and it contains a F<.pshrc> file, that
+file will be read and executed in addition to
+F<$ENV{HOME}/.pshrc>. 
 
 =item * B<-c> I<string>
 
 If the B<-c> flag is present, then commands are read from C<string>.
 
-=item * B<-r> I<file>
-
-If the B<-r> flag is present, initialization commands are not read from
-the user's F<.pshrc> file but from the specified file.
-
 =back
+
+If any FILE1 ... arguments are specified on the command line, they
+will be read and executed and then B<psh> will exit. Otherwise, B<psh>
+will enter an interactive command loop.
 
 
 =head1 DESCRIPTION
@@ -248,31 +263,6 @@ Describe how B<psh> will execute the given COMMAND-LINE, under the
 current setting of C<$psh::strategies>.
 
 =back
-
-=head2 INVOKING PSH
-
-The command-line arguments to B<psh> are:
-
- psh [-d] [-w] [-r RC_FILE] [FILE1 FILE2 ....]
-
-The B<-w> switch runs perl with the C<"-w"> switch and "use strict;".
-The B<-d> option puts B<psh> into "debugging" mode, which prints
-diagnostic output, including primarily the result of the "which"
-builtin before every execution. Note that you can also enter/leave this
-debugging mode in a running B<psh> via the C<$psh::debugging> variable.
-
-The B<-r> option specifies a file of commands to be read in and
-evaluated before processing begins. If it is not set, and
-C<$ENV{HOME}> is set, and the file F<$ENV{HOME}/.pshrc> is present, it
-will be used. If B<-r> is not specified and the current directory is
-different from C<$ENV{HOME}> and it contains a F<.pshrc> file, that
-file will be read and executed in addition to
-F<$ENV{HOME}/.pshrc>. 
-
-If any FILE1 ... arguments are specified on the command line, they
-will be read and executed and then B<psh> will exit. Otherwise, B<psh>
-will enter an interactive command loop.
-
 
 =head2 PSH SCALAR VARIABLES
 
