@@ -366,7 +366,7 @@ __END__
 =head1 NAME
 
 Psh::Completion - containing the completion routines of psh.
-Currently works with Term::ReadLine::Gnu and Term::ReadLine::Psh
+Currently works with Term::ReadLine::Gnu and Term::ReadLine::Perl.
 
 =head1 SYNOPSIS
 
