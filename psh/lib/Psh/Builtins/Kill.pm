@@ -1,6 +1,6 @@
 package Psh::Builtins::Kill;
 
-use Config;
+use Config ();
 
 
 =item * C<kill [-SIGNAL] [%JOB | PID | JOBNAME] | -l>
@@ -23,7 +23,7 @@ sub bi_kill
 
 	if (scalar(@args) == 1 &&
 		$args[0] eq '-l') {
-		Psh::Util::print_out($Config{sig_name}."\n");
+		Psh::Util::print_out($Config::Config{sig_name}."\n");
 		return undef;
 	} elsif( substr($args[0],0,1) eq '-') {
 		$sig= substr($args[0],1);
@@ -90,7 +90,7 @@ sub cmpl_kill {
 	}
 
 	if( split(' ',$starttext)<2) {
-		push @tmp, map { '-'.$_} split(' ', $Config{sig_name});
+		push @tmp, map { '-'.$_} split(' ', $Config::Config{sig_name});
 	}
 
 	return (1,grep { Psh::Util::starts_with($_,$text) } 

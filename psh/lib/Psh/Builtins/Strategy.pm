@@ -1,6 +1,5 @@
 package Psh::Builtins::Strategy;
 
-use Psh::Builtins::Help;
 use File::Spec;
 
 =item * C<strategy list> shows the list of currently used strategies
@@ -44,6 +43,7 @@ sub bi_strategy
 	my ($line, $words)= @_;
 
 	if( ! $words->[0]) {
+		require Psh::Builtins::Help;
 		Psh::Builtins::Help::bi_help('strategy');
 		return undef;
 	} elsif( $words->[0] eq 'add') {
@@ -95,6 +95,7 @@ sub bi_strategy
 			Psh::Util::print_out(($i+1).") ".$Psh::strategies[$i]."\n");
 		}
 	} elsif( $words->[0] eq 'help') {
+		require Psh::Builtins::Help;
 		if( @{$words}<2) {
 			Psh::Builtins::Help::bi_help('strategy');
 			return undef;
