@@ -8,38 +8,98 @@
 ###############################################################################
 ###############################################################################
 ##
-## CVS HEAD
-##
-###############################################################################
-###############################################################################
-
-
-=head1 CVS HEAD
-
-=head2 04 Jan 2000 - warp
-
-Support for window titles. New environment variable PSH_TITLE,
-$Psh::change_title
-
-=cut
-
-
-###############################################################################
-###############################################################################
-##
 ## 0.006
 ##
 ###############################################################################
 ###############################################################################
 
-=head1 0.006 [2000-01-02]
 
-Important new features: "Manifest filter" make simple filter writing
-easier. The Win32 port has been fixed and enhanced. Recursive globbing
-similar to zsh. A new delenv builtin. The kill builtin accepts multiple
-PIDs.
+=head1 0.006 [2000-01-03]
+
+Refinements to 0.005.
+
+New Features:
+
+=over 4
+
+=item *
+
+New builtin B<delenv>.
+
+=item *
+
+Builtin B<kill> accepts multiple PIDs.
+
+=item *
+
+Saving the history file now respects C<$Psh::history_size> if
+C<Term::ReadLine::Perl> is used
+
+=item *
+
+Manifest Filters for pipeline code, e.g. try:
+
+    ls | s/y/k/                      # Substitution. Example is a Y2K fix.
+    ls | { print ++$i, ": $_"; }q    # Quick. Iterate over lines.
+    netstat | { $_[1]>2; }g          # Grepish. Print line if { ... } evaluates to true.
+
+See the B<psh> documentation for more information.
+
+=item *
+
+New recursive globbing using C<**/> (Example: C<grep anything **/*.pm>).
+
+=back
+
+
+Win32 Port Enhancements:
+
+=over 4
+
+=item *
+
+It now works. 0.005 was missing a couple of patches.
+
+=item *
+
+Makes use of system registry.
+
+=item *
+
+Implementations of C<execute_complex_command()>, C<get_hostname()>,
+C<get_all_users()>, C<get_home_dir()>, and C<get_known_hosts()>.
+
+=back
+
+
+Internals:
+
+=over 4
+
+=item *
+
+Moved prompt code and B<perl> evaluation code into own packages.
+
+=item *
+
+Implementing redirects and pipes in B<psh>.
+
+=item *
+
+Clean-ups for all code using filenames (now using C<File::Spec>).
+
+=item *
+
+More I18N.
+
+=item *
+
+Removed usage of C<$ENV{HOME}> in portable code.
+
+=back
 
 =cut
+
 
 ###############################################################################
 ###############################################################################
