@@ -32,7 +32,7 @@ sub _locate_command {
 	if ($command) {
 		my $found;
 		for (my $i=$comnum; $i>=0; $i--) {
-			if (starts_with($Psh::history[$i],$command)) {
+			if (Psh::Util::starts_with($Psh::history[$i],$command)) {
 				$comnum=$i;
 				$found=1;
 				last;
