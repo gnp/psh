@@ -3,7 +3,7 @@ package Psh2::Frontend::Readline;
 sub new {
     my ($class, $psh)= @_;
     my $self= {
-	       psh => $psh;
+	       psh => $psh,
 	   };
     bless $self, $class;
     return $self;
@@ -26,13 +26,25 @@ sub init {
 		}
 	    }
 	    if ( $self->{term} ) {
-		
+
 	    }
 	}
     }
 }
 
 sub getline {
+    my $self= shift;
+    my $line;
+    eval {
+	$line= $self->{term}->readline('> ');
+    };
+    if ($@) {
+	# TODO: Error handling
+    }
+
+    return undef unless defined $line;
+    chomp $line;
+    return $line;
 }
 
 1;

@@ -1,6 +1,8 @@
 package Psh2;
 
 use strict;
+require Psh2::Parser;
+use Data::Dumper;
 
 if ($^O eq 'MSWin32') {
     require Psh2::Windows;
@@ -38,15 +40,37 @@ sub new {
 		 ld_colors => ':'
 	     },
 		frontend => 'readline',
-	    }
+	    },
+	       strategy => [],
+	       language => {},
+	       tmp => {},
 	   };
     bless $self, $class;
     return $self;
 }
 
+sub process {
+    my ($self, $getter)= @_;
+
+    while (1) {
+	my $input= &$getter();
+
+	unless (defined $input) {
+	    last;
+	}
+	my $tmp= eval { Psh2::Parser::parse_line($input, $self); };
+	print $@ if $@;
+	print Dumper($tmp) if $tmp;
+
+    }
+}
+
 sub process_file {
     my ($self, $file)= @_;
-
+    local (*FILE);
+    open( FILE, "< $file");
+    $self->process( sub { my $txt=<FILE>; $txt});
+    close( FILE);
 }
 
 sub process_args {
@@ -58,10 +82,25 @@ sub process_args {
     }
 }
 
+sub process_rc {
+}
+
 sub main_loop {
+    my $self= shift;
+
+    $self->{interactive}= (-t STDIN) and (-t STDOUT);
+
+    my $getter;
+    if ($self->{interactive}) {
+	$getter= sub { $self->fe->getline(@_) };
+    } else {
+	$getter= sub { return <STDIN>; };
+    }
+    $self->process($getter);
 }
 
 sub init_minimal {
+    my $self= shift;
     $| = 1;
 }
 
@@ -79,6 +118,11 @@ sub init_finish {
 sub init_interactive {
     my $self= shift;
     my $frontend_name= 'Psh2::Frontend::'.ucfirst($self->{option}{frontend});
+    eval "require $frontend_name";
+    if ($@) {
+	print STDERR $@;
+	# TODO: Error handling
+    }
     $self->{frontend}= $frontend_name->new($self);
     $self->fe->init();
 
@@ -136,6 +180,92 @@ sub printdebug {
     }
 }
 
+############################################################################
+##
+## Filehandling
+##
+############################################################################
+
+{
+    my %path_hash=();
+
+    sub abs_path {
+	my $path= shift;
+	return undef unless $path;
+	return $path_hash{$path} if $path_hash{$path};
+	my $result;
+	if ($^O eq 'MSWin32' and defined &Win32::GetFullPathName) {
+	    $result= Win32::GetFullPathName($path);
+	    $result=~ tr:\\:/:;
+	} else {
+	    if ($path eq '~') {
+	    }
+	    elsif ( substr($path, 0, 2) eq '~/') {
+	    }
+	    elsif ( substr($path, 0, 1) eq '~') {
+	    }
+	    unless ($result) {
+		my $tmp= rel2abs( $path, $ENV{PWD});
+		my $old= $ENV{PWD};
+		if ($tmp and -r $tmp) {
+		    if (-d $tmp and -x _) {
+			if (CORE::chdir($tmp)) {
+			    $result= getcwd();
+			    if (!CORE::chdir($old)) {
+				# TODO: Error handling
+			    }
+			}
+		    } else {
+			$result= $tmp;
+		    }
+		}
+		return undef unless $result;
+	    }
+	}
+	if ($result) {
+	    $result.='/' unless $result =~ m:[/\\]:;
+	}
+	$path_hash{$path}= $result if file_name_is_absolute($path);
+	return $result;
+    }
+
+
+    my $tmp= quotemeta(file_separator());
+    my $re1= qr/$tmp/;
+    my $re2= qr/^(.*)$tmp([^$tmp]+)$/;
+    my %command_hash= ();
+    my $last_path_cwd;
+    my @absed_path;
+
+    sub which {
+	my ($self, $command, $all_flag)= @_;
+	return undef unless $command;
+
+	if ($command =~ $re1) {
+	    $command=~ $re2;
+	    my $path_element= $1 || '';
+	    my $cmd_element = $2 || '';
+	    return undef unless $path_element and $cmd_element;
+	    $path_element= abs_path($path_element);
+	    my $try= catfile($path_element, $cmd_element);
+	    if (-x $try and ! -d _ ) {
+		return $try;
+	    }
+	    return undef;
+	}
+	return $command_hash{$command} if exists $command_hash{$command}
+	  and !$all_flag;
+
+	return undef if $command !~ /^[-a-zA-Z0-9_.~+]$/;
+
+	if (!@absed_path or $last_path_cwd ne ($ENV{PATH}.$ENV{PWD})) {
+	    $last_path_cwd= $ENV{PATH}.$ENV{PWD};
+	    _recalc_absed_path();
+	}
+	return undef;
+    }
+
+}
 
 ############################################################################
 ##
@@ -242,6 +372,17 @@ sub list_option {
 	push @opts, lc($_) if exists $ENV{uc($_)};
     }
     return @opts;
+}
+
+
+############################################################################
+##
+## Built-Ins
+##
+############################################################################
+
+sub is_builtin {
+    return 0;
 }
 
 1;

@@ -28,5 +28,8 @@ if (@ARGV) {
     $psh->init_interactive();
     while (1) {
 	eval { $psh->main_loop(); };
+	if ($@) {
+	    print STDERR $@;
+	}
     }
 }
