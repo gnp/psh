@@ -605,18 +605,21 @@ changes while running as standard shell
 
 =head1 OTHER PERL SHELLS
 
+
+=head2 Larry Walls' Perl Shell
+
 Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
 page 161 of the Camel Book (2nd Edition).
+
+
+=head2 Perl Debugger Shell
 
 Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
 psh-0.001 announcement on C<http://freshmeat.net>, which contained this
 gem that leverages the Perl debugger: C<perl -d -e 1>;
 
-Some versions of the Perl faq mention an interactive Perl shell called
-SoftList, which can still be found at
-C<http://www.mit.edu/afs/sipb/contrib/perl/SoftList/>. It predates
-Term::Readline and was apparently last touched in 1993, so it seems to
-be obsolescent.
+
+=head2 PSH.pm
 
 In an example of convergent evolution, at C<http://jenda.krynicky.cz/>
 there is a Perl shell module called F<PSH.pm> which is quite similar
@@ -624,6 +627,28 @@ to this B<psh>. It is designed to provide a command line that can be called
 inside some other program via C<PSH::prompt();>, but a small file
 F<psh.pl> is also included that uses PSH to provide a standalone
 shell. Perhaps some merger of these efforts would be beneficial to all?
+
+
+=head2 SoftList
+
+Some versions of the Perl faq mention an interactive Perl shell called
+SoftList, which can still be found at
+C<http://www.mit.edu/afs/sipb/contrib/perl/SoftList/>. It predates
+Term::Readline and was apparently last touched in 1993, so it seems to
+be obsolescent.
+
+
+=head2 timtosh
+
+Tim Newsome, E<lt>F<nuisance@cmu.edu>E<gt>, has developed a shell he calls
+B<timtosh> (There Is More Than One SHell). Per his web site
+(C<http://www.wiw.org/~drz/timtosh>),
+it is a shell written entirely in Perl. The goal is to get a shell which you
+can extend in Perl and can do some other niceties related to
+Perl (like perl re file matching). As of 1999-12-13 (Perl Shell 0.004 release date),
+Tim says B<timtosh> ``is focused quite differently than B<psh> is, but is currently
+still waiting for a rewrite of the command line parsing.
+(It has been for almost a year now)''.
 
 
 =head1 FILES
