@@ -9,7 +9,7 @@ my %opt=();
 
 if (@ARGV) {
     require Getopt::Std;
-    Getopt::Std::getopts('VFfhc:', \%opt);
+    Getopt::Std::getopts('Vifhc:', \%opt);
     if ($opt{'V'}) {
 	print "psh2, version $Psh2::VERSION\nCopyright (c) 1999-2003 psh Core Team\n";
 	exit 1;
@@ -21,7 +21,7 @@ Usage: psh2 [option] ...
 
 Options:
        -V  print version and exit         -h  show this help
-       -F  force reading of rc files      -f  skip reading rc files
+       -i  force reading of rc files      -f  skip reading rc files
        -c  execute command
 
 Use 'man psh' or 'psh2 -c help' for more information.
@@ -31,7 +31,7 @@ ENDOFHELP
 }
 
 $psh->init_minimal();
-$psh->process_rc() unless ($opt{'f'} or $opt{'c'} or @ARGV) and !$opt{'F'};
+$psh->process_rc() unless ($opt{'f'} or $opt{'c'} or @ARGV) and !$opt{'i'};
 $psh->init_finish();
 
 if ($opt{'c'}) {
@@ -46,4 +46,4 @@ if (@ARGV) {
     $psh->main_loop();
 }
 
-exit(!$psh->{init});
+exit(!$psh->{status});

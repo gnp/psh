@@ -17,6 +17,7 @@ sub init {
     if (-t STDIN) {
 	eval { require Term::EditLine; };
 	if ($@) {
+	    print STDERR $@;
 	} else {
 	    eval { $self->{term}= Term::EditLine->new('psh2'); };
 	    if ( $self->{term} ) {
