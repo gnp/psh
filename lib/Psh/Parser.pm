@@ -492,8 +492,7 @@ sub _subparse_complex_command {
 
 sub parse_simple_command {
 	my ($tokens,$use_strats,$piped,$alias_disabled,$foreground)=@_;
-	my @words;
-	my @options;
+	my (@words,@options,@savetokens);
 
 	my $token = shift @$tokens;
 	push @words, $token->[1];
@@ -501,6 +500,7 @@ sub parse_simple_command {
 		   ($tokens->[0]->[0] eq 'WORD' ||
 			$tokens->[0]->[0] eq 'REDIRECT')) {
 		my $token = shift @$tokens;
+		push @savetokens,$token;
 		if ($token->[0] eq 'WORD') {
 			push @words, $token->[1];
 		} elsif ($token->[0] eq 'REDIRECT') {
@@ -512,9 +512,8 @@ sub parse_simple_command {
 		my $alias= $Psh::Builtins::aliases{$words[0]};
 		$alias =~ s/\'/\\\'/g;
 		$alias_disabled->{$words[0]}=1;
-		shift @words;
-		unshift @words, make_tokens($alias);
-		return _subparse_complex_command(\@words,$use_strats,$piped,$foreground,$alias_disabled);
+		unshift @savetokens, make_tokens($alias);
+		return _subparse_complex_command(\@savetokens,$use_strats,$piped,$foreground,$alias_disabled);
 	}
 
 	my $line= join ' ', @words;
