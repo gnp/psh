@@ -163,7 +163,6 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 # Private, Lexical Variables:
 #
 
-my %opt;
 my $default_prompt         = '\s\$ ';
 my @default_strategies     = qw(comment bang built_in perlfunc executable eval);
 my $input;
@@ -1089,7 +1088,12 @@ sub iget
 sub news 
 {
 	if (-r $news_file) {
-		return `cat $news_file`;
+		# Backticks replaced to be portable
+		my $text='';
+		open( FILE, "< $news_file");
+		while( <FILE>) { $text.=$_; }
+		close( FILE);
+		return $text;
 	} else {
 		return '';
 	}
@@ -1233,13 +1237,14 @@ sub finish_initialize
 
 sub process_rc
 {
+	my $opt_r= shift;
 	my @rc;
 	my $rc_name = ".pshrc";
 
 	print_debug("[ LOOKING FOR .pshrc ]\n");
 
-	if ($opt{'r'}) {
-		push @rc, $opt{'r'};
+	if ($opt_r) {
+		push @rc, $opt_r;
 	} else {
 		if ($ENV{HOME}) { push @rc, "$ENV{HOME}/$rc_name"; }
 		push @rc, "$rc_name" unless $ENV{HOME} eq cwd;

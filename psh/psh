@@ -19,7 +19,7 @@ use Psh;
 use Psh::Locale::Base;
 use Getopt::Std;
 
-use vars qw($VERSION);
+use vars qw($VERSION %opt);
 
 $VERSION='0.005pre';
 
@@ -54,7 +54,7 @@ else           { $Psh::debugging = 0; }
 Psh::Util::print_debug("Debugging!\n");
 
 Psh::minimal_initialize;
-Psh::process_rc;
+Psh::process_rc($opt{'r'});
 Psh::finish_initialize;
 
 # TODO: Is this implementation equivalent to sh's ?
@@ -62,7 +62,6 @@ if($opt{'c'}) {
 	Psh::evl($opt{'c'});
 	exit 0;
 }
-
 
 if (@ARGV) {
 	Psh::process_args;

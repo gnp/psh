@@ -318,7 +318,7 @@ sub setup_readline_handler
 sub _readline_handler
 {
 	my $sig= shift;
-    die "SECRET $bin: Signal $sig\n"; # changed to SECRET... just in case
+    die "SECRET $Psh::bin: Signal $sig\n"; # changed to SECRET... just in case
 }
 
 #
