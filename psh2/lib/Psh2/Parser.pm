@@ -3,14 +3,9 @@ package Psh2::Parser;
 use strict;
 
 # constants
-sub T_END() { 0; }
-sub T_WORD() { 1; }
-sub T_PIPE() { 2; }
 sub T_REDIRECT() { 3; }
-sub T_BACKGROUND() { 4; }
 sub T_OR() { 5; }
 sub T_AND() { 6; }
-
 sub T_EXECUTE() { 1; }
 
 # generate and cache regexpes
@@ -217,6 +212,24 @@ sub _parse_fileno {
     return $bothflag;
 }
 
+sub _clean_word {
+    my $tmp= shift;
+    if (length($$tmp)>1) {
+	if (length($$tmp)> 3 and substr($$tmp,0,2) eq 'qq[') {
+	    $$tmp= substr($$tmp,3,-1);
+	    _remove_backslash($tmp);
+	} elsif (substr($$tmp,0,1) eq "'") {
+	    $$tmp= substr($$tmp,1,-1);
+	    $$tmp=~ s/\'\'/\'/g;
+	} elsif (substr($$tmp,0,1) eq '"') {
+	    $$tmp= substr($$tmp,-1,1);
+	    _remove_backslash($tmp);
+	} elsif (substr($$tmp,0,2) eq 'q[') {
+	    $$tmp= substr($$tmp,2,-1);
+	}
+    }
+}
+
 sub make_tokens {
     my ($psh, $line)= @_;
     my @parts= @{decompose($psh, $line, {})};
@@ -230,20 +243,20 @@ sub make_tokens {
     while (defined ($tmp= shift @parts)) {
 	if (length($tmp)<3) {
 	    if ($tmp eq '||' or $tmp eq '&&') {
-		push @tokens, [T_EXECUTE, 1, $pipes],
+		push @tokens, [1, 1, $pipes],
 		  [ $tmp eq '||'? T_OR: T_AND ];
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
 		next;
 	    } elsif ($tmp eq ';' or $tmp eq "\n") {
-		push @tokens, [T_EXECUTE, 1, $pipes];
+		push @tokens, [1, 1, $pipes];
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
 		next;
 	    }  elsif ($tmp eq '&') {
-		push @tokens, [T_EXECUTE, 0, $pipes];
+		push @tokens, [1, 0, $pipes];
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
@@ -255,11 +268,11 @@ sub make_tokens {
 		my @fileno= (1,0);
 		my $bothflag= 0;
 		$bothflag ||= _parse_fileno(\@parts, \@fileno);
-		push @$redirects, [ T_REDIRECT, '>&', $fileno[0], 'chainout'];
+		push @$redirects, [ 3, '>&', $fileno[0], 'chainout'];
 		if ($bothflag) {
-		    push @$redirects, [ T_REDIRECT, '>&', 2, $fileno[0]];
+		    push @$redirects, [ 3, '>&', 2, $fileno[0]];
 		}
-		$redirects= [ [T_REDIRECT, '<&', $fileno[1], 'chainin'] ];
+		$redirects= [ [3, '<&', $fileno[1], 'chainin'] ];
 		$words= [];
 		push @$pipes, $words, $redirects;
 		next;
@@ -276,13 +289,14 @@ sub make_tokens {
 		$bothflag ||= _parse_fileno(\@parts, \@fileno);
 		if ($fileno[1]==0) {
 		    $file= shift @parts;
+		    _clean_word(\$file);
 		    die "parse: redirection >: file missing" unless $file;
-		    push @$redirects, [T_REDIRECT, $tmp, $fileno[0], $file];
+		    push @$redirects, [3, $tmp, $fileno[0], $file];
 		} else {
-		    push @$redirects, [T_REDIRECT, '>&', @fileno];
+		    push @$redirects, [3, '>&', @fileno];
 		}
 		if ($bothflag) {
-		    push @$redirects, [T_REDIRECT, '>&', 2, $fileno[0]];
+		    push @$redirects, [3, '>&', 2, $fileno[0]];
 		}
 		next;
 	    } elsif ($tmp eq '<') {
@@ -291,10 +305,11 @@ sub make_tokens {
 		_parse_fileno(\@parts, \@fileno);
 		if ($fileno[0]==0) {
 		    $file= shift @parts;
+		    _clean_word(\$file);
 		    die "parse: redirection <: file missing" unless $file;
-		    push @$redirects, [T_REDIRECT, '<', $fileno[1], $file];
+		    push @$redirects, [3, '<', $fileno[1], $file];
 		} else {
-		    push @$redirects, [T_REDIRECT, '<&', $fileno[1], $fileno[0]];
+		    push @$redirects, [3, '<&', $fileno[1], $fileno[0]];
 		}
 		next;
 	    }
@@ -316,7 +331,7 @@ sub make_tokens {
 	push @$words, $tmp;
     }
     if (@$words) {
-	push @tokens, [ T_EXECUTE, 1, $pipes ];
+	push @tokens, [ 1, 1, $pipes ];
     }
     return \@tokens;
 }
@@ -330,7 +345,7 @@ sub parse_line {
 
     while ( @$tokens) {
 	my $token= shift @$tokens;
-	if ($token->[0] == T_EXECUTE) {
+	if ($token->[0] == 1) {
 	    my @simple=();
 	    my $is_pipe= (@{$token->[2]}>2);
 	    while (@{$token->[2]}) {
@@ -342,19 +357,12 @@ sub parse_line {
 		}
 		push @simple, _parse_simple( $words, $options, $psh);
 	    }
-	    push @elements, [ T_EXECUTE, $token->[1], @simple ];
+	    push @elements, [ 1, $token->[1], @simple ];
 	} else {
 	    push @elements, $token;
 	}
     }
     return \@elements;
-}
-
-sub _is_precommand {
-    my $word= shift;
-    return 1 if $word eq 'noglob' or $word eq 'noexpand'
-      or $word eq 'nobuiltin' or
-	$word eq 'builtin';
 }
 
 sub _parse_simple {
@@ -364,27 +372,25 @@ sub _parse_simple {
 
     my $opt= {};
 
-    my $firstwords= 1;
-    while (@words) {
-	if ($words[0] and _is_precommand($words[0])) {
-	    $opt->{$words[0]}= 1;
-	    shift @words;
-	} else {
-	    last;
-	}
+    while ($words[0] and length($words[0])>5 and
+	    ($words[0] eq 'noglob' or $words[0] eq 'noexpand' or
+	     $words[0] eq 'nobuiltin' or $words[0] eq 'builtin')) {
+	$opt->{$words[0]}= 1;
+	shift @words;
     }
+    my $first= $words[0];
 
-    return () if !@words or (@words==1 and $words[0] eq '');
+    return () if !@words or (@words==1 and $first eq '');
 
-    if (substr($words[0],0,1) eq '\\') {
-	$words[0]= substr($words[0],1);
+    if (substr($first,0,1) eq '\\') {
+	$first= substr($first,1);
     }
 
     my $line= join ' ', @words;
     $psh->{tmp}{options}= $opt;
 
-    if ($words[0] and substr($words[0],-1) eq ':') {
-	my $tmp= lc(substr($words[0],0,-1));
+    if (length($first)>1 and substr($first,-1) eq ':') {
+	my $tmp= lc(substr($first,0,-1));
 	if (exists $psh->{language}{$tmp}) {
 	    eval 'use Psh2::Language::'.ucfirst($tmp);
 	    if ($@) {
@@ -401,7 +407,7 @@ sub _parse_simple {
 
     unless ($opt->{nobuiltin}) {
 	my $tmp;
-	if ($tmp= $psh->is_builtin($words[0])) {
+	if ($tmp= $psh->is_builtin($first)) {
 	    eval 'use Psh2::Builtins::'.ucfirst($tmp);
 	    if ($@) {
 		print STDERR $@;
@@ -411,7 +417,7 @@ sub _parse_simple {
 	}
     }
     unless ($opt->{builtin}) {
-	my $tmp= $psh->which($words[0]);
+	my $tmp= $psh->which($first);
 	if ($tmp) {
 	    return [ 'execute', $tmp, \@options, \@words, $line, $opt];
 	}
@@ -437,14 +443,14 @@ sub glob_expansion {
 
     for my $word (@{$words}) {
 	if (
+	    (index($word,'*')==-1 and
+	     index($word,'?')==-1 and
+	     index($word,'~')==-1) or
 	     (substr($word,0,1) eq '"' and substr($word,-1) eq '"') or
 	     (substr($word,0,1) eq '`' and substr($word,-1) eq '`') or
 	     (substr($word,0,1) eq "'" and substr($word,-1) eq "'") or
 	     (substr($word,0,1) eq '(' and substr($word,-1) eq ')') or
-	     (substr($word,0,1) eq '{' and substr($word,-1) eq '}') or
-	    (index($word,'*')==-1 and
-	     index($word,'?')==-1 and
-	     index($word,'~')==-1)
+	     (substr($word,0,1) eq '{' and substr($word,-1) eq '}')
 	   ) {
 	    push @retval, $word;
 	} else {
