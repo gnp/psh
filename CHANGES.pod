@@ -103,6 +103,18 @@ TAB completion right
 The parser now allows usage of ->
 - warp [2000-07-27]
 
+=item *
+
+Should work on Perl 5.004 again - warp [2000-07-31]
+
+=item *
+
+Fallback builtins for Windows work again - warp [2000-07-31]
+
+=item *
+
+Removed some errors in prompt package - warp [2000-07-31]
+
 =back
 
 
