@@ -1,0 +1,4 @@
+#!psh
+
+Psh::Options::set_option('ps1','\h:\u> ');
+Psh::Options::set_option('window_title',"shelltool - $Psh::bin"
