@@ -111,6 +111,37 @@ sub cmpl_filenames
 }
 
 
+# Returns a list of possible directory completions
+sub cmpl_directories
+{
+	my $text= shift;
+	my $globtext= $text;
+	my $prepend= '';
+
+	if( substr($text,0,1) eq '"') {
+		$prepend='"';
+		$globtext= substr($text,1);
+	}
+
+	my @result= grep { -d $_ } Psh::OS::glob("$globtext*");
+
+	if(@result==1) {
+		if( -d $result[0]) {
+			$ac='/'.$prepend;
+		} elsif( $prepend eq '"') {
+			$ac=$prepend;
+		}
+	}
+
+	foreach (@result) {
+		if( m|/([^/]+$)| ) {
+			$_=$1;
+		}
+	}
+	return @result;
+}
+
+
 # Returns an array with possible username completions
 sub cmpl_usernames
 {

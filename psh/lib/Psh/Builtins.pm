@@ -202,6 +202,11 @@ directory".
 		print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
 		return 1;
 	}
+
+    sub cmpl_cd {
+		my( $text, $pre) = @_;
+		return Psh::Completion::cmpl_directories($pre.$text);
+	}
 }
 
 
