@@ -1,21 +1,18 @@
 package Psh;
 
 use locale;
-use Config;
-use FileHandle;
-use File::Spec;
-use File::Basename;
+require File::Spec;
 
 use Psh::Util ':all';
-use Psh::Locale::Base;
-use Psh::OS;
-use Psh::Joblist;
-use Psh::Job;
-use Psh::Completion;
-use Psh::Parser;
-use Psh::Builtins;
-use Psh::PerlEval qw(protected_eval variable_expansion);
-use Psh::Prompt;
+require Psh::Locale::Base;
+require Psh::OS;
+require Psh::Joblist;
+require Psh::Job;
+require Psh::Completion;
+require Psh::Parser;
+require Psh::Builtins;
+require Psh::PerlEval;
+require Psh::Prompt;
 
 ##############################################################################
 ##############################################################################
@@ -40,7 +37,7 @@ use Psh::Prompt;
 
 use vars qw($bin $cmd $echo $host $debugging
 		    $executable_expand_arguments
-			$VERSION $term @absed_path $readline_saves_history
+			$term @absed_path $readline_saves_history
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
@@ -56,10 +53,6 @@ use constant LOCK_SH => 1; # shared lock (for reading)
 use constant LOCK_EX => 2; # exclusive lock (for writing)
 use constant LOCK_NB => 4; # non-blocking request (don't wait)
 use constant LOCK_UN => 8; # free the lock
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
-
-
 
 #
 # Private, Lexical Variables:
@@ -84,7 +77,7 @@ my $input;
 # comments there
 #
 
-# EVALUATION STRATEGIES: We have two hashes, %strategy_whichand
+# EVALUATION STRATEGIES: We have two hashes, %strategy_which and
 #  %strategy_eval; an evaluation strategy called "foo" is implemented
 #  by putting a subroutine object in each of these hashes keyed by
 #  "foo". The first subroutine should accept a reference to a string
@@ -193,7 +186,7 @@ my $input;
 					last;
 				}
 			}
-			@newargs= variable_expansion(\@newargs) unless $flag;
+			@newargs= Psh::PerlEval::variable_expansion(\@newargs) unless $flag;
 		}
 		@newargs = Psh::Parser::glob_expansion(\@newargs);
 		@newargs = map { Psh::Parser::unquote($_)} @newargs;
@@ -216,10 +209,10 @@ $strategy_eval{brace}= $strategy_eval{eval}= sub {
 		} else {
 			$code='while(<STDIN>) { @_= split /\s+/; '.$todo.' ; print $_ if $_; }';
 		}
-		return (sub {return protected_eval($code,'eval'); }, [], 0, undef);
+		return (sub {return Psh::PerlEval::protected_eval($code,'eval'); }, [], 0, undef);
     } else {
 		return (sub {
-			return protected_eval($todo,'eval');
+			return Psh::PerlEval::protected_eval($todo,'eval');
 		}, [], 0, undef);
 	}
 };
@@ -443,7 +436,7 @@ sub process
 				} else { # Ordinary string
 					$result_array_name = $last_result_array;
 					$result_array_name =~ s/^\@//;
-					$result_array_ref = (protected_eval("\\\@$result_array_name"))[0];
+					$result_array_ref = (Psh::PerlEval::protected_eval("\\\@$result_array_name"))[0];
 				}
 			}
 			if (scalar(@result) > 1) {
@@ -523,23 +516,26 @@ sub process_file
 		return;
 	}
 
-	my $pfh = new FileHandle($path,'r');
-
-	if (!$pfh) {
+	unless (open(FILE, "< $path")) {
 		print_error_i18n('cannot_open_script',$path,$bin);
 		return;
 	}
 
-	eval { flock($pfh, LOCK_SH); };
+	eval { flock(FILE, LOCK_SH); };
 
-	process(0, sub {
-				my $txt=<$pfh>;
-				print_debug_class('f',$txt);
-				return $txt;
-			}); # don't prompt
+	if ($Psh::debugging=~ /$class/ or
+	   $Psh::debugging==1) {
+		process(0, sub {
+					my $txt=<FILE>;
+					print_debug_class('f',$txt);
+					return $txt;
+				}); # don't prompt
+	} else {
+		process(0, sub { my $txt=<FILE>;$txt });
+	}
 
-	eval { flock($pfh, LOCK_UN); };
-	$pfh->close();
+	eval { flock(FILE, LOCK_UN); };
+	close(FILE);
 
 	$interactive=1;
 
@@ -651,14 +647,14 @@ sub save_history
 		if ($Psh::readline_saves_history) {
 			$Psh::term->WriteHistory($Psh::history_file);
 		} else {
-			my $fhist = new FileHandle($Psh::history_file, 'a');
-			if (defined($fhist)) {
-				eval { flock($fhist, LOCK_EX); };
+			if (open(F_HISTORY,">> $Psh::history_file")) {
+				eval { flock(F_HISTORY, LOCK_EX); };
 				foreach (@Psh::history) {
-					$fhist->print("$_\n");
+					print F_HISTORY $_;
+					print F_HISTORY "\n";
 				}
-				eval { flock($fhist, LOCK_UN); };
-				$fhist->close();
+				eval { flock(F_HISTORY, LOCK_UN); };
+				close(F_HISTORY);
 			}
 		}
 	}
@@ -694,12 +690,12 @@ sub minimal_initialize
 	}
 
 	$cmd                         = 1;
-
-	$bin                         = basename($0);
+	my @tmp= File::Spec->splitdir($0);
+	$bin= pop @tmp;
 
 	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
-	$ENV{PWD} = Psh::OS::getcwd_psh();
+	$ENV{OLDPWD}= $ENV{PWD} = Psh::OS::getcwd_psh();
 	$ENV{PSH_TITLE} = $bin;
 
 	Psh::OS::inc_shlvl();
@@ -745,13 +741,14 @@ sub finish_initialize
 	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);
 
 	if (!defined($longhost)) {
-		$longhost                    = Psh::OS::get_hostname();
+		$longhost                    = $ENV{HOSTNAME}||Psh::OS::get_hostname();
 		chomp $longhost;
 	}
 	if (!defined($host)) {
 		$host= $longhost;
 		$host= $1 if( $longhost=~ /([^\.]+)\..*/);
 	}
+	$ENV{HOSTNAME}= $host;
 	if (!defined($history_file)) {
 		$history_file= File::Spec->catfile(Psh::OS::get_home_dir(),
 										   ".${bin}_history");
@@ -816,15 +813,14 @@ sub finish_initialize
 		if ($readline_saves_history) {
 			$term->ReadHistory($history_file);
 		} else {
-			my $fhist = new FileHandle($history_file,'r');
-			if (defined($fhist)) {
-				eval { flock($fhist, LOCK_SH); };
-				while (<$fhist>) {
+			if (open(F_HISTORY,"< $history_file")) {
+				eval { flock(F_HISTORY, LOCK_SH); };
+				while (<F_HISTORY>) {
 					chomp;
 					$term->addhistory($_);
 				}
-				eval { flock($fhist, LOCK_UN); };
-				$fhist->close();
+				eval { flock(F_HISTORY, LOCK_UN); };
+				close(F_HISTORY);
 			}
 		}
 	}

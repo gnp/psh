@@ -30,6 +30,7 @@ lib/Psh/PCompletion.pm
 lib/Psh/Parser.pm
 lib/Psh/PerlEval.pm
 lib/Psh/Prompt.pm
+lib/Psh/Strategy.pm
 lib/Psh/Strategy/Auto_resume.pm
 lib/Psh/Strategy/Perlscript.pm
 lib/Psh/Strategy/Auto_cd.pm

@@ -33,11 +33,11 @@ A reverse-chronological ordered list of changes
 
 =item * 
 
-New B<-F> command line switch to disable processing of any pshrc files. - warp [2001-05-21]
+New B<-F> command line switch to disable processing of any pshrc files
 
 =item *
 
-New builtin command B<modules> to display a list of loaded Perl modules. - warp [2001-05-21]
+New builtin command B<modules> to display a list of loaded Perl modules
 
 =back
 
@@ -53,6 +53,15 @@ Major startup speedup
 
 There was a small, not very often occurring bug related to the usage of
 Env::Array, due to a typo
+
+=item *
+
+Handling of ~ for username expansion should be bug-free now
+
+=item *
+
+The help builtin sometimes returned the wrong help (e.g. C<help set>
+returned the help of setenv)
 
 =back
 

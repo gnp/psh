@@ -5,10 +5,7 @@ package Psh::Locale::Default;
 #
 
 use strict;
-use vars qw($VERSION);
 use locale;
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 my %sig_description = (
 					   'TTOU' => 'TTY output',

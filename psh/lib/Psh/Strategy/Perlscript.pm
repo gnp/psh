@@ -1,7 +1,7 @@
 package Psh::Strategy::Perlscript;
 
 use Psh::Util ':all';
-use Config;
+use Config ();
 
 =item * C<perlscript>
 
@@ -37,14 +37,14 @@ sub matches_perl_binary
 	# have them:
 	#
 
-	if ($Config{d_readlink}) {
+	if ($Config::Config{d_readlink}) {
 		my $newfile;
 		while ($newfile = readlink($filename)) { $filename = $newfile; }
 	}
 
-	if ($filename eq $Config{perlpath}) { return 1; }
+	if ($filename eq $Config::Config{perlpath}) { return 1; }
 
-	my ($perldev,$perlino) = (stat($Config{perlpath}))[0,1];
+	my ($perldev,$perlino) = (stat($Config::Config{perlpath}))[0,1];
 	my ($dev,$ino) = (stat($filename))[0,1];
 
 	#
@@ -64,11 +64,14 @@ $Psh::strategy_which{perlscript}=
 			#
 			# let's see if it really looks like a perl script
 			#
-
-			my $sfh = new FileHandle($script);
-			my $firstline = <$sfh>;
-
-			$sfh->close();
+			my $firstline;
+			if (open(FILE,"< $script")) {
+				$firstline= <FILE>;
+				close(FILE);
+			}
+			else {
+				return;
+			}
 			chomp $firstline;
 
 			my $filename;

@@ -107,16 +107,6 @@ sub variable_expansion
 	return @Psh::retval;
 }
 
-use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
-require Exporter;
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
-
-@ISA= qw(Exporter);
-
-@EXPORT= qw( );
-@EXPORT_OK= qw( protected_eval variable_expansion);
-
-
 1;
 
 

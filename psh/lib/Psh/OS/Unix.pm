@@ -1,15 +1,11 @@
 package Psh::OS::Unix;
 
 use strict;
-use vars qw($VERSION);
 use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
-use Config;
-use File::Spec;
-use FileHandle;
+use Config ();
+use File::Spec ();
 
 use Psh::Util ':all';
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 $Psh::OS::PATH_SEPARATOR=':';
 $Psh::OS::FILE_SEPARATOR='/';
@@ -42,11 +38,13 @@ sub get_hostname {
 #
 sub get_known_hosts {
 	my $hosts_file = "/etc/hosts"; # TODO: shouldn't be hard-coded?
-	my $hfh = new FileHandle($hosts_file, 'r');
-	return ("localhost") unless defined($hfh);
-	my $hosts_text = join('', <$hfh>);
-	$hfh->close();
-	return Psh::Util::parse_hosts_file($hosts_text);
+	if (open(F_KNOWNHOST,"< $hosts_file")) {
+		my $hosts_text = join ('', <F_KNOWNHOST>);
+		close(F_KNOWNHOST);
+		return Psh::Util::parse_hosts_file($hosts_text);
+	} else {
+		return ("localhost");
+	}
 }
 
 #
@@ -74,7 +72,7 @@ sub display_pod {
 	close(TMP);
 
 	eval {
-		use Pod::Text;
+		require Pod::Text;
 		Pod::Text::pod2text($tmp,*STDOUT);
 	};
 	print $text if $@;
@@ -564,7 +562,7 @@ my %special_handlers= (
 # Fetching the signal names from Config instead of from %SIG
 # has the advantage of avoiding Perl internal signals
 
-my @signals= split(' ', $Config{sig_name});
+my @signals= split(' ', $Config::Config{sig_name});
 
 
 #

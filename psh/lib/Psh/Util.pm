@@ -1,16 +1,12 @@
 package Psh::Util;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-use Cwd;
-use Config;
-use Psh::OS;
-use File::Spec;
-
+require Cwd;
+require Psh::OS;
+require File::Spec;
 require Exporter;
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 @ISA= qw(Exporter);
 
@@ -135,22 +131,34 @@ sub abs_path {
 	return $path_hash{$dir} if $path_hash{$dir} && $dir ne '.' && $dir ne '..';
 	my $result= Psh::OS::abs_path($dir);
 	unless ($result) {
-		my $tmp= File::Spec->rel2abs($dir,$ENV{PWD});
-
-		# Not using Cwd::fast_abs_path here saves us forking
-		# one process on UNIX, but this is not without risk
-		my $old= $ENV{PWD};
-		if ( CORE::chdir($tmp)) {
-			$result = Psh::OS::getcwd_psh();
-			CORE::chdir($old) || die "Cannot chdir back to $old: $!";
+		if ($dir eq '~') {
+			$result= Psh::OS::get_home_dir();
+		} elsif ( substr($dir,0,2) eq '~/') {
+			substr($dir,0,2)= Psh::OS::get_home_dir();
+		} elsif ( substr($dir,0,1) eq '~' ) {
+			my $fs= $Psh::OS::FILE_SEPARATOR;
+			my ($user)= $dir=~/^\~(.*?)$fs/;
+			if ($user) {
+				substr($dir,0,length($user)+1)= Psh::OS::get_home_dir($user);
+			}
 		}
-
 		unless ($result) {
-			local $^W=0;
-			local $SIG{__WARN__}= {};
-			eval {
-				$result= Cwd::abs_path($tmp);
-			};
+			my $tmp= File::Spec->rel2abs($dir,$ENV{PWD});
+
+			# Not using Cwd::fast_abs_path here saves us forking
+			# one process on UNIX, but this is not without risk
+			my $old= $ENV{PWD};
+			if ( CORE::chdir($tmp)) {
+				$result = Psh::OS::getcwd_psh();
+				CORE::chdir($old) || die "Cannot chdir back to $old: $!";
+			}
+			unless ($result) {
+				local $^W=0;
+				local $SIG{__WARN__}= {};
+				eval {
+					$result= Cwd::abs_path($tmp);
+				};
+			}
 		}
 		$result.='/' unless $result=~m:[/\\]:; # abs_path strips / from letter: on Win
 	}

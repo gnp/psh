@@ -11,7 +11,8 @@ package Psh::PCompletion;
 use strict;
 use vars qw(%COMPSPEC %ACTION);
 
-use Exporter ();
+require Exporter;
+
 use vars qw(@ISA @EXPORT_OK);
 
 @ISA = qw(Exporter);
@@ -78,8 +79,10 @@ BEGIN {
 			   'ssh'=>$tmp,'ssh1'=>$tmp,'ssh2'=>$tmp,'ping'=>$tmp);
 }
 
+my($__line, $__start, $__cmd);
+
 # global variables for compgen()
-use vars qw($__line $__start $__cmd);
+#use vars qw($__line $__start $__cmd);
 
 # convert from bash (and ksh?) extglob to Perl regular expression
 sub glob2regexp {

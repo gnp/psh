@@ -95,10 +95,10 @@ $Psh::strategy_which{perlfunc}= sub {
 					$qPerlFunc = 1;
 				}
             } else {
-				$qPerlFunc = (Psh::protected_eval("defined(&{'$fnname'})"))[0];
+				$qPerlFunc = (Psh::PerlEval::protected_eval("defined(&{'$fnname'})"))[0];
             }
         } elsif( $fnname =~ /^[a-zA-Z0-9_]+$/) {
-			$qPerlFunc = (Psh::protected_eval("defined(&{'$fnname'})"))[0];
+			$qPerlFunc = (Psh::PerlEval::protected_eval("defined(&{'$fnname'})"))[0];
 		}
 		if ( $qPerlFunc ) {
 			my $copy = ${$_[0]};
@@ -188,7 +188,7 @@ $Psh::strategy_which{perlfunc}= sub {
 $Psh::strategy_eval{perlfunc}= sub {
 	my $todo= $_[2];
 	return (sub {
-		return Psh::protected_eval($todo,'eval');
+		return Psh::PerlEval::protected_eval($todo,'eval');
 	}, [], 0, undef);
 };
 

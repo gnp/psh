@@ -1,10 +1,8 @@
 package Psh::OS::Win;
 
 use strict;
-use vars qw($VERSION);
 use Psh::Util ':all';
 
-use FileHandle;
 use DirHandle;
 
 eval {
@@ -21,8 +19,6 @@ if ($@) {
 }
 
 my $console= new Win32::Console();
-
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 #
 # For documentation see Psh::OS::Unix
@@ -55,11 +51,13 @@ sub get_hostname {
 
 sub get_known_hosts {
 	my $hosts_file = "$ENV{windir}\\HOSTS";
-	my $hfh = new FileHandle($hosts_file, 'r');
-	return "localhost" unless defined($hfh);
-	my $hosts_text = join('', <$hfh>);
-	$hfh->close();
-	return Psh::Util::parse_hosts_file($hosts_text);
+	if (open(F_KNOWNHOST,"< $hosts_file")) {
+		my $hosts_text = join('', <F_KNOWNHOST>);
+		close(F_KNOWNHOST);
+		return Psh::Util::parse_hosts_file($hosts_text);
+	} else {
+		return ("localhost");
+	}
 }
 
 #
@@ -74,7 +72,7 @@ sub display_pod {
 	close(TMP);
 
 	eval {
-		use Pod::Text;
+		require Pod::Text;
 		Pod::Text::pod2text($tmp,*STDOUT);
 	};
 	print $text if $@;
