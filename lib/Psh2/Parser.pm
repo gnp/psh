@@ -495,46 +495,8 @@ sub _parse_simple {
     }
     return () if !@words or (@words==1 and $words[0] eq '');
 
-    while (@words) {
-        my ($key, $val);
-        if (@words>2 and $words[0]=~/^[a-zA-Z0-9_-]+$/ and
-               $words[1]=~/^\[\d+\]$/ and
-               substr($words[2],0,1) eq '=') {
-            $key=qq[$words[0]$words[1]];
-            $val=substr($words[2],1);
-            shift @words; shift @words; shift @words;
-        }
-        elsif (@words>1 and $words[0]=~/^[a-zA-Z0-9_-]+\=$/ and
-               $words[1]=~/^\(\s*(.*?)\s*\)$/) {
-            $val= $1;
-            $key=substr($words[0],0,length($words[0])-1);
-            my @val=();
-            print STDERR "val=$val\n";
-            if (!$opt->{noglob}) {
-                @val= @{glob_expansion($psh, [$val])};
-            } else {
-                @val= split /\s+/, $val;
-            }
-            $options->{env}{$key}= \@val;
-            shift @words; shift @words;
-            next;
-        }
-        elsif ($words[0]=~/^(.*?)=(.*)$/) {
-            ($key,$val)= ($1,$2);
-            shift @words;
-        }
-        else {
-            last;
-        }
-        if (!$opt->{noglob}) {
-            $val=join(' ',@{glob_expansion($psh, [$val])});
-        }
-        $options->{env}{$key}= $val;
-    }
-    if (!@words) {
-        set_internal_variables($psh, $options->{env});
-        return ();
-    }
+    parse_variables($psh, \@words, $options);
+    return () unless @words;
 
     if (substr($words[0],0,1) eq '\\') {
 	$words[0]= substr($words[0],1);
@@ -663,6 +625,53 @@ sub expand_dollar {
         }
         my $var= $psh->get_variable($piece);
         return $var->value($subscript);
+    }
+}
+
+sub parse_variables {
+    my ($psh, $words, $options)= @_;
+
+    my $env= {};
+    my $opt= $options->{opt};
+
+    while (@$words) {
+        my ($key, $val);
+        if (@$words>2 and $words->[0]=~/^[a-zA-Z0-9_-]+$/ and
+               $words->[1]=~/^\[\d+\]$/ and
+               substr($words->[2],0,1) eq '=') {
+            $key=qq[$words->[0]$words->[1]];
+            $val=substr($words->[2],1);
+            shift @$words; shift @$words; shift @$words;
+        }
+        elsif (@$words>1 and $words->[0]=~/^[a-zA-Z0-9_-]+\=$/ and
+               $words->[1]=~/^\(\s*(.*?)\s*\)$/) {
+            $val= $1;
+            $key=substr($words->[0],0,length($words->[0])-1);
+            my @val= split /\s+/, $val;
+            if (!$opt->{noglob}) {
+                @val= @{glob_expansion($psh, \@val)};
+            }
+
+            $env->{$key}= \@val;
+            shift @$words; shift @$words;
+            next;
+        }
+        elsif ($words->[0]=~/^(.*?)=(.*)$/) {
+            ($key,$val)= ($1,$2);
+            shift @$words;
+        }
+        else {
+            last;
+        }
+        if (!$opt->{noglob}) {
+            $val=join(' ',@{glob_expansion($psh, [$val])});
+        }
+        $env->{$key}= $val;
+    }
+    if (!@$words) {
+        set_internal_variables($psh, $env);
+    } else {
+        $options->{env}= $env;
     }
 }
 
