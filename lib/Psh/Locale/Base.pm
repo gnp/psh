@@ -22,15 +22,15 @@ sub init {
     # names - if anybody knows a better method to access
     # the locales installed on the system, feel free to change it
 
-	@psh::mon= ();
+	@Psh::mon= ();
 	for( my $i=0; $i<12; $i++)
 	{
-		push( @psh::mon, strftime("%b",0,0,0,1,$i,99));
+		push( @Psh::mon, strftime("%b",0,0,0,1,$i,99));
 	}
-	@psh::wday= ();
+	@Psh::wday= ();
 	for( my $i=0; $i<7; $i++)
 	{
-		push( @psh::wday, strftime("%a",0,0,0,1,1,99,$i));
+		push( @Psh::wday, strftime("%a",0,0,0,1,1,99,$i));
 	}
 
 	# Use the default locale for defaults
