@@ -192,7 +192,7 @@ $SIG{'WINCH'} = \&resize_handler;
 # MAIN program.
 #
 
-getopts('dwr:', \%opt);
+getopts('dwr:c:', \%opt);
 
 
 #
@@ -2256,6 +2256,14 @@ sub restart_job
 minimal_initialize;
 process_rc;
 finish_initialize;
+
+# TODO: Is this implementation equivalent to sh's ?
+if($opt{'c'}) {
+	evl($opt{'c'});
+	exit 0;
+}
+
+
 
 if (@ARGV) {
 	process_args;
