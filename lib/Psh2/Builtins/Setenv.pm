@@ -19,7 +19,7 @@ sub execute {
     } else {
 	$psh->printerrln($psh->gt('setenv: setenv NAME not supported yet.'));
     }
-    return (1,undef);
+    return 1;
 }
 
 

@@ -5,6 +5,8 @@ MANIFEST
 README
 INSTALL
 TODO
+docs/README
+docs/psh2.pod
 docs/syntax-notes
 lib/Psh2.pm
 lib/Psh2/Builtins/Alias.pm
@@ -15,6 +17,7 @@ lib/Psh2/Builtins/Exit.pm
 lib/Psh2/Builtins/Fg.pm
 lib/Psh2/Builtins/Jobs.pm
 lib/Psh2/Builtins/Modules.pm
+lib/Psh2/Builtins/Option.pm
 lib/Psh2/Builtins/Setenv.pm
 lib/Psh2/Frontend/Readline.pm
 lib/Psh2/Language/Perl.pm

@@ -7,7 +7,9 @@ sub execute {
     eval "package main; use $words->[1];";
     if ($@) {
 	print STDERR $@;
+	return 0;
     }
+    return 1;
 }
 
 1;

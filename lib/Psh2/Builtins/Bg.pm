@@ -31,7 +31,9 @@ sub execute {
 	$arg->restart(0);
     } else {
 	$psh->printerr($psh->gt('bg: no such job')."\n");
+	return 0;
     }
+    return 1;
 }
 
 1;

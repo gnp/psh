@@ -2,14 +2,16 @@ package Psh2::Builtins::Jobs;
 
 require Getopt::Std;
 
-=item * C<jobs [-rs] [-p]>
+=item * C<jobs [-q] [-rs] [-p]>
 
 List the currently running jobs.
 
 Option B<-r> restricts the output to display only currently running jobs.
 Option B<-s> will only show currently stopped jobs
+Option B<-p> will show only the PIDs of the processes
 
-If you specify option B<-p> only the PIDs of the processes are displayed.
+With B<-q> no output will made and C<jobs> will only set the exit
+status to true (there are jobs) or false (no jobs).
 
 =cut
 
@@ -17,13 +19,21 @@ sub execute {
     my $psh= shift;
     local @ARGV = @{shift()};
     my $opt={};
-    Getopt::Std::getopts('prs',$opt);
+    Getopt::Std::getopts('prsq',$opt);
+
+    my @list= $psh->list_jobs();
+    if ($opt->{'q'}) {
+	if (@list) {
+	    return 1;
+	} else {
+	    return 0;
+	}
+    }
+
 
     my $result = '';
     my $job;
     my $visindex=0;
-
-    my @list= $psh->list_jobs();
 
     foreach my $job (@list) {
 	my $pid      = $job->{pgrp_leader};
@@ -45,11 +55,11 @@ sub execute {
 
     if (!$result) {
 	$psh->print($psh->gt('No jobs found.')."\n");
-	return (0,undef);
+	return 0;
     }
     else {
 	$psh->print($result);
-	return (1,undef);
+	return 1;
     }
 }
 
