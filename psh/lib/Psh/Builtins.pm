@@ -7,6 +7,8 @@ use Cwd;
 use Cwd 'chdir';
 use Psh::Util ':all';
 
+$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
+
 %Psh::array_exports=('PATH'=>':','CLASSPATH'=>':','LD_LIBRARY_PATH'=>':',
 					 'FIGNORE'=>':','CDPATH'=>':');
 

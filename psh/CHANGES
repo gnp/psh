@@ -15,6 +15,7 @@ CVS HEAD
 	hostname -s
   * Moved almost all code from psh into Psh, Psh::Builtins
     and Psh::Util
+  * Added portability infrastructure
 
  Features:
   * Changed builtin alias so that 'alias name' displays the
