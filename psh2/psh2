@@ -1,0 +1,32 @@
+#! /usr/bin/perl -w
+
+$Psh2::VERSION='0.001';
+
+use strict;
+use Psh2;
+
+my $psh= new Psh2();
+my %opt=();
+
+if (@ARGV) {
+    require Getopt::Std;
+    Getopt::Std::getopts('Fiwrd:f:c:', \%opt);
+}
+
+$psh->init_minimal();
+$psh->process_rc($opt{'f'}) unless $opt{'F'};
+$psh->init_finish();
+
+if ($opt{'c'}) {
+    # process command
+    exit 0;
+}
+
+if (@ARGV) {
+    $psh->process_args(@ARGV);
+} else {
+    $psh->init_interactive();
+    while (1) {
+	eval { $psh->main_loop(); };
+    }
+}

@@ -1,6 +1,0 @@
-Follow the standard procedure:
-
-	perl Makefile.PL
-	make
-	make install
-
