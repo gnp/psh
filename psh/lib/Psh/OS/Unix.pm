@@ -128,8 +128,8 @@ sub get_path_extension { return (''); }
 # appropriate OS-specific tasks depending on it.
 #
 sub inc_shlvl {
-	my $ruid_pwent = CORE::getpwuid($<);
-	if ((! $ENV{SHLVL}) && ($ruid_pwent->shell eq $0)) { # would use $Psh::bin, but login shells are guaranteed full paths
+	my @pwent = CORE::getpwuid($<);
+	if ((! $ENV{SHLVL}) && ($pwent[8] eq $0)) { # would use $Psh::bin, but login shells are guaranteed full paths
 		$Psh::login_shell = 1;
 		$ENV{SHLVL} = 1;
 	} else {
