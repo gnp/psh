@@ -169,6 +169,10 @@ directory'.
 
 Exit out of the shell.
 
+=item * C<export>
+
+Currently a synonym for setenv, see below.
+
 =item * C<fg JOB>
 
 Bring a job into the foreground. If JOB is omitted, uses the
@@ -188,6 +192,10 @@ either as a job (%NN) or as a pid (a number).
 Prints out information about the current ReadLine module which is
 being used for command line input. Very rudimentary at present, should 
 be extended to allow rebinding, etc.
+
+=item * C<setenv NAME [=] VALUE>
+
+Sets the environment variable NAME to VALUE.
 
 =item * C<which COMMAND-LINE>
 
@@ -224,7 +232,10 @@ will enter an interactive command loop.
 
 B<psh> makes a number of variables and functions accessible to the
 user in the psh:: package for configuration or utility
-purposes. Their default values are given in parentheses below:
+purposes. Their default values are given in parentheses below. If the
+variable is also marked "[late]", then it is undefined at the start of 
+the F<.pshrc> file, but any value given to it during that file will be 
+used instead of the default setting.
 
 =over 4
 
@@ -284,14 +295,22 @@ in a way similar to shells such as bash. For example, if
  'ls @files' will expand to 'ls file1 file2 file3', whereas
  'echo "@files"' will expand to 'echo "file1 file2 file3"'.
 
-=item $psh::history_file ("$ENV{HOME}/.${bin}_history")
+=item $psh::history_file ("$ENV{HOME}/.${bin}_history") [late]
 
 The filename B<psh> will use to save the command history in from one
 invocation to the next, if $psh::save_history is true.
 
-=item $psh::history_length (50)
+=item $psh::history_length (50) [late]
 
 The number of lines of command history to keep.
+
+=item $psh::host (the output of "hostname -s") [late]
+
+The short host name of the machine psh is currently running on.
+
+=item $psh::longhost (the output of "hostname") [late]
+
+The fully qualified host name of the machine psh is running on.
 
 =item $psh::news_file ("$psh::bin.NEWS")
 
@@ -308,11 +327,11 @@ undergo globbing, brace expansion, and variable expansion, and the
 resulting array of words is passed to the specified function as its
 arguments. 
 
-=item $psh::prompt ('\s\$')
+=item $psh::prompt ('\s\$') [late]
 
 Controls the prompt string in interactive use, see below.
 
-=item $psh::save_history (1)
+=item $psh::save_history (1) [late]
 
 If this is true, the command history is saved in $psh::history_file
 from one invocation of B<psh> to the next.
