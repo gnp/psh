@@ -25,7 +25,7 @@ foreach my $opener (keys %quotehash) {
     $quotedquotes{$opener}= quotemeta($quotehash{$opener});
 }
 
-my $part1= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|:|\&>|\\&|>>|>|<<|<|\\(|\\)|\\{|\\}|\\[|\\])';
+my $part1= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|\&>|\\&|>>|>|<<|<|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\\\]|\\\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 ############################################################################
@@ -285,26 +285,27 @@ sub make_tokens {
 
 sub parse_line {
     my $line= shift;
+    my $psh= shift;
 
-    return () if substr( $line, 0, 1) eq '#';
+    return [] if substr( $line, 0, 1) eq '#';
 
-    my @tokens= make_tokens( $line );
+    my $tokens= make_tokens( $line );
     my @elements= ();
     my $element;
-    while ( @tokens > 0 ) {
-	$element= _parse_complex( \@tokens);
+    while ( @$tokens > 0 ) {
+	$element= _parse_complex( $tokens, $psh);
 	return undef unless defined $element; # TODO: Error handling
 	push @elements, $element;
-	if (@tokens > 0) {
-	    if ($tokens[0][0] == T_END) {
-		shift @tokens;
+	if (@$tokens > 0) {
+	    if ($tokens->[0][0] == T_END) {
+		shift @$tokens;
 	    }
-	    if (@tokens > 0) {
-		if ($tokens[0][0] == T_AND) {
-		    shift @tokens;
+	    if (@$tokens > 0) {
+		if ($tokens->[0][0] == T_AND) {
+		    shift @$tokens;
 		    push @elements, [ T_AND ];
-		} elsif ($tokens[0][0] == T_OR) {
-		    shift @tokens;
+		} elsif ($tokens->[0][0] == T_OR) {
+		    shift @$tokens;
 		    push @elements, [ T_OR ];
 		}
 	    }
@@ -315,31 +316,119 @@ sub parse_line {
 
 sub _parse_complex {
     my $tokens= shift;
+    my $psh= shift;
     my $piped= 0;
     my $fg= 1;
-    return [ T_EXECUTE, $fg, _sub_parse_complex($tokens, \$piped, \$fg, {} )];
+    return [ T_EXECUTE, $fg, _sub_parse_complex($tokens, \$piped, \$fg, {}, $psh )];
 }
 
 sub _sub_parse_complex {
-    my ($tokens, $piped, $fg, $alias_disabled)= @_;
-    my @simple= _parse_simple( $tokens, $piped, $fg, $alias_disabled);
+    my ($tokens, $piped, $fg, $alias_disabled, $psh)= @_;
+    my @simple= _parse_simple( $tokens, $piped, $fg, $alias_disabled, $psh);
 
     while (@$tokens > 0 and $tokens->[0][0] == T_PIPE ) {
 	shift @$tokens;
 	$$piped= 1;
-	push @simple, _parse_simple( $tokens, $piped, $fg, $alias_disabled);
+	push @simple, _parse_simple( $tokens, $piped, $fg, $alias_disabled, $psh);
     }
 
     if (@$tokens > 0 and $tokens->[0][0] == T_BACKGROUND ) {
 	shift @$tokens;
-	$$foreground= 0;
+	$$fg= 0;
     }
     return \@simple;
 }
 
+sub _is_precommand {
+    my $word= shift;
+    return 1 if $word eq 'noglob' or $word eq 'noexpand'
+      or $word eq 'noalias' or $word eq 'nobuiltin' or
+	$word eq 'builtin';
+}
+
 sub _parse_simple {
-    my ($tokens, $piped, $fg, $alias_disabled)= @_;
+    my ($tokens, $piped, $fg, $alias_disabled, $psh)= @_;
+    my (@words, @options, @savetokens, @precom);
+    my $opt= {};
+
+    my $firstwords= 1;
+
+    while (@$tokens > 0 and
+	  ($tokens->[0][0] == T_WORD or
+	   $tokens->[0][0] == T_REDIRECT )) {
+	my $token= shift @$tokens;
+	if ($token->[0] == T_WORD) {
+	    if ($firstwords and
+		_is_precommand($token->[1])) {
+		push @precom, $token;
+		$opt->{$token->[1]}= 1;
+	    } else {
+		$firstwords= 0;
+		push @savetokens, $token;
+		push @words, $token->[1];
+	    }
+	} elsif ($token->[0] == T_REDIRECT) {
+	    push @options, $token;
+	}
+    }
+
+    if (!$opt->{noalias} and $psh->{aliases} and
+        $psh->{aliases}->{$words[0]} and
+        !$alias_disabled->{$words[0]}) {
+	my $alias= $psh->{aliases}->{$words[0]};
+	$alias_disabled->{$words[0]}= 1;
+	my @tmp= make_tokens($alias);
+	unshift @tmp, @precom;
+	shift @savetokens;
+	push @tmp, @savetokens;
+	push @tmp, @options;
+	return _sub_parse_complex(\@tmp, $piped, $fg, $alias_disabled, $psh);
+    } elsif ($words[0] and substr($words[0],0,1) eq "\\") {
+	$words[0]= substr($words[0],1);
+    }
     
+    my $line= join ' ', @words;
+    $psh->{tmp}{options}= $opt;
+    
+    if ($words[0] and substr($words[0],-1) eq ':') {
+	my $tmp= lc(substr($words[0],0,-1));
+	if (exists $psh->{language}{$tmp}) {
+	    eval 'use Psh2::Language::'.ucfirst($words[0]);
+	    if ($@) {
+		# TODO: Error handling
+	    }
+	    return [ 'Psh2::Language::'.ucfirst($words[0]), undef, \@options, \@words, $line, $opt];
+	} else {
+	    die "parse: unsupported language $tmp";
+	}
+    }
+
+    unless ($opt->{nobuiltin}) {
+	if ($psh->is_builtin($words[0])) {
+	    eval 'use Psh2::Builtins::'.ucfirst($words[0]);
+	    if ($@) {
+		# TODO: Error handling
+	    }
+	    return [ 'Psh2::Builtins::'.ucfirst($words[0]), undef, \@options, \@words, $line, $opt];
+	}
+    }
+    unless ($opt->{builtin}) {
+	my $tmp= $psh->which($words[0]);
+	if ($tmp) {
+	    return [ 'execute', $tmp, \@options, \@words, $line, $opt];
+	}
+	foreach my $strategy (@{$psh->{strategy}}) {
+	    my $tmp= eval {
+		$strategy->applies(\@words, $line);
+	    };
+	    if ($@) {
+		# TODO: Error handling
+	    } elsif ($tmp) {
+		return [ $strategy, $tmp, \@options, \@words, $line, $opt];
+	    }
+	}
+    }
+    die "duh";
 }
 
 
