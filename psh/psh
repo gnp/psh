@@ -216,47 +216,6 @@ else           { $debugging = 0; }
 print_debug("Debugging!\n");
 
 
-#
-# Set up Term::ReadLine:
-#
-
-eval "use Term::ReadLine;";
-
-if ($@) {
-	$term = undef;
-	print_debug("Term::ReadLine not available.\n");
-} else {
-	$term = Term::ReadLine->new('psh');
-	$term->MinLine(10000);   # We will handle history adding
-                                 # ourselves (undef causes trouble). 
-	$term->ornaments(0);
-	print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
-	if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
-		$readline_saves_history = 1;
-		$term->StifleHistory($history_length); # Limit history
-	}
-	&Psh::Completion::init($term, \@absed_path);
-	$term->Attribs->{completion_function} =
-		\&Psh::Completion::custom_completion;
-
-}
-
-
-#
-# Set up Term::Size:
-#
-
-eval "use Term::Size 'chars'";
-
-if ($@) {
-	print_debug("Term::Size not available. Trying Term::ReadKey\n");   
-	eval "use Term::ReadKey";
-	if( $@) {
-		print_debug("Term::ReadKey not available - no resize handling!\n");
-	}
-}
-else    { print_debug("Using &Term::Size::chars().\n"); }
-
 ##############################################################################
 ##############################################################################
 ##
@@ -1747,6 +1706,46 @@ sub finish_initialize
 	if (!defined($history_file)) {
 		$history_file                = "$ENV{HOME}/.${bin}_history";
 	}
+
+
+    #
+    # Set up Term::ReadLine:
+    #
+	eval "use Term::ReadLine;";
+
+	if ($@) {
+		$term = undef;
+		print_error_i18n(no_readline);
+	} else {
+		$term = Term::ReadLine->new('psh');
+		$term->MinLine(10000);   # We will handle history adding
+		# ourselves (undef causes trouble). 
+		$term->ornaments(0);
+		print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
+		if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
+			$readline_saves_history = 1;
+			$term->StifleHistory($history_length); # Limit history
+		}
+		&Psh::Completion::init($term, \@absed_path);
+		$term->Attribs->{completion_function} =
+			\&Psh::Completion::custom_completion;
+
+	}
+
+    #
+    # Set up Term::Size:
+    #
+	eval "use Term::Size 'chars'";
+
+	if ($@) {
+		print_debug("Term::Size not available. Trying Term::ReadKey\n");   
+		eval "use Term::ReadKey";
+		if( $@) {
+			print_debug("Term::ReadKey not available - no resize handling!\n");
+		}
+	}
+	else    { print_debug("Using &Term::Size::chars().\n"); }
+
 
 	if (defined($term) and $save_history) {
 		if ($readline_saves_history) {
