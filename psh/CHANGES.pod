@@ -8,50 +8,15 @@
 ###############################################################################
 ###############################################################################
 ##
-## CVS HEAD
+## 0.006
 ##
 ###############################################################################
 ###############################################################################
 
 
-=head1 CVS HEAD
+=head1 0.006 [2000-01-03]
 
-=head2 01 Jan 2000 - warp
-
-Features:
-
-=over 4
-
-=item * New builtin 'delenv'
-
-=item * Builtin 'kill' accepts multiple PIDs
-
-=back
-
-=head2 29 Dec 1999 - Omer
-
-Win32:
-
-=over 4
-
-=item * Works. :)
-
-=item * Makes use of system registry
-
-=item * execute_complex_command()
-
-=item * get_hostname()
-
-=item * get_all_users()
-
-=item * get_home_dir()
-
-=item * get_known_hosts()
-
-=back
-
-
-=head2 29 Dec 1999 - warp
+Refinements to 0.005.
 
 New Features:
 
@@ -59,56 +24,79 @@ New Features:
 
 =item *
 
-Saving the history file now respects $Psh::history_size if
-Term::ReadLine::Perl is used
+New builtin B<delenv>.
 
 =item *
 
- Manifest Filters for pipeline code, e.g. try:
+Builtin B<kill> accepts multiple PIDs.
 
-   ls | s/a/b/
-   (runs replacement over output of previous program and prints it)
-    or
-    ls | { print ++$i, ": $_"; }q
-    ( runs the code in braces in an iteration over each line of
-    the output unmodified)
-    or
-    netstat | { $_[1]>2; }g
-    ( runs ins "grep" mode - line will only be printed if expression
-    evaluates to true. @_ is set to the line split with \s+,
-    $_ is the line)
+=item *
+
+Saving the history file now respects C<$Psh::history_size> if
+C<Term::ReadLine::Perl> is used
+
+=item *
+
+Manifest Filters for pipeline code, e.g. try:
+
+    ls | s/y/k/                      # Substitution. Example is a Y2K fix.
+    ls | { print ++$i, ": $_"; }q    # Quick. Iterate over lines.
+    netstat | { $_[1]>2; }g          # Grepish. Print line if { ... } evaluates to true.
+
+See the B<psh> documentation for more information.
+
+=item *
+
+New recursive globbing using C<**/> (Example: C<grep anything **/*.pm>).
 
 =back
 
 
-=head2 28 Dec 1999 - warp
-
-New Features:
+Win32 Port Enhancements:
 
 =over 4
 
 =item *
 
-New recursive globbing using **/ (Example: grep anything **/*.pm )
+It now works. 0.005 was missing a couple of patches.
+
+=item *
+
+Makes use of system registry.
+
+=item *
+
+Implementations of C<execute_complex_command()>, C<get_hostname()>,
+C<get_all_users()>, C<get_home_dir()>, and C<get_known_hosts()>.
 
 =back
 
-Internal:
+
+Internals:
 
 =over 4
 
-=item * Moved prompt code and perl evaluation code into own packages
+=item *
 
-=item * Implementing redirects and pipes in psh
+Moved prompt code and B<perl> evaluation code into own packages.
 
-=item * Clean-ups for all code using filenames (now using File::Spec)
+=item *
 
-=item * More I18N
+Implementing redirects and pipes in B<psh>.
 
-=item * Removed usage of ENV{HOME} in portable code
+=item *
+
+Clean-ups for all code using filenames (now using C<File::Spec>).
+
+=item *
+
+More I18N.
+
+=item *
+
+Removed usage of C<$ENV{HOME}> in portable code.
 
 =back
-
 
 =cut
 
