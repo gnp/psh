@@ -127,6 +127,7 @@ sub execute_complex_command {
 			!defined($return_val[0])) {
 			@return_val= @tmp;
 		}
+		$string=$text;
 	}
 	if ($obj) {
 		my $pid=$obj->GetProcessID();
