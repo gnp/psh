@@ -1,6 +1,6 @@
 package Psh::Builtins::Set;
 
-use Psh::Util ':all';
+require Psh::Util;
 
 =item * C<set>
 

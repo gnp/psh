@@ -1,9 +1,7 @@
 package Psh::OS::Win;
 
 use strict;
-use Psh::Util ':all';
-
-use DirHandle;
+require Psh::Util;
 
 eval {
 	use Win32;
@@ -14,7 +12,7 @@ eval {
 };
 
 if ($@) {
-	print_error_i18n('no_libwin32');
+	Psh::Util::print_error_i18n('no_libwin32');
 	die "\n";
 }
 
@@ -102,7 +100,7 @@ sub execute_complex_command {
 	my @tmp;
 
 	if($#array) {
-		print_error("No piping yet.\n");
+		Psh::Util::print_error("No piping yet.\n");
 		return ();
 	}
 

@@ -1,6 +1,8 @@
 package Psh::Builtins::Fg;
 
-use Psh::Util ':all';
+require Psh::Util;
+require Psh::Joblist;
+require Psh;
 
 =item * C<fg [%JOB|COMMAND]>
 
@@ -16,7 +18,7 @@ sub bi_fg
 	my $arg = shift;
 
 	if( ! Psh::OS::has_job_control()) {
-		print_error_i18n('no_jobcontrol');
+		Psh::Util::print_error_i18n('no_jobcontrol');
 		return (0,undef);
 	}
 

@@ -297,11 +297,16 @@ Sets the month names
 
 Sets the weekday names
 
+   Psh::Locale::get_text($name)
+
+Returns the named text from the current locale
+
+   Psh::Locale::set_text($name,$value)
+
+Sets the text
+
 =head1 AUTHOR
 
 Markus Peter, warp@spin.de
-
-=head1 SEE ALSO
-
 
 =cut

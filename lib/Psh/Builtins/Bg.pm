@@ -1,6 +1,7 @@
 package Psh::Builtins::Bg;
 
-use Psh::Util ':all';
+require Psh::Util;
+require Psh::Joblist;
 
 =item * C<bg [%JOB|COMMAND]>
 
@@ -18,7 +19,7 @@ sub bi_bg
 	my $arg = shift;
 
 	if( ! Psh::OS::has_job_control()) {
-		print_error_i18n('no_jobcontrol');
+		Psh::Util::print_error_i18n('no_jobcontrol');
 		return (0,undef);
 	}
 
