@@ -68,8 +68,8 @@ sub cmpl_filenames
 
 	@result= Psh::OS::glob("$globtext*");
 
-	if( $ENV{FIGNORE}) {
-		my @ignore= split(':',$ENV{FIGNORE});
+	if( Psh::Options::has_option('fignore')) {
+		my @ignore= Psh::Options::get_option('fignore');
 		@result= grep {
 			my $item= $_;
 			my $result= ! grep { Psh::Util::ends_with($item,$_) } @ignore;
@@ -81,20 +81,21 @@ sub cmpl_filenames
 		@result= grep { -x $_ || -d $_ } @result;
 	}
 
+	@result= map { -d $_ ? "$_/" : $_ } @result;
+
 	# HACK: This won't help much if user tries to do another completion
 	# on the same item afterwards
 	@result= map { s/([ \'\"\´\`])/\\$1/g; $_ } @result unless $prepend eq '"';
 
 	if(@result==1) {
-		if( -d $result[0]) {
-			$ac='/'.$prepend;
-		} elsif( $prepend eq '"') {
-			$ac=$prepend;
+		if (substr($result[0],-1) eq '/') {
+			$ac='';
 		}
+		$ac=$prepend.$ac if $prepend;
 	}
 
 	foreach (@result) {
-		if( m|/([^/]+$)| ) {
+		if( m|/([^/]+\/?)$| ) {
 			$_=$1;
 		}
 	}
@@ -505,8 +506,13 @@ sub completion
 
 sub perl_symbol_display_match_list {
     my($matches, $num_matches, $max_length) = @_;
+	shift @$matches;
+
     map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@{$matches});
-    $Psh::term->display_match_list($matches);
+	map { $_ =~ s/^([^\/]+)\/$/\001\e[01;34m\002$1\001\e[00m\002\//; } (@{$matches});
+    #$Psh::term->display_match_list($matches);
+	print "max_len=$max_length\n";
+	Psh::Util::print_list($matches,$max_length);
     $Psh::term->forced_update_display;
 }
 
