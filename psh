@@ -473,7 +473,7 @@ sub builtin_alias
 		print_debug("[[ Aliasing '$command' to '$text']]\n");
 		# my apologies for the gobbledygook
 		my $string_to_eval = "\$psh::built_ins{$command} = "
-			. " sub { local \$psh::built_ins{$command} = undef; psh::evl(q($text) . shift); }";
+			. " sub { local \$psh::built_ins{$command} = undef; psh::evl(q($text) .' '. shift); }";
 		print_debug("[[ alias evaluating: $string_to_eval ]]\n");
 		eval($string_to_eval);
 		if ($@) { print_error($@); return 1; }
