@@ -125,6 +125,12 @@ sub process_variable {
 }
 
 sub process_rc {
+    my ($self)= @_;
+    foreach my $file ('/etc/psh2rc', "$ENV{HOME}/.psh2/rc") {
+	if (-r $file) {
+	    $self->process_file($file);
+	}
+    }
 }
 
 sub main_loop {
