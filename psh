@@ -24,6 +24,8 @@ require Psh::Util;
 #
 # option -i is ignored
 
+@Psh::origINC=@INC; # save it
+
 my %opt=();
 
 if (@ARGV) {
