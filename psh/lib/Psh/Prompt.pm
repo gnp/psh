@@ -95,7 +95,7 @@ my %sign_table=
 );
 
 
-sub prompt_helper {
+sub _prompt_helper {
 	my $code= shift;
 	my $var = $Psh::Prompt::prompt_vars{$code};
 	my $sub;
@@ -122,6 +122,21 @@ sub prompt_helper {
 		}
 	}
 	return $sub;
+}
+
+sub _color_helper {
+	my $name= shift;
+	my $result= '\[';
+	my @tmp= split /\s+/, $name;
+	foreach (@tmp) {
+		if ($color_table{$_}) {
+			$result.=$color_table{$_};
+		} else {
+			Psh::Util::print_debug_class('o',"Unknown prompt color $_\n");
+		}
+	}
+	$result.='\]';
+	return $result;
 }
 
 sub prompt_string
@@ -175,12 +190,12 @@ sub prompt_string
 		$my_sign= $sign_table{'iso8859-1'};
 	}
 	# Color substitution
-	$temp=~ s/\\C\{(.+?)\}/$color_table{$1}/g;
+	$temp=~ s/\\C\{(.+?)\}/&_color_helper($1)/ge;
 	# Graphics sign conversion
 	$temp=~ s/\\S\{(\d+?)\}/$my_sign->{$1}/g;
 
 	# Standard prompt_var substitution
-	$temp=~ s/\\([0-9]x?[0-9a-fA-F]*|[^0-9\\])/&prompt_helper($1)/ge;
+	$temp=~ s/\\([0-9]x?[0-9a-fA-F]*|[^0-9\\])/&_prompt_helper($1)/ge;
 
 	$temp=~ s/\0/\\/g; # restore former double backslash
 

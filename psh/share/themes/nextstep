@@ -1,0 +1,18 @@
+#!psh
+
+package themes
+
+$TTY=`tty|cut -d/ -f3-255`
+chomp $TTY
+$win=`which psh`."  ($TTY)"
+
+
+option ps1='\h:\#\$ ' ps2='> '
+option window_title="$win"
+option -ps3 -ps4 -prompt_command
+
+undef $TTY
+undef $win
+
+package main
+

@@ -70,8 +70,8 @@ sub _set_theme {
 				$ps[1]= Psh::Parser::unquote($1);
 			} elsif ($line=~/^\s*TITLE\s*\=\s*(.*)$/) {
 				$title= Psh::Parser::unquote($1);
-			} elsif ($line=~/^\s*X.*COLOR.*\=/ or
-					 $line=~/^\s*needmod\s+color/ or
+			} elsif ($line=~/^\s*X\w+\=/ or
+					 $line=~/^\s*needmod\s+/ or
 					 $line=~/^\s*THEME_.*\=/ or
 					 $line=~/^\s*SUPERPROMPT/ or
 					 $line=~/^\s*CURCOLOR/ or
