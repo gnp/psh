@@ -1,13 +1,14 @@
 package Psh::Strategy::Built_in;
 
 require Psh::Strategy;
+require Psh::Support::Builtins;
 
 use strict;
 use vars qw(@ISA);
 
 @ISA=('Psh::Strategy');
 
-my %built_ins=();
+Psh::Support::Builtins::build_autoload_list();
 
 sub new { Psh::Strategy::new(@_) }
 
@@ -22,15 +23,11 @@ sub runs_before {
 sub applies {
 	my $fnname= ${$_[2]}[0];
 
-	if( $built_ins{$fnname}) {
+	if( Psh::Support::Builtins::is_builtin($fnname)) {
 		eval 'use Psh::Builtins::'.ucfirst($fnname);
 		if ($@) {
 			Psh::Util::print_error_i18n('builtin_failed',$@);
 		}
-		return "builtin $fnname";
-	}
-	no strict 'refs';
-	if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
 		return "builtin $fnname";
 	}
 	return '';
@@ -44,12 +41,8 @@ sub execute {
 	my $coderef;
 
 	no strict 'refs';
-	if ($built_ins{$command}) {
-		$coderef= *{join('','Psh::Builtins::',ucfirst($command),
-						 '::bi_',$command)};
-	} else {
-		$coderef= *{"Psh::Builtins::bi_$command"};
-	}
+	$coderef= *{join('','Psh::Builtins::',ucfirst($command),
+					 '::bi_',$command)};
 	return (sub { &{$coderef}($rest,\@words); }, [], 0, undef );
 }
 

@@ -1,6 +1,7 @@
 package Psh::Builtins::Strategy;
 
-use File::Spec;
+require File::Spec;
+require Psh::Strategy;
 
 =item * C<strategy list> shows the list of currently used strategies
 
@@ -18,26 +19,6 @@ use File::Spec;
 
 =cut
 
-sub _find_in_strategies {
-	my $strat= shift;
-	for( my $i=0; $i<@Psh::strategies; $i++) {
-		if( $Psh::strategies[$i] eq $strat) {
-			$pos=$i;
-			return $pos;
-		}
-	}
-	return -1;
-}
-
-sub _generate_strategy_list {
-	my @result= ();
-	foreach my $tmp (@INC) {
-		my $tmpdir= File::Spec->catdir($tmp,'Psh','Strategy');
-		push @result, map { s/.pm$//; lc($_) } Psh::OS::glob('*.pm',$tmpdir);
-	}
-	return @result;
-}
-
 sub bi_strategy
 {
 	my ($line, $words)= @_;
@@ -47,27 +28,18 @@ sub bi_strategy
 		Psh::Builtins::Help::bi_help('strategy');
 		return undef;
 	} elsif( $words->[0] eq 'add') {
-		my $strat= $words->[1];
-		my $pos= $#Psh::strategies; # Add right before eval
-		if( !exists($Psh::strategy_which{$strat})) {
-			my $tmp='Psh::Strategy::'.ucfirst($strat);
-			eval "use $tmp";
-			if( !exists($Psh::strategy_which{$strat})) {
-				Psh::Util::print_error_i18n('bi_strategy_notfound',$strat);
-				return 1;
-			}
-			my @insert_before= eval '@'.$tmp.'::always_insert_before';
-			if( @insert_before) {
-				foreach( @insert_before) {
-					my $tmp= _find_in_strategies($_);
-					$pos=$tmp if( $tmp<$pos && $tmp>0);
-				}
-			}
+		my $strat= lc($words->[1]);
+		my $obj= Psh::Strategy::get($strat);
+		my $pos;
+		unless ($obj) {
+			Psh::Util::print_error_i18n('bi_strategy_notfound',$strat);
+			return 1;
 		}
+
 		if( @{$words}>3) {
 			$pos= $words->[3];
 			if( $pos !~ /^\d+$/) {
-				$pos=_find_in_strategies($pos);
+				$pos= Psh::Strategy::find($pos);
 				if( $pos<0) {
 					Psh::Util::print_error_i18n('bi_strategy_notfound',$words->[3]);
 					return 1;
@@ -79,40 +51,36 @@ sub bi_strategy
 				$pos++;
 			}
 		}
-		splice(@Psh::strategies,$pos,0,$strat);
+		Psh::Strategy::add($obj,$pos) if $obj;
 	} elsif( $words->[0] eq 'del' ||
 			 $words->[0] eq 'remove') {
-		for( my $i=0; $i<@Psh::strategies; $i++) {
-			if( $words->[1] eq $Psh::strategies[$i]) {
-				splice @Psh::strategies,$i,1;
-				last;
-			}
-		}
+		Psh::Strategy::remove($words->[1]);
 	} elsif( $words->[0] eq 'show' ||
 			 $words->[0] eq 'list') {
 		Psh::Util::print_out_i18n('bi_strategy_list');
-		for( my $i=0; $i<@Psh::strategies; $i++) {
-			Psh::Util::print_out(($i+1).") ".$Psh::strategies[$i]."\n");
+		my @list= Psh::Strategy::list();
+		for( my $i=0; $i<@list; $i++) {
+			Psh::Util::print_out(($i+1).") ".$list[$i]->name."\n");
 		}
 	} elsif( $words->[0] eq 'help') {
 		require Psh::Builtins::Help;
 		if( @{$words}<2) {
 			Psh::Builtins::Help::bi_help('strategy');
-			return undef;
-		}
-		my $tmp='';
-		foreach my $line (@INC) {
-			my $tmpfile= File::Spec->catfile(
-								  File::Spec->catdir($line,'Psh','Strategy'),
-										  ucfirst($words->[1]).'.pm');
-			$tmp= Psh::Builtins::Help::get_pod_from_file($tmpfile,$arg);
-			last if $tmp;
-		}
-		if( $tmp ) {
-			Psh::OS::display_pod("=over 4\n".$tmp."\n=back\n");
+		} else {
+			my $tmp='';
+			foreach my $line (@INC) {
+				my $tmpfile= File::Spec->catfile(
+								File::Spec->catdir($line,'Psh','Strategy'),
+												 ucfirst($words->[1]).'.pm');
+				$tmp= Psh::Builtins::Help::get_pod_from_file($tmpfile,$arg);
+				last if $tmp;
+			}
+			if( $tmp ) {
+				Psh::OS::display_pod("=over 4\n".$tmp."\n=back\n");
+			}
 		}
 	} elsif( $words->[0] eq 'available') {
-		my @list= _generate_strategy_list();
+		my @list= Psh::Strategy::available_list();
 		foreach( @list) {
 			Psh::Util::print_out($_."\n");
 		}

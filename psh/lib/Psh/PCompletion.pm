@@ -9,9 +9,10 @@
 package Psh::PCompletion;
 
 use strict;
-use vars qw(%COMPSPEC %ACTION @ISA @EXPORT_OK);
+use vars qw(%COMPSPEC %ACTION @ISA @EXPORT_OK $LOADED);
 require Exporter;
 
+$LOADED=1;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(pcomp_getopts %ACTION %COMPSPEC compgen redir_test);
 
@@ -117,7 +118,9 @@ sub pcomp_list {
 
     # actions
     if ($cs->{action} & CA_ALIAS) {
-	push(@l, grep { /^\Q$text/ } &Psh::Builtins::get_alias_commands);
+		if (Psh::Strategy::active('built_in')) {
+			push(@l, grep { /^\Q$text/ } Psh::Support::Alias::get_alias_commands());
+		}
     }
     if ($cs->{action} & CA_BINDING) {
 	# only Term::ReadLine::Gnu 1.09 and later support funmap_names()
@@ -125,7 +128,9 @@ sub pcomp_list {
 	eval { push(@l, grep { /^\Q$text/ } $Psh::term->funmap_names) };
     }
     if ($cs->{action} & CA_BUILTIN  || $cs->{action} & CA_HELPTOPIC) {
-	push(@l, grep { /^\Q$text/ } &Psh::Builtins::get_builtin_commands);
+		if (Psh::Strategy::active('built_in')) {
+			push(@l, grep { /^\Q$text/ } Psh::Support::Builtins::get_builtin_commands());
+		}
     }
     if ($cs->{action} & CA_COMMAND) {
 	push(@l, Psh::Completion::cmpl_executable($text));
@@ -163,7 +168,7 @@ sub pcomp_list {
     if ($cs->{action} & CA_USER) {
 		# Why are usernames in @user_completion prepended by `~'?
 		push(@l, map { substr($_, 1) }
-			 grep { /^~\Q$text/ } @Psh::Completion::user_completions);
+			 grep { /^~\Q$text/ } Psh::OS::get_all_users());
     }
     # job list
     if ($cs->{action} & CA_JOB) {

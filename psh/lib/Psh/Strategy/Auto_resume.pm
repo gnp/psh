@@ -9,20 +9,19 @@ a new program with that name
 =cut
 
 require Psh::Strategy;
+require Psh::Joblist;
 
 use vars qw(@ISA);
 @ISA=('Psh::Strategy');
 
-
 sub new { Psh::Strategy::new(@_) }
-
 
 sub consumes {
 	return Psh::Strategy::CONSUME_TOKENS;
 }
 
 sub applies {
-	my $fnname= ${$_[1]}[0];
+	my $fnname= ${$_[2]}[0];
     if( my($index, $pid, $call)=
 		   Psh::Joblist::find_last_with_name($fnname,1))
     {
@@ -32,7 +31,7 @@ sub applies {
 }
 
 sub execute {
-	my $fnname= ${$_[1]}[0];
+	my $fnname= ${$_[2]}[0];
     my ($index)= Psh::Joblist::find_last_with_name($fnname,1);
     Psh::OS::restart_job(1,$index);
     return undef;

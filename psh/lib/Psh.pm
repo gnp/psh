@@ -9,7 +9,6 @@ require Psh::OS;
 require Psh::Joblist;
 require Psh::Completion;
 require Psh::Parser;
-require Psh::Builtins;
 require Psh::PerlEval;
 require Psh::Prompt;
 
@@ -537,7 +536,6 @@ sub minimal_initialize
 
 	Psh::OS::inc_shlvl();
 	Psh::OS::setup_signal_handlers();
-	Psh::Builtins::build_autoload_list();
 
 	$Psh::window_title='\w';
 

@@ -1,7 +1,6 @@
 package Psh::Builtins::Dirs;
-use strict;
 
-use Psh::Util ':all';
+require Psh::Support::Dirs;
 
 =item * C<dirs> [n]
 
@@ -10,7 +9,7 @@ Prints out [the last n] entries in the cd history
 =cut
 
 sub bi_dirs {
-	my $max=$#Psh::Builtins::dir_stack;
+	my $max=$#Psh::Support::Dirs::stack;
 	if ($_[0] && $_[0]=~/^\d+$/) {
 		$max=$_[0]-1 if $_[0]<=$max;
 	}
@@ -18,12 +17,12 @@ sub bi_dirs {
 	for (my $i=$max; $i>=0; $i--) {
 		printf "%%%-2d ",$i;
 		
-		if ($i==$Psh::Builtins::dir_stack_pos) {
+		if ($i==$Psh::Support::Dirs::::stack_pos) {
 			print " > ";
 		} else {
 			print "   ";
 		}
-		print $Psh::Builtins::dir_stack[$i]."\n";
+		print $Psh::Support::Dirs::stack[$i]."\n";
 	}
 
 	return undef;

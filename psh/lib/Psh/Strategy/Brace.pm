@@ -17,7 +17,7 @@ sub runs_before {
 }
 
 sub applies {
-	return 'perl evaluation' if substr($$_[1],0,1) eq '{';
+	return 'perl evaluation' if substr(${$_[1]},0,1) eq '{';
 }
 
 sub execute {

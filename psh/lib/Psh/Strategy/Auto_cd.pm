@@ -22,13 +22,13 @@ sub consumes {
 }
 
 sub applies {
-	my $dir= ${$_[1]}[0];
+	my $dir= ${$_[2]}[0];
 	return "auto-cd $dir" if -d $dir;
     return '';
 }
 
 sub execute {
-	my $dir= ${$_[1]}[0];
+	my $dir= ${$_[2]}[0];
 	Psh::Builtins::Cd::bi_cd($dir);
 	return undef;
 }

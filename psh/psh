@@ -11,12 +11,23 @@ package Psh; # still use a package so getopt etc. is not imported into
              # the shell namespace
 
 use locale;
-use Psh;
-use Psh::Locale;
 
 use vars qw($VERSION);
 
 $VERSION='0.009';
+
+BEGIN {
+	# Let's speed up locating our other modules
+
+	require File::Spec;
+	require Psh;
+	my $tmp =$INC{'Psh.pm'};
+	my @tmp= File::Spec->splitdir($tmp);
+	pop @tmp;
+	$tmp= File::Spec->catfile(@tmp);
+	unshift @INC, $tmp;
+	require Psh::Locale;
+}
 
 #
 # Parse the command line and deal with the options except -r, which is
