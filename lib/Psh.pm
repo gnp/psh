@@ -735,8 +735,6 @@ sub process_file
 # iget() uses PROMPT as the prompt; this may be the empty string if no
 # prompting is necessary.
 #
-# TODO: Handle ^D nicely (i.e. allow log out or at least print "\n";)
-#
 
 sub iget
 {
@@ -792,6 +790,7 @@ sub iget
 	Psh::OS::remove_readline_handler();
 	Psh::OS::reinstall_resize_handler();
 
+	exit unless defined $line;
 	chomp $line;
 
 # [ gtw: Why monkey with the input? If we take out whitespace now,
