@@ -85,8 +85,7 @@ sub exit() {
 sub get_home_dir {
 	my $user = shift || $ENV{USER};
 	return $ENV{HOME} if ((! $user) && (-d $ENV{HOME}));
-	my $user_pwent = getpwnam($user);
-	return $user_pwent->dir;
+	return getpwnam($user)->dir;
 }
 
 sub get_path_extension { return (''); }
@@ -122,15 +121,14 @@ sub inc_shlvl {
 
 sub _give_terminal_to
 {
-	# Why are the signal handlers changed for this method only ?!?
+	# If a fork of a psh fork tries to call this then exit
+	# as it would probably mess up the shell
+	# This hack is necessary as e.g.
+	# alias ls=/bin/ls
+	# ls &
+	# call fork_process from within a fork
 
-        # Current answer by gtw: I put these signal-handler changes in
-        # here. It's the last bit of "magic" I copied from
-        # bash-2.03/jobs.c . I don't know why it's necessary, I just
-        # know that job control was erratic, sometimes causing hangs
-        # when foreground children terminated, until I changed these
-        # signal handlers. This whole function is closely modeled on
-        # the function by the same name in bash-2.03/jobs.c .
+	return if $Psh::OS::Unix::forked_already;
 
 	local $SIG{TSTP}  = 'IGNORE';
 	local $SIG{TTIN}  = 'IGNORE';
@@ -159,23 +157,21 @@ sub _wait_for_system
 
 	my $job= $Psh::joblist->get_job($pid);
 
-	die "No JOB!!" if ! $job;
+	return if ! $job;
 
 	my $term_pid= $job->{pgrp_leader}||$pid;
 
 	while (1) {
-#		print_debug("[[About to give the terminal to $term_pid.]]\n");
 		_give_terminal_to($term_pid);
 		if (!$job->{running}) { $job->continue; }
 		my $returnpid;
 		{
 			local $Psh::currently_active = $pid;
-			$returnpid = waitpid($pid, &WUNTRACED);
+			$returnpid = waitpid($pid,&WUNTRACED);
 			$pid_status = $?;
 		}
 		_give_terminal_to($psh_pgrp);
-#		print_debug("[[Just gave myself back the terminal. $pid $returnpid $pid_status]]\n");
-		last if $returnpid<0;
+		last if $returnpid<1;
 		_handle_wait_status($returnpid, $pid_status, $quiet);
 		last if $returnpid == $pid;
 	}
@@ -233,7 +229,7 @@ sub execute_complex_command {
 	my $fgflag= shift @array;
 	my @return_val;
 	my $eval_thingie;
-	my $pgrp_leader=0;
+	my $pgrp_leader= 0;
 	my $pid;
 	my $string='';
 	my @tmp;
@@ -255,9 +251,14 @@ sub execute_complex_command {
 			if( $i<$#array) {
 				unshift(@$options,['REDIRECT','>&',1,'WRITE']);
 			}
+			my $termflag=!($i==$#array);
+
 			($pid,@tmp)= _fork_process($eval_thingie,$fgflag,$text,$options,
-										  $pgrp_leader,1,1);
-			$pgrp_leader=$pid if( $i==0);
+									   $pgrp_leader,$termflag);
+
+			if( !$i && !$pgrp_leader) {
+				$pgrp_leader=$pid;
+			}
 
 			if( $i<$#array && $#array) {
 				close(WRITE);
@@ -267,21 +268,20 @@ sub execute_complex_command {
 				!defined($return_val[0])) {
 				@return_val= @tmp;
 			}
-			if( $i==$#array) {
-				_give_terminal_to($pid);
-			}
 		}
 		$string.='|' if $i>0;
 		$string.=$text;
 	}
+
 	if( $pid) {
 		my $job= $Psh::joblist->create_job($pid,$string);
 		$job->{pgrp_leader}=$pgrp_leader;
-		if( !$fgflag) {
+		if( $fgflag) {
+			_wait_for_system($pid, 1);
+		} else {
 			my $visindex= $Psh::joblist->get_job_number($job->{pid});
 			Psh::Util::print_out("[$visindex] Background $pgrp_leader $string\n");
 		}
-		_wait_for_system($pid, 1) if $fgflag;
 	}
 	return @return_val;
 }
@@ -345,16 +345,18 @@ sub _remove_redirects {
 }
 
 #
-# void fork_process( code|program, int fgflag)
+# void fork_process( code|program, int fgflag, text to display in jobs,
+#                    pid of pgroupleader, set terminal flag)
 #
 
 sub _fork_process {
-    my( $code, $fgflag, $string, $options, $pgrp_leader, $termflag) = @_;
-	my $pid;
+    my( $code, $fgflag, $string, $options,
+		$pgrp_leader, $termflag) = @_;
+	my($pid);
 
 	# HACK - if it's foreground code AND perl code
 	# we do not fork, otherwise we'll never get
-	# the result value etc.
+	# the result value, changed variables etc.
 	if( $fgflag && ref($code) eq 'CODE') {
 		my $cache= _setup_redirects($options);
 		my @result= eval { &$code };
@@ -364,6 +366,7 @@ sub _fork_process {
 	}
 
 	unless ($pid = fork) { #child
+		$Psh::OS::Unix::forked_already=1;
 		close(READ) if( $pgrp_leader);
 		_setup_redirects($options);
 		remove_signal_handlers();
@@ -578,6 +581,7 @@ sub _signal_handler
 		Psh::Util::print_debug("Received signal SIG$sig, sending to Perl code\n");
 		die "SECRET ${Psh::bin}: Signal $sig\n";
 	} else {
+		_give_terminal_to($$);
 		Psh::Util::print_debug("Received signal SIG$sig, die-ing\n");
 		die "SECRET ${Psh::bin}: Signal $sig\n" if $sig eq 'INT';
 	}
@@ -626,29 +630,6 @@ sub _resize_handler
 			($cols,$rows)= &Term::ReadKey::GetTerminalSize(*STDOUT);
 		};
 	}
-
-
-# I do not really want to activate this before I know more about
-# where this will work
-#
-#  	unless( $cols) {
-#  		#
-#  		# Portability alarm!! :-)
-#  		#
-#  		eval 'use "ioctl.ph';
-#  		eval 'use "sys/ioctl.ph';
-#  		eval 'use "sgtty.ph';
-#
-#  		eval {
-#  			my $TIOCGWINSZ = &TIOCGWINSZ if defined(&TIOCGWINSZ);
-#  			my $TIOCGWINSZ = 0x40087468 if !defined($TIOCGWINSZ);
-#  			my $winsz_t="S S S S";
-#  			my $winsize= pack($winsz_t,0,0,0,0);
-#  			if( ioctl(STDIN,$TIOCGWINSZ,$winsize)) {
-#  				($rows,$cols)= unpack("S S S S",$winsize);
-#  			}
-#  		}
-#  	}
 
 	if(($cols > 0) && ($rows > 0)) {
 		$ENV{COLUMNS} = $cols;
