@@ -12,6 +12,9 @@ Displays a list of available themes.
 
 Activates the theme.
 
+If your themes look strange try C<option encoding=iso8859-1> - this
+will switch to an alternative usage of graphical characters.
+
 =cut
 
 sub _parse_error {
