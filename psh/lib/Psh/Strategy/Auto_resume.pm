@@ -10,8 +10,10 @@ a new program with that name
 
 $Psh::strategy_which{auto_resume}= sub {
 	my $fnname= ${$_[1]}[0];
-    if( $Psh::joblist->find_last_with_name($fnname,1)) {
-		return "(auto-resume $call)" if( $call eq $fnname);
+    if( my($index, $pid, $call)=
+		   $Psh::joblist->find_last_with_name($fnname,1))
+    {
+		return "(auto-resume $call)";
 	}
     return '';
 };
