@@ -1,3 +1,18 @@
+CVS
+
+29 Dec 1999 - warp:
+New Features:
+ * New recursive globbing using **/
+   (Example: grep anything **/*.pm )
+
+Internal:
+ * Moved prompt code and perl evaluation code into own packages
+ * Implementing redirects and pipes in psh - STILL BUGGY!
+ * Clean-ups for all code using filenames (now using File::Spec)
+ * More I18N
+ * Removed usage of ENV{HOME} in portable code
+
+
 0.005 [1999-12-28]
     A very functional release.
 

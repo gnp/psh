@@ -7,6 +7,7 @@ use Cwd;
 use Cwd 'chdir';
 use Config;
 use Psh::OS;
+use File::Spec;
 
 require Exporter;
 
@@ -119,7 +120,6 @@ sub print_list
 
 sub basic_abs_path {
 	my $dir = shift;
-	my $FS= $Psh::OS::FILE_SEPARATOR;
 	
 	$dir = '~' unless defined $dir and $dir ne '';
 	
@@ -128,15 +128,13 @@ sub basic_abs_path {
 		my $rest = $3;
 		
 		my $home;
-		
-		if ($user eq '') { $home = $ENV{HOME}; }
-		else             { $home = Psh::OS::get_home_dir($user); }
-		
+
+		$home= Psh::OS::get_home_dir($user);
 		if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
 	}
 
-	if( !Psh::OS::is_path_absolute($dir)) {
-		$dir = cwd . $FS. $dir
+	if( !File::Spec->file_name_is_absolute($dir)) {
+		$dir = File::Spec->catdir(cwd,$dir);
 	}
 	
 	return $dir;
@@ -152,7 +150,6 @@ sub basic_abs_path {
 eval "use Cwd 'fast_abs_path';";
 if (!$@) {
 	print_debug("Using &Cwd::fast_abs_path()\n");
-#	sub abs_path { return fast_abs_path(@_); }
 	*abs_path = sub {
 	    my $path= eval { &fast_abs_path(@_); };
 		$path= eval { &basic_abs_path(@_) } if( $@);
@@ -188,7 +185,7 @@ if (!$@) {
 		my $cmd      = shift;
 		my $FS= $Psh::OS::FILE_SEPARATOR;
 
-		print_debug("[which $cmd]\n");
+		#print_debug("[which $cmd]\n");
 
 		if ($cmd =~ m|\Q$FS\E|) {
 			$cmd =~ m|^(.*)\Q$FS\E([^\Q$FS\E]+)$|;
@@ -223,7 +220,7 @@ if (!$@) {
 		my @path_extension=Psh::OS::get_path_extension();
 
 		foreach my $dir (@Psh::absed_path) {
-			my $try = $dir.$FS.$cmd;
+			my $try = File::Spec->catfile($dir,$cmd);
 			foreach my $ext (@path_extension) {
 				if ((-x $try.$ext) and (!-d _)) { 
 					$hashed_cmd{$cmd} = $try.$ext;

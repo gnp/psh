@@ -6,6 +6,7 @@ use vars qw($VERSION);
 use Carp;
 
 use Psh::OS;
+use Psh::Util;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -260,29 +261,245 @@ sub incomplete_expr
 
 sub glob_expansion
 {
-	my ($arref) = @_;
+	my $arref= shift;
+	my $join_char= shift;
 	my @retval  = ();
 
 	for my $word (@{$arref}) {
 		if ($word =~ m/['"']/ # if it contains quotes
-			or ($word !~ m/{.*}|\[.*\]|[*?]/)) { # or no globbing characters
+			or ($word !~ m/{.*}|\[.*\]|[*?~]/)) { # or no globbing characters
 			push @retval, $word;  # don't try to glob it
 		} else { 
-		        # Glob it. If anything happens, quote the
-		        # results so they won't be clobbbered later.
-		        my @results = Psh::OS::glob($word);
+			# Glob it. If anything happens, quote the
+			# results so they won't be clobbbered later.
+			my @results = Psh::OS::glob($word);
 			if (scalar(@results) == 0) {
-			         @results = ($word);
+				@results = ($word);
 			} elsif (scalar(@results)>1 or $results[0] ne $word) {
-			         foreach (@results) { $_ = "'$_'"; }
+				foreach (@results) { $_ = "'$_'"; }
 			}
-			push @retval, @results;
+			if( $join_char) {
+				push @retval, join($join_char, @results);
+			} else {
+				push @retval, @results;
+			}
 		}
 	}
 
 	return @retval;
 }
 
+
+#
+# Removes quotes from a word and backslash escapes
+#
+sub unquote {
+	my $text= shift;
+
+	if( $text=~ /^\'(.*)\'$/) {
+		$text= $1;
+	} elsif( $text=~ /^\"(.*)\"$/) {
+		$text= $1;
+	} else {
+		$text=~ s/\\(.)/$1/g;
+	}
+	return $text;
+}
+
+sub parse_line {
+	my ($line, @use_strats) = @_;
+
+	my @words= std_tokenize($line);
+	foreach my $strat (@Psh::unparsed_strategies) {
+		if (!defined($Psh::strategy_which{$strat})) {
+			Psh::Util::print_warning_i18n('no_such_strategy',
+										  $strat,$Psh::bin);
+			next;
+		}
+
+		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
+
+		if ($how) {
+			Psh::Util::print_debug("Using strategy $strat by $how\n");
+			return [ 1, [$Psh::strategy_eval{$strat},
+						 $how, [], \@words, $strat ]];
+		}
+	}
+
+	my @parts= decompose('(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)',
+						 $line, undef, 1,
+						 {"'"=>"'","\""=>"\"","{"=>"}"});
+	my @tokens= ();
+	my $previous_token='';
+	while( my $tmp= shift @parts) {
+		if( $tmp =~ /^\s*\|\s*$/ ) {
+			if( $previous_token eq '|') {
+				pop @tokens;
+				push @tokens, ['WORD','||'];
+				$previous_token= '';
+			} elsif( $previous_token eq "\\") {
+				pop @tokens;
+				push @tokens, ['WORD','|'];
+				$previous_token= '';
+			} else {
+				push @tokens, ['PIPE'];
+				$previous_token= '|';
+			}
+		} elsif( $tmp =~ /^([1-2]?)(>>?)$/) {
+			my $handle= $1||1;
+			my $tmp= $2;
+
+			if( $previous_token eq '=') {
+				pop @tokens;
+				push @tokens, ['WORD','=>'];
+				$previous_token= '';
+			} else {
+				my $file;
+				while( @parts>0) {
+					$file= shift @parts;
+					last if( $file !~ /^\s+$/);
+					$file='';
+				}
+				if( !$file) {
+					Psh::Util::print_error_i18n('redirect_file_missing',
+												$tmp,$Psh::bin);
+					return undef;
+				}
+				push @tokens, ['REDIRECT',$tmp,$handle,$file];
+				$previous_token='';
+			}
+		} elsif( $tmp eq '<') {
+			if( $previous_token eq '<') {
+				pop @tokens;
+				push @tokens, ['WORD','<<'];
+				$previous_token='';
+			} elsif( $previous_token eq "\\") {
+				pop @tokens;
+				push @tokens, ['WORD','<'];
+				$previous_token='';
+			} else {
+				my $file;
+				while( @parts>0) {
+					$file= shift @parts;
+					last if( $file !~ /^\s+$/);
+					$file='';
+				}
+				if( !$file) {
+					Psh::Util::print_error_i18n('redirect_file_missing',
+												$tmp,$Psh::bin);
+					return undef;
+				}
+				push @tokens, ['REDIRECT','<',0,$file];
+				$previous_token='<';
+			}
+		} elsif( $tmp eq '&') {
+			if( $previous_token eq '&') {
+				pop @tokens;
+				push @tokens, ['WORD','&&'];
+				$previous_token='';
+			} elsif( $previous_token eq "\\") {
+				pop @tokens;
+				push @tokens, ['WORD','&'];
+				$previous_token='';
+			} else {
+				push @tokens, ['BACKGROUND'],['END'];
+				$previous_token='&';
+			}
+		} elsif( $tmp eq ';') {
+			if( $previous_token eq ';' ||
+				$previous_token eq "\\") {
+				# ;; parses as \; as one needs it often in .e.g
+				# finds
+				pop @tokens;
+				push @tokens, ['WORD',';'];
+				$previous_token='';
+			} else {
+				push @tokens, ['END'];
+				$previous_token=';';
+			}
+		} elsif( $tmp=~ /^\s+$/) {
+		} else {
+			push @tokens, ['WORD',$tmp];
+			$previous_token= $tmp;
+		}
+	}
+
+	my @elements=();
+	my $element;
+	while( @tokens > 0) {
+		($element,@tokens)=parse_complex_command(\@tokens,\@use_strats);
+		return undef if ! defined( $element); # TODO: Error handling
+
+		if (@tokens > 0 && $tokens[0]->[0] eq 'END') {
+			shift @tokens;
+		}
+		push @elements, $element;
+	}
+	return @elements;
+}
+
+sub parse_complex_command {
+	my @tokens = @{shift()};
+	my @use_strats= @{shift()};
+	my @simplecommands;
+
+	($simplecommands[0], @tokens) = parse_simple_command(\@tokens,
+														 \@use_strats);
+
+	while (@tokens > 0 && $tokens[0]->[0] eq 'PIPE') {
+		shift @tokens;
+		my $sc;
+		($sc, @tokens) = parse_simple_command(\@tokens,\@use_strats);
+		push @simplecommands, $sc;
+	}
+
+	my $foreground = 1;
+	if (@tokens > 0 && $tokens[0]->[0] eq 'BACKGROUND') {
+		shift @tokens;
+		$foreground = 0;
+	}
+
+	return [ $foreground, @simplecommands ], @tokens;
+}
+
+sub parse_simple_command {
+	my @tokens = @{shift()};
+	my @use_strats= @{shift()};
+
+	my @words;
+	my @options;
+
+	my $token = shift @tokens;
+	push @words, $token->[1];
+	while (@tokens > 0 &&
+		   ($tokens[0]->[0] eq 'WORD' ||
+			$tokens[0]->[0] eq 'REDIRECT')) {
+		my $token = shift @tokens;
+		if ($token->[0] eq 'WORD') {
+			push @words, $token->[1];
+		} elsif ($token->[0] eq 'REDIRECT') {
+			push @options, $token;
+		}
+	}
+
+	my $line= join ' ', @words;
+	foreach my $strat (@use_strats) {
+		if (!defined($Psh::strategy_which{$strat})) {
+			Psh::Util::print_warning_18n('no_such_strategy',
+										 $strat,$Psh::bin);
+			next;
+		}
+
+		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
+
+		if ($how) {
+			Psh::Util::print_debug("Using strategy $strat by $how\n");
+			return [ $Psh::strategy_eval{$strat},
+					 $how, \@options, \@words, $strat, $line ], @tokens;
+		}
+	}
+	Psh::Util::print_error_18n('clueless',$line,$Psh::bin);
+}
 
 #
 # bool needs_double_quotes (string WORD) 
@@ -305,7 +522,7 @@ sub needs_double_quotes
 	return if !defined($word) or !$word;
 
 	if ($word =~ m/[a-zA-Z]/                     # if it has some letters
-		and $word =~ m"^(\\.|[$.:a-zA-Z0-9/.])*$") { # and only these characters 
+		and $word =~ m!^(\\.|[$.:a-zA-Z0-9/.])*$!) { # and only these characters 
 		return 1;                                # then double-quote it
 	}
 

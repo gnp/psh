@@ -56,6 +56,37 @@ sub display_pod {
 
 sub reap_children {1};
 
+sub execute_complex_command {
+	my @array= @{shift()};
+	my $fgflag= shift @array;
+	my @return_val;
+	my $pgrp_leader=0;
+	my $pid;
+	my $string='';
+	my @tmp;
+
+	if($#ARRAY) {
+		print_error("No piping yet.\n");
+		return ();
+	}
+
+	for( my $i=0; $i<@array; $i++) {
+		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
+		my $line= join(' ',@$words);
+		my ($eval_thingie,@return_val)= &$coderef( \$line, $words,$how);
+		my @tmp;
+		
+		if( defined($eval_thingie)) {
+			@tmp= fork_process($eval_thingie,$fgflag,$text);
+		}
+		if( @return_val < 1 ||
+			!defined($return_val[0])) {
+			@return_val= @tmp;
+		}
+	}
+	return @return_val;
+}
+
 sub fork_process {
 	local( $Psh::code, $Psh::fgflag, $Psh::string) = @_;
 	local $Psh::pid;
@@ -63,33 +94,13 @@ sub fork_process {
 	print_error_i18n('no_jobcontrol') unless $Psh::fgflag;
 
 	if( ref($Psh::code) eq 'CODE') {
-		&{$Psh::code};
+		return &{$Psh::code};
 	} else {
 		system($Psh::code);
 	}
 }
 
-# Simply doing backtick eval - mainly for Prompt evaluation
-sub system {
-	return `@_`;
-}
-
 sub has_job_control { return 0; }
-
-sub glob {
-	my $pattern= shift;
-	my $path= shift;
-	my $old;
-	if( $path) {
-		$old=cwd();
-		chdir abs_path($path);
-	}
-	my @result= glob(shift);
-	if( $old) {
-		chdir $old;
-	}
-	return @result;
-}
 
 sub get_all_users { return (); } # this should have a value on NT and Win9x with multiple profiles
 sub restart_job {1}
@@ -99,9 +110,13 @@ sub setup_sigsegv_handler {1}
 sub setup_readline_handler {1}
 sub reinstall_resize_handler {1}
 
-sub remove_readline_handler {1} #FIXME: better than not running at all
+sub get_home_dir {
+	my $user= shift;
+	return $ENV{HOME} if( ! $user && $ENV{HOME} );
+	return "\\";
+} # we really should return something (profile?)
 
-sub get_home_dir {1} # we really should return something (profile?)
+sub remove_readline_handler {1} #FIXME: better than not running at all
 
 sub is_path_absolute {
 	my $path= shift;
@@ -131,11 +146,12 @@ Psh::OS::Win - Contains Windows specific code
 
 =head1 DESCRIPTION
 
-TBD
+An implementation of Psh::OS for Win32 systems. This module
+requires libwin32.
 
 =head1 AUTHOR
 
-blaaa
+Markus Peter, warp@spin.de
 Omer Shenker, oshenker@iname.com
 
 =head1 SEE ALSO
