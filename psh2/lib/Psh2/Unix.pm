@@ -84,15 +84,20 @@ sub reap_children {
 
 sub execute {
     my ($self, $tmp)= @_;
-    my ($strategy, $how, $options, $words)= @$tmp;
+    my ($strategy, $how, $options, $words, $line, $add_data)= @$tmp;
 
     if ($strategy eq 'execute') {
 	{ exec { $how } @$words };
 	return -1;
     } elsif ($strategy eq 'call') {
-	no strict 'refs';
-	my $coderef= *{$how};
-	return &{$coderef}($self, $words);
+	my $coderef;
+	if (ref $how eq 'CODE') {
+	    $coderef= $how;
+	} else {
+	    no strict 'refs';
+	    $coderef= *{$how};
+	}
+	return &{$coderef}($self, $words, $add_data);
     } elsif ($strategy eq 'reparse') {
 	$self->process_variable(Psh2::Parser::ungroup($words->[0]));
 	return $self->{status};

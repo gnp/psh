@@ -895,7 +895,7 @@ sub del_option {
 
 sub add_function {
     my ($self, $name, $coderef, $data)= @_;
-    $self->{function}{$name}= [ $name, $coderef];
+    $self->{function}{$name}= [ $coderef, $data];
 }
 
 sub delete_function {
