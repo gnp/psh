@@ -6,6 +6,7 @@ use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
 use Config;
 use File::Spec;
 use Sys::Hostname;
+use FileHandle;
 
 use Psh::Util ':all';
 
@@ -30,11 +31,12 @@ sub get_hostname() {
 # Returns a list of well-known hosts (from /etc/hosts)
 #
 sub get_known_hosts {
-	open(FILE,"< /etc/hosts") || return ();
-	my $text='';
-	while( <FILE>) { $text.=$_; }
-	close(FILE);
-	return Psh::Util::parse_hosts_file($text);
+	my $hosts_file = "/etc/hosts"; # TODO: shouldn't be hard-coded?
+	my $hfh = new FileHandle($hosts_file, 'r');
+	return ("localhost") unless defined($hfh);
+	my $hosts_text = join('', <$hfh>);
+	$hfh->close();
+	return Psh::Util::parse_hosts_file($hosts_text);
 }
 
 #
@@ -77,7 +79,8 @@ sub display_pod {
 # MacOS
 #
 sub exit() {
-	CORE::exit( shift);
+        CORE::exit(@_[0]) if $_[0];
+        CORE::exit(0);
 }
 
 sub get_home_dir {

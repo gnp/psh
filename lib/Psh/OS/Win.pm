@@ -4,6 +4,7 @@ use strict;
 use vars qw($VERSION);
 use Psh::Util ':all';
 
+use FileHandle;
 use DirHandle;
 
 eval {
@@ -31,12 +32,17 @@ $Psh::history_file = "psh_history";
 sub get_hostname {
 	my $name_from_reg = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\ComputerName\\ComputerName\\ComputerName"};
 	return $name_from_reg if $name_from_reg;
-	return 'localhost'
+	return 'localhost';
 }
 
-# TODO: locate hosts file on Windows and do the same as for Unix
-# (it can be anywhere in PATH I think)
-sub get_known_hosts { return (); }
+sub get_known_hosts {
+        my $hosts_file = "$ENV{windir}\HOSTS";
+        my $hfh = new FileHandle($hosts_file, 'r');
+        return ("localhost") unless defined($hfh);
+        my $hosts_text = join('', <$hfh>); }
+        $hfh->close();
+        return Psh::Util::parse_hosts_file($hosts_text);  
+}
 
 sub exit {
 	CORE::exit(@_[0]) if $_[0];
@@ -103,6 +109,7 @@ sub fork_process {
 	local( $Psh::code, $Psh::fgflag, $Psh::string) = @_;
 	local $Psh::pid;
 
+	# TODO: perhaps we should use Win32::Process?
 	print_error_i18n('no_jobcontrol') unless $Psh::fgflag;
 
 	if( ref($Psh::code) eq 'CODE') {
