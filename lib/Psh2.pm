@@ -47,6 +47,8 @@ sub new {
 	       strategy => [],
 	       language => {},
 	       tmp => {},
+	       dirstack => [],
+	       dirstack_pos => 0,
 	   };
     bless $self, $class;
     return $self;
@@ -230,6 +232,7 @@ sub printdebug {
     my %path_hash=();
 
     sub abs_path {
+	my $self= shift;
 	my $path= shift;
 	return undef unless $path;
 	return $path_hash{$path} if $path_hash{$path};
@@ -245,7 +248,7 @@ sub printdebug {
 	    elsif ( substr($path, 0, 1) eq '~') {
 	    }
 	    unless ($result) {
-		my $tmp= rel2abs( $path, $ENV{PWD});
+		my $tmp= rel2abs( $self, $path, $ENV{PWD});
 		my $old= $ENV{PWD};
 		if ($tmp and -r $tmp) {
 		    if (-d $tmp and -x _) {
@@ -265,7 +268,7 @@ sub printdebug {
 	if ($result) {
 	    $result.='/' unless $result =~ m:[/\\]:;
 	}
-	$path_hash{$path}= $result if file_name_is_absolute($path);
+	$path_hash{$path}= $result if file_name_is_absolute($self, $path);
 	return $result;
     }
 
@@ -285,7 +288,7 @@ sub printdebug {
 	    my $path_element= $1 || '';
 	    my $cmd_element = $2 || '';
 	    return undef unless $path_element and $cmd_element;
-	    $path_element= abs_path($path_element);
+	    $path_element= abs_path($self, $path_element);
 	    my $try= catfile($path_element, $cmd_element);
 	    if (-x $try and ! -d _ ) {
 		return $try;
@@ -299,13 +302,13 @@ sub printdebug {
 
 	if (!@absed_path or $last_path_cwd ne ($ENV{PATH}.$ENV{PWD})) {
 	    $last_path_cwd= $ENV{PATH}.$ENV{PWD};
-	    _recalc_absed_path();
+	    _recalc_absed_path($self);
 	}
 	my $path_ext= get_path_extension();
 	my @all= ();
 	foreach my $dir (@absed_path) {
 	    next unless $dir;
-	    my $try= catfile($dir, $command);
+	    my $try= catfile($self, $dir, $command);
 	    foreach my $ext (@$path_ext) {
 		my $tmp= $try.$ext;
 		if (-x $tmp and !-d _) {
@@ -323,13 +326,15 @@ sub printdebug {
     }
 
     sub _recalc_absed_path {
+	my $self= shift;
+
 	@absed_path= ();
 	%command_hash= ();
 	my @path= split path_separator(), $ENV{PATH};
 	eval {
 	    foreach my $dir (@path) {
 		next unless $dir;
-		$dir= abs_path($dir);
+		$dir= abs_path($self, $dir);
 		next unless $dir and -r $dir and -x _;
 		push @absed_path, $dir;
 	    }
@@ -350,10 +355,10 @@ sub _recursive_glob {
     opendir( DIR, $dir) || return ();
     my @files= readdir(DIR);
     closedir( DIR);
-    my @result= map { catdir($dir,$_) }
+    my @result= map { catdir(undef, $dir,$_) }
       grep { /^$pattern$/ } @files;
     foreach my $tmp (@files) {
-	my $tmpdir= catdir($dir,$tmp);
+	my $tmpdir= catdir(undef, $dir,$tmp);
 	next if ! -d $tmpdir || !no_upwards($tmp);
 	push @result, _recursive_glob($pattern, $tmpdir);
     }
@@ -380,7 +385,7 @@ sub glob {
     if( !$dir) {
 	$dir=$ENV{PWD};
     } else {
-	$dir=abs_path($dir) unless $already_absed;
+	$dir=abs_path($self, $dir) unless $already_absed;
     }
     return unless $dir;
 
@@ -401,7 +406,7 @@ sub glob {
 	my $prefix= $1||'';
 	$pattern= $2;
 	$prefix=~ s:/$::;
-	$dir= catdir($dir,$prefix);
+	$dir= catdir($self, $dir,$prefix);
 	$pattern=_escape($pattern);
 	$pattern=~s/\*/[^\/]*/g;
 	$pattern=~s/\?/./g;
@@ -559,7 +564,7 @@ sub list_option {
 	%builtin= ();
 	my $unshift= '';
 	foreach my $tmp (@INC) {
-	    my $tmpdir= catdir( $tmp, 'Psh2', 'Builtins');
+	    my $tmpdir= catdir( undef, $tmp, 'Psh2', 'Builtins');
 	    if (-r $tmpdir) {
 		my @files= Psh2->glob('*.pm', $tmpdir, 1);
 		foreach (@files) {

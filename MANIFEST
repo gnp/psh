@@ -8,6 +8,7 @@ TODO
 docs/syntax-notes
 lib/Psh2.pm
 lib/Psh2/Builtins/Bg.pm
+lib/Psh2/Builtins/Cd.pm
 lib/Psh2/Builtins/Exec.pm
 lib/Psh2/Builtins/Exit.pm
 lib/Psh2/Builtins/Fg.pm
