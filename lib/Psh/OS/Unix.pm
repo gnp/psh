@@ -50,6 +50,28 @@ sub glob {
 }
 
 #
+# void display_pod(text)
+#
+sub display_pod {
+	my $tmp= POSIX::tmpnam;
+	my $text= shift;
+
+	open( TMP,">$tmp");
+	print TMP $text;
+	close(TMP);
+
+	eval {
+		use Pod::Text;
+		Pod::Text::pod2text($tmp,*STDOUT);
+	};
+	if( $@) {
+		print $text;
+	}
+
+	1 while unlink($tmp); #Possibly pointless VMSism
+}
+
+#
 # Exit psh - you won't believe it, but exit needs special treatment on
 # MacOS
 #
@@ -471,6 +493,7 @@ blaaa
 # indent-tabs-mode:t
 # c-basic-offset:4
 # perl-indent-level:4
+# perl-label-offset:0
 # End:
 
 
