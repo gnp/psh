@@ -247,11 +247,11 @@ sub _parse_control_char {
 
 sub ungroup {
     my $text= shift;
-    if (substr($text,0,1) eq '(' and
-	substr($text,-1,1) eq ')') {
+    my $firstchar= substr($text,0,1);
+    my $lastchar= substr($text,-1,1);
+    if ($firstchar eq '(' and $lastchar eq ')') {
 	return substr($text,1,-1);
-    } elsif (substr($text,0,1) eq '{' and
-	     substr($text,-1,1) eq '}') {
+    } elsif ($firstchar eq '{' and $lastchar eq '}') {
 	return substr($text,1,-1);
     }
     return $text;
@@ -429,7 +429,7 @@ sub make_tokens {
 
 sub parse_line {
     my ($psh, $line)= @_;
-    return [] if substr( $line, 0, 1) eq '#' or $line=~/^\s*$/;
+    return [] if ord( $line)==35 or $line=~/^\s*$/;
 
     my $tokens= make_tokens( $psh, $line );
     my @elements= ();
@@ -478,7 +478,7 @@ sub _parse_simple {
     parse_variables($psh, \@words, $options);
     return () unless @words;
 
-    if (substr($words[0],0,1) eq '\\') {
+    if (ord($words[0])==92) { # backslash
 	$words[0]= substr($words[0],1);
     } elsif (!$opt->{noalias}) {
         if ($psh->{aliases}{$words[0]}) {
@@ -554,16 +554,18 @@ sub glob_expansion {
     my @retval  = ();
 
     for my $word (@{$words}) {
+        my $firstchar= substr($word,0,1);
+        my $lastchar= substr($word,-1);
 	if (
-	    (substr($word,0,1) ne '[' and
+	    ($firstchar ne '[' and
 	     index($word,'*')==-1 and
 	     index($word,'?')==-1 and
 	     index($word,'~')==-1) or
-	     (substr($word,0,1) eq '"' and substr($word,-1) eq '"') or
-	     (substr($word,0,1) eq '`' and substr($word,-1) eq '`') or
-	     (substr($word,0,1) eq "'" and substr($word,-1) eq "'") or
-	     (substr($word,0,1) eq '(' and substr($word,-1) eq ')') or
-	     (substr($word,0,1) eq '{' and substr($word,-1) eq '}')
+	     ($firstchar eq '"' and $lastchar eq '"') or
+	     ($firstchar eq '`' and $lastchar eq '`') or
+	     ($firstchar eq "'" and $lastchar eq "'") or
+	     ($firstchar eq '(' and $lastchar eq ')') or
+	     ($firstchar eq '{' and $lastchar eq '}')
 	   ) {
 	    push @retval, $word;
 	} else {
@@ -624,6 +626,7 @@ sub expand_dollar_function {
         return eval substr($args,1,-1);
     }
     elsif ($name eq 'substr') {
+        print STDERR "-$args-";
     }
     else {
         die "unknown function: $name";
