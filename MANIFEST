@@ -5,6 +5,7 @@ MANIFEST
 README
 INSTALL
 TODO
+Makefile.PL
 docs/README
 docs/othershells
 docs/psh2.pod
