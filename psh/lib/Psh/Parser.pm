@@ -22,7 +22,7 @@ sub T_EXECUTE() { 1; }
 my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
 my $def_quoteexp;
 my %def_qhash;
-my $def_metaexp= '[\[\]{}()]';
+my $def_metaexp= '[\[\]{}()``]';
 my $def_tokenizer='(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)';
 my $nevermatches = "(?!a)a";
 
@@ -424,6 +424,18 @@ sub make_tokens {
 				push @tokens, [T_END];
 				$previous_token=';';
 			}
+		} elsif ($tmp eq '`') {
+			my $tmp='';
+			while ( (my $tmp2= shift @parts) ne '`' ) {
+				$tmp.=' '.$tmp2;
+			}
+			$tmp= Psh::OS::backtick($tmp);
+			$tmp=~ s/\\/\\\\/g;
+			$tmp=~ s/\"/\\\"/g;
+			$tmp=~ s/\n/\\n/g;
+			$tmp=~ s/\$/\\\$/g;
+			$tmp=~ s/\@/\\\@/g;
+			push @tokens, [T_WORD, join('','"', $tmp,'"')];
 		} elsif( $tmp=~ /^\s+$/) {
 		} else {
 			push @tokens, [T_WORD,$tmp];

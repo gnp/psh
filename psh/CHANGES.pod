@@ -41,6 +41,15 @@ The new B<if> builtin allows mixing evaluation strategies. Example:
        }
    }
 
+=item *
+
+Perl shell now integrates with Perl backticks, you you can finally do
+things like:
+
+   $foo=`help strategy`
+   chomp $foo
+   if ( $foo =~ /.../ ) ...
+
 =item * 
 
 New B<-F> command line switch to disable processing of any pshrc files
