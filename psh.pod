@@ -33,7 +33,10 @@ C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
 
 The command-line arguments to B<psh> are:
 
- psh [-d] [-w] [-r RC_FILE] [FILE1 FILE2 ....]
+ psh [-d] [-w] [-r RC_FILE] [-c STRING ] [FILE1 FILE2 ....]
+
+They are processed in the following order, regardless of what order
+they are specified in:
 
 =over 4
 
@@ -61,7 +64,9 @@ F<$ENV{HOME}/.pshrc>.
 
 =item * B<-c> I<string>
 
-If the B<-c> flag is present, then commands are read from C<string>.
+If the B<-c> flag is present, then commands are read from
+C<string>, and then B<psh> exits. In particular, any FILE1
+... arguments will be ignored.
 
 =back
 
@@ -119,6 +124,11 @@ the line.
 If the first word of the input line begins with a '!' character, send
 everything after the '!' to system().
 
+=item * C<brace>
+
+If the first word of the input line begins with a '{' character,
+evaluate the entire line as a Perl expression (including the brace).
+
 =item * C<built_in>
 
 If the first word of the input line matches a B<psh> "built-in"
@@ -163,6 +173,14 @@ system. Perl variable substitution will be done on the line first if
 the C<$Psh::executable_expand_arguments> configuration variable is
 true. 
 
+=item * C<fallback_builtin>
+
+If the first word of the input line is a "fallback builtin" provided
+for operating systems that do not have common binaries -- such as
+"ls", "env", etc, then call the associated subroutine like an ordinary 
+builtin. If you want all of these commands to be executed within the
+shell, you can move this strategy ahead of executable.
+
 =item * C<eval>
 
 Pass the line to eval, regardless of any condition. This is a catch-all
@@ -172,7 +190,7 @@ strategy; strategies placed after it will never be triggered.
 
 The list of evaluation strategies to try is kept in the configuration
 variable C<@Psh::strategies>, which defaults to
-C<qw(comment bang built_in perlfunc executable eval)>. 
+C<qw(comment bang built_in executable fallback_builtin eval)>. 
 
 
 =head2 BUILT-IN FUNCTIONS
@@ -190,84 +208,17 @@ of course get arguments that have already been evaluated by the Perl
 evaluator. Which you want depends on the nature of the function being
 defined.
 
-=over 4
+If C<$Psh::built_ins{foo}> does not exist, but
+C<&Psh::Builtins::bi_foo> is defined, then foo will still be
+considered a builtin calling that function. This is primarily to
+ensure that the original builtins are always accessible, for example
+if they have been aliased and unaliased.
 
-=item * C<source FILE> [or C<. FILE>]
+"Fallback builtins" are provided similarly to this last option: "foo"
+is a fallback builtin if C<&Psh::Builtins::Fallback::bi_foo> is
+defined.
 
-Read and process the contents of the given file as a sequence of B<psh>
-commands.
-
-=item * C<alias [NAME [=] REPLACEMENT]> 
-
-Add C<I<NAME>> as a built-in so that NAME <REST_OF_LINE> will execute
-exactly as if REPLACEMENT <REST_OF_LINE> had been entered. For
-example, one can execute C<alias ls ls -F> to always supply the B<-F>
-option to "ls". Note the built-in is defined to avoid recursion
-here.
-
-With no arguments, prints out a list of the current aliases.
-With only the C<I<NAME>> argument, prints out a definition of the
-alias with that name.
-
-=item * C<unalias NAME | -a | all]>
-
-Removes the alias with name <C<I<NAME>> or all aliases if either <C<I<-a>>
-(for bash compatibility) or <C<I<all>> is specified.
-
-=item * C<bg [JOB]>
-
-Put a job into the background. If JOB is omitted, uses the
-highest-numbered stopped job, if any.
-
-=item * C<cd DIR>
-
-Change the working directory to DIR or $ENV{HOME} if DIR is not specified.
-The special DIR '-' is interpreted as "return to the previous
-directory'.
-
-=item * C<exit>
-
-Exit out of the shell.
-
-=item * C<export VAR [=VALUE]>
-
-Just like setenv, below, except that it also ties the variable (in the
-Perl sense) so that subsequent changes to the variable automatically
-affect the environment. Variables who are lists and appear in
-C<%Psh::array_exports> will also by tied to the array of the same name.
-Note that the variable must be specified without any Perl specifier
-like C<$> or C<@>.
-
-=item * C<fg JOB>
-
-Bring a job into the foreground. If JOB is omitted, uses the
-highest-numbered stopped job, or, failing that, the highest-numbered job.
-
-=item * C<jobs>
-
-List the currently running jobs.
-
-=item * C<kill [SIGNAL] [%JOB | PID]>
-
-Send SIGNAL (which defaults to TERM) to the given process, specified
-either as a job (%NN) or as a pid (a number).
-
-=item * C<readline>
-
-Prints out information about the current ReadLine module which is
-being used for command line input. Very rudimentary at present, should 
-be extended to allow rebinding, etc.
-
-=item * C<setenv NAME [=] VALUE>
-
-Sets the environment variable NAME to VALUE.
-
-=item * C<which COMMAND-LINE>
-
-Describe how B<psh> will execute the given COMMAND-LINE, under the
-current setting of C<$Psh::strategies>.
-
-=back
+For a list of the predefined B<psh> builtins, see L<Psh::Builtins> or use the "help" command from within B<psh>.
 
 =head2 PSH SCALAR VARIABLES
 
@@ -308,9 +259,10 @@ multiple arguments if the eval returned an array) and should return
 true to display, false to not; or a true (scalar) value, in which case 
 any non-undef, non-empty value is displayed.
 
-In addition to displaying the value, it is pushed onto C<@Psh::val>.
+In addition to displaying the value, it is pushed onto the array
+determined by C<$Psh::result_array>.
 Note that scalar values are
-pushed directly onto C<@Psh::val>, but array values are pushed by
+pushed directly onto this array, but array values are pushed by
 reference. 
 
 =item C<$Psh::eval_preamble> ("package main;")
@@ -372,6 +324,17 @@ arguments.
 
 Controls the prompt string in interactive use, see below.
 
+=item C<$Psh::prompt_cont> ('> ') [late]
+
+Just like C<$Psh::prompt>, but for continuation lines when multi-line
+input is being read.
+
+=item C<$Psh::result_array> ('Psh::val') 
+
+Controls where the results of Perl evaluations saved via C<$Psh::echo> 
+will go. It may be a reference to an array, or the string name of an
+array.
+
 =item C<$Psh::save_history> (1) [late]
 
 If this is true, the command history is saved in C<$Psh::history_file>
@@ -412,8 +375,8 @@ The list of strategies for executing a line, tried in order.
 
 =item C<@Psh::val>
 
-Stores away the results of executing lines, as described in C<$Psh::echo>
-above. 
+The default array where B<psh> stores away the results of executing
+lines, as described in C<$Psh::echo> above. 
 
 =item C<@Psh::wday> ( Mon, Tue, Wed, Thu, Fri, Sat)
 

@@ -1,3 +1,25 @@
+#! /usr/local/bin/perl -w
+
+=head1 NAME
+
+Psh::Builtins - package for Psh builtins, possibly loading them as needed
+
+=head1 SYNOPSIS
+
+  use Psh::Builtins (:all);
+
+=head1 DESCRIPTION
+
+Psh::Builtins currently contains only the hardcoded builtins of Perl Shell,
+but may later on be extended to load them on the fly from separate
+modules.
+
+=head2 Builtins
+
+=over 4
+
+=cut
+
 package Psh::Builtins;
 
 use strict;
@@ -45,11 +67,13 @@ sub _do_setenv
         return '';
 }
 
-#
-# void builtin_setenv(string command)
-#
-# Allows to set environment variables without needing to use
-# $ENV{..}
+$Psh::Builtins::help_setenv = '
+
+=item * C<setenv NAME [=] VALUE>
+
+Sets the environment variable NAME to VALUE.
+
+=cut ';
 
 sub bi_setenv
 {
@@ -61,12 +85,18 @@ sub bi_setenv
 	return undef;
 }
 
-#
-# void builtin_export(string command)
-#
-# Like setenv, but also ties the variable so that changing it affects
-# the environment
-#
+$Psh::Builtins::help_export = '
+
+=item * C<export VAR [=VALUE]>
+
+Just like setenv, below, except that it also ties the variable (in the
+Perl sense) so that subsequent changes to the variable automatically
+affect the environment. Variables who are lists and appear in
+C<%Psh::array_exports> will also by tied to the array of the same name.
+Note that the variable must be specified without any Perl specifier
+like C<$> or C<@>.
+
+=cut ';
 
 sub bi_export
 {
@@ -96,12 +126,16 @@ sub bi_export
 	return undef;
 }
 
-#
-# int cd(string DIR)
-#
-# Changes directories to the given DIR; '-' is interpreted as the
-# last directory that psh was in
-#
+
+$Psh::Builtins::help_cd = '
+
+=item * C<cd DIR>
+
+Change the working directory to DIR or $ENV{HOME} if DIR is not specified.
+The special DIR "-" is interpreted as "return to the previous
+directory".
+
+=cut ';
 
 
 {
@@ -141,9 +175,14 @@ sub bi_export
 }
 
 
-#
-# int kill(string COMMAND)
-#
+$Psh::Builtins::help_kill = '
+
+=item * C<kill [SIGNAL] [%JOB | PID]>
+
+Send SIGNAL (which defaults to TERM) to the given process, specified
+either as a job (%NN) or as a pid (a number).
+
+=cut ';
 
 sub bi_kill
 {
@@ -200,10 +239,14 @@ sub bi_kill
 	return 0;
 }
 
+$Psh::Builtins::help_which = '
 
-#
-# int which(string COMMAND)
-#
+=item * C<which COMMAND-LINE>
+
+Describe how B<psh> will execute the given COMMAND-LINE, under the
+current setting of C<$Psh::strategies>.
+
+=cut ';
 
 sub bi_which
 {
@@ -238,9 +281,21 @@ sub bi_which
 }
 
 
-#
-# int alias(string COMMAND)
-#
+$Psh::Builtins::help_alias = '
+
+=item * C<alias [NAME [=] REPLACEMENT]> 
+
+Add C<I<NAME>> as a built-in so that NAME <REST_OF_LINE> will execute
+exactly as if REPLACEMENT <REST_OF_LINE> had been entered. For
+example, one can execute C<alias ls ls -F> to always supply the B<-F>
+option to "ls". Note the built-in is defined to avoid recursion
+here.
+
+With no arguments, prints out a list of the current aliases.
+With only the C<I<NAME>> argument, prints out a definition of the
+alias with that name.
+
+=cut ';
 
 # Cannot use "static" variables anymore as I do not know how to
 # lookup the function otherwise
@@ -256,14 +311,18 @@ sub bi_alias
 	if (($command eq "") && ($text eq "")) {
 		my $wereThereSome = 0;
 		for $command (sort keys %aliases) {
-			print_out("alias $command='$aliases{$command}'\n");
+		        my $aliasrhs = $aliases{$command};
+            		$aliasrhs =~ s/\'/\\\'/g;
+			print_out("alias $command='$aliasrhs'\n");
 			$wereThereSome = 1;
 		}
 		if (!$wereThereSome) {
 			print_out("No aliases.\n");
 		}
 	} elsif( $text eq '') {
-		print_out("alias $command='$aliases{$command}'\n");
+	        my $aliasrhs = $aliases{$command};
+		$aliasrhs =~ s/\'/\\\'/g;
+		print_out("alias $command='$aliasrhs'\n");
 	} else {
 		print_debug("[[ Aliasing '$command' to '$text']]\n");
 		# my apologies for the gobbledygook
@@ -277,6 +336,15 @@ sub bi_alias
 	}
 	return 0;
 }
+
+$Psh::Builtins::help_unalias = '
+
+=item * C<unalias NAME | -a | all]>
+
+Removes the alias with name <C<I<NAME>> or all aliases if either <C<I<-a>>
+(for bash compatibility) or <C<I<all>> is specified.
+
+=cut ';
 
 sub bi_unalias {
 	my $name= shift;
@@ -293,9 +361,15 @@ sub bi_unalias {
 	return 0;
 }
 
-#
-# void fg(int JOB_NUMBER)
-#
+$Psh::Builtins::help_fg = '
+
+=item * C<fg JOB>
+
+Bring a job into the foreground. If JOB is omitted, uses the
+highest-numbered stopped job, or, failing that, the highest-numbered job.
+JOB may either be a job number or a word that occurs in the command used to create the job.
+
+=cut ';
 
 sub bi_fg
 {
@@ -319,9 +393,14 @@ sub bi_fg
 }
 
 
-#
-# int bg(string JOB | command)
-#
+$Psh::Builtins::help_bg = '
+
+=item * C<bg [JOB]>
+
+Put a job into the background. If JOB is omitted, uses the
+highest-numbered stopped job, if any.
+
+=cut ';
 
 sub bi_bg
 {
@@ -346,13 +425,13 @@ sub bi_bg
 }
 
 
-#
-# void jobs()
-#
-# Checking whether jobs are running might print reports that
-# jobs have stopped, so accumulate the job list and print it
-# all at once so it's readable.
-#
+$Psh::Builtins::help_jobs = '
+
+=item * C<jobs>
+
+List the currently running jobs.
+
+=cut ';
 
 sub bi_jobs {
 	if( ! Psh::OS::has_job_control()) {
@@ -385,12 +464,18 @@ sub bi_jobs {
 	return undef;
 }
 
+$Psh::Builtins::help_exit = '
 
-#
-# void exit(int RETURN_CODE)
+=item * C<exit>
+
+Exit out of the shell.
+
+=cut ';
+
 #
 # TODO: What if a string is passed in?
 #
+
 
 sub bi_exit
 {
@@ -410,9 +495,14 @@ sub bi_exit
 }
 
 
-#
-# void source(string LIST_OF_FILES)
-#
+$Psh::Builtins::help_source = '
+
+=item * C<source FILE> [or C<. FILE>]
+
+Read and process the contents of the given file as a sequence of B<psh>
+commands.
+
+=cut ';
 
 sub bi_source
 {
@@ -424,10 +514,16 @@ sub bi_source
 }
 
 
-#
-# void readline(string IGNORED)
-#
-# Interface to the readline module being used. Currently very rudimentary 
+$Psh::Builtins::help_readline = '
+
+=item * C<readline>
+
+Prints out information about the current ReadLine module which is
+being used for command line input. Very rudimentary at present, should 
+be extended to allow rebinding, etc.
+
+=cut ';
+
 #
 # TODO: How can we print out the current bindings in an
 # ReadLine-implementation-independent way? We should allow rebinding
@@ -447,22 +543,26 @@ sub bi_readline
 	return undef;
 }
 
-#
-# void help
-# prints a list of builtin commands
-#
+$Psh::Builtins::help_help = '
+
+=item * C<help [COMMAND]>
+
+If COMMAND is specified, print out help on it; otherwise print out a list of 
+B<psh> builtins.
+
+=cut ';
+
 sub bi_help
 {
 	my $arg= shift;
 	if( $arg) {
-		# This type of help is for builtins which are simply 'use'd
-		# into psh as they cannot modify the pod
+	        #TODO : We've got POD directives in all of these help
+	        #strings; how can we interpret them to get pretty
+	        #output ?
 		my $tmp= eval '$Psh::Builtins::help_'.$arg;
 		if( $tmp ) {
-		    print $tmp."\n";
+		        print $tmp."\n";
 		} else {
-			# TODO: Actually we should now parse the psh.pod for the
-			# builtin
 			print_error_i18n('no_help',$arg);
 		}
 	} else {
@@ -511,26 +611,15 @@ package Psh::Builtins;
 
 __END__
 
-=head1 NAME
-
-Psh::Builtins - Package containing Psh builtins and possibly loading them
-on the fly
-
-=head1 SYNOPSIS
-
-  use Psh::Builtins (:all);
-
-=head1 DESCRIPTION
-
-Psh::Builtins currently contains Perl Shell's hardcoded builtins,
-but may later on be extended to load them on the fly from seperate
-modules.
+=back
 
 =head1 AUTHOR
 
-blaaa
+the Psh team
 
 =head1 SEE ALSO
+
+L<psh>
 
 =cut
 
