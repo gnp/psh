@@ -10,52 +10,101 @@ use locale;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
-BEGIN {
-	my %sig_description = (
-						   'TTOU' => 'TTY output',
-						   'TTIN' => 'TTY input',
-						   'KILL' => 'killed',
-						   'FPE'  => 'floating point exception',
-						   'SEGV' => 'segmentation fault',
-						   'PIPE' => 'broken pipe',
-						   'BUS'  => 'bus error',
-						   'ABRT' => 'aborted',
-						   'ILL'  => 'illegal instruction',
-						   'TSTP' => 'stop typed at TTY',
-						   'INT'  => 'interrupt character typed'
-						   );
-	$Psh::text{sig_description}=\%sig_description;
-	$Psh::text{done}='done';
-	$Psh::text{terminated}='terminated';
-	$Psh::text{stopped}='stopped';
-	$Psh::text{restart}='restart';
-	$Psh::text{foreground}='foreground';
-	$Psh::text{exec_failed}="Error (exec %1) failed.\n";
-    $Psh::text{simulate_perl_w}="Simulating -w switch and strict\n";
-	$Psh::text{perm_denied}="%2: %1: Permission denied.\n";
-	$Psh::text{no_such_dir}="%2: %1: No such directory.\n";
-	$Psh::text{no_such_builtin}="%2: %1: No such builtin.\n";
-	$Psh::text{readline_interrupted}="\nInterrupted!\n";
-	$Psh::text{readline_error}="Readline did not start up properly:\n%1\n";
-	$Psh::text{no_readline}="No Readline module available. Please install Term::ReadLine::Perl\n";
-	$Psh::text{unalias_noalias}="unalias: `%1' not an alias\n";
-	$Psh::text{builtin_readline_header}="Using Readline: %1, with features:\n";
-	$Psh::text{no_jobcontrol}="Your system does not support job control\n";
-	$Psh::text{help_header}="psh supports the following built in commands\n";
-	$Psh::text{no_help}="Sorry, help for builtin %1 is not available\n";
-	$Psh::text{prompt_expansion_error}=<<EOT;
-%3: Warning: Expansion of '\\%1' in prompt string yielded
-string containing '\\%2'. Stripping escape sequence from
-substitution.
-EOT
-	$Psh::text{prompt_unknown_escape}="%2: Warning: \$Psh::prompt contains unknown escape sequence `\\%1'.\n";
-	$Psh::text{no_libwin32}="libwin32 required (available as CPAN bundle or with ActivePerl distribution)\n";
+my %sig_description = (
+					   'TTOU' => 'TTY output',
+					   'TTIN' => 'TTY input',
+					   'KILL' => 'killed',
+					   'FPE'  => 'floating point exception',
+					   'SEGV' => 'segmentation fault',
+					   'PIPE' => 'broken pipe',
+					   'BUS'  => 'bus error',
+					   'ABRT' => 'aborted',
+					   'ILL'  => 'illegal instruction',
+					   'TSTP' => 'stop typed at TTY',
+					   'INT'  => 'interrupt character typed'
+					   );
+$Psh::text{sig_description}=\%sig_description;
 
+while(<DATA>) {
+	next if /^\#/;
+	chomp;
+	if( /^([a-z_]+)=(.*)$/) {
+		my $key= $1;
+		my $val= $2;
+		if( $val=~/\\$/) {
+			$val=~ s/\\$//;
+		} else {
+			$val.="\n";
+		}
+		$val=~ s/\\n/\n/g;
+		$val=~ s/\\(.)/$1/g;
+		$Psh::text{$key}=$val;
+	}
 }
 
-
-
 1;
+
+__DATA__
+# Misc texts
+exec_failed=Error (exec %1) failed.
+simulate_perl_w=Simulating -w switch and strict
+perm_denied=%2: %1: Permission denied.
+no_such_dir=%2: %1: No such directory.
+no_such_builtin=%2: %1: No such builtin.
+no_such_strategy=%2: Unknown strategy '%1'.
+no_jobcontrol=Your system does not support job control
+interal_error=Internal psh error. psh would have died now.
+input_incomplete=%2: End of input during incomplete expression %1
+clueless=%2: Can't determine how to evaluate '%1'.
+# '
+psh_echo_wrong=%1: WARNING: $Psh::echo is not a CODE reference or an ordinary scalar.
+psh_result_array_wrong=%1: WARNING: $Psh::result_array is neither an ARRAY reference or a string.
+cannot_read_script=%2: Cannot read script '%1'
+cannot_open_script=%2: Cannot open script '%1'
+redirect_file_missing=%2: Error: Filename missing after redirect '%1'.
+evaluates_under=%1 evaluates under strategy %2 by %3
+
+# Various builtins
+unalias_noalias=unalias: '%1' not an alias
+bi_readline_header=Using Readline %1, with features:
+help_header=psh supports following built in commands
+no_help=Sorry, help for builtin %1 is not available
+usage_setenv=Usage: setenv <variable> <value>
+usage_export=Usage: export <variable> [=] <value>\n       export <variable
+usage_kill=Usage: kill <sig> <pid>| -l 
+bi_export_tied=Variable \$%1 is already tied via %2, cannot export.
+bi_kill_no_such_job=kill: No such job %1
+bi_kill_no_such_jobspec=kill: Unknown job specification %1
+bi_kill_error_sig=kill: Error sending signal %2 to process %1
+bi_which_no_command=which: requires a command or command line as argument
+bi_alias_none=No aliases.
+bi_alias_cant_a=Cannot alias '-a'.
+bi_jobs_none=No jobs.
+
+# Stuff for Job handling
+done=done\
+terminated=terminated\
+stopped=stopped\
+restart=restart\
+foreground=foreground\
+
+# Readline
+readline_interrupted}=\nInterrupted!
+readline_error=Readline did not start up properly:\n%1
+no_readline=No Readline module available. Please install Term::ReadLine::Perl
+
+
+# Prompt stuff
+prompt_wrong_type=%1: Warning: $Psh::prompt is neither a SCALAR nor a CODE reference.
+prompt_unknown_escape=%2: Warning: $Psh::prompt or PS1/2 environment variables contain unknown escape sequence '\\%1'.
+prompt_expansion_error=%3: Warning: Expansion of '\\%1' in prompt string yielded\nstring containing '%2'. Stripping escape sequence from\nsubstitution.
+
+# Psh::OS::Win
+no_libwin32=libwin32 required (available as CPAN bundle or with ActivePerl distribution
+
+# Psh::OS::Unix
+unix_received_strange_sig=Received SIG%1 - ignoring
+
 __END__
 
 =head1 NAME
@@ -157,10 +206,19 @@ for translations.
 
 Markus Peter, warp@spin.de
 
-
+<<<<<<< Default.pm
 =head1 SEE ALSO
 
+=======
+
+=head1 SEE ALSO
+>>>>>>> 1.15
+
+<<<<<<< Default.pm
+=cut
+
+=======
 Psh::Locale::*
 
+>>>>>>> 1.15
 
-=cut
