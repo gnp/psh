@@ -67,9 +67,9 @@ sub cmpl_filenames
 	# HACK END
 
 	if ( $executable_only) {
-		if ($text=~s/^\!//) {
-			$exclam=1;
-		}
+	    if ($text=~s/^\!//) {
+		$exclam=1;
+	    }
 	}
 
 	my $globtext= $text;
@@ -101,7 +101,7 @@ sub cmpl_filenames
 	}
 
 	if ( $executable_only) {
-		@result= grep { -x $_ || -d $_ } @result;
+	    @result= grep { -x $_ || -d _ } @result;
 	}
 
 	@result= map { -d $_ ? "$_/" : $_ } @result;
@@ -198,8 +198,8 @@ sub cmpl_executable
 	# set up absed_path if not already set and check
 	
 	foreach my $dir (@Psh::absed_path) {
-		push( @result, map { $exclam?'!'.$_:$_ }
-			  grep { -x $dir.'/'.$_&& ! -d } Psh::OS::glob("$cmd*",$dir) );
+	    push( @result, map { $exclam?'!'.$_:$_ }
+		  grep { -x $dir.'/'.$_ && ! -d _ } Psh::OS::glob("$cmd*",$dir) );
 	}
 	return @result;
 }
