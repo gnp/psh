@@ -314,7 +314,7 @@ Whether B<psh>'s internal debugging output should be produced. If this
 variable is set to 1, all available debug output will be shown. If
 this is set to a string to characters, only debug output belonging
 to the classes signified by the characters will be shown. Debug
-classes etc. are in L<pshdevel>
+classes etc. are in B<pshdevel>
 
 =item I<$Psh::echo> (0)
 
@@ -506,7 +506,8 @@ LD_LIBRARY_PATH, FIGNORE and CDPATH.
 =item I<%Psh::built_ins>
 
 The keys are command names, the values do not matter. Builtins on this
-list may be autoloaded. This is initialized on startup by &Psh::Builtins::built_autoload_list() - please see L<pshdevel> for more information.
+list may be autoloaded. This is initialized on startup by &Psh::Builtins::built_autoload_list()
+- please see B<pshdevel> for more information.
 
 =item I<%Psh::fallback_builtins>
 
