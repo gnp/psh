@@ -15,6 +15,8 @@ lib/Psh2/Builtins/Fg.pm
 lib/Psh2/Builtins/Jobs.pm
 lib/Psh2/Builtins/Modules.pm
 lib/Psh2/Frontend/Readline.pm
+lib/Psh2/Language/Perl.pm
+lib/Psh2/Language/C.pm
 lib/Psh2/Parser.pm
 lib/Psh2/Unix.pm
 lib/Psh2/Windows.pm

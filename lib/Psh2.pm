@@ -45,7 +45,7 @@ sub new {
 		frontend => 'readline',
 	    },
 	       strategy => [],
-	       language => {},
+	       language => { 'perl' => 1, 'c' => 1},
 	       tmp => {},
 	       dirstack => [],
 	       dirstack_pos => 0,

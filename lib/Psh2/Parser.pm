@@ -127,6 +127,17 @@ sub unquote {
     return $text;
 }
 
+sub ungroup {
+    my $text= shift;
+    if (substr($text,0,1) eq '(' and
+	substr($text,-1,1) eq ')') {
+	return substr($text,1,-1);
+    } elsif (substr($text,0,1) eq '{' and
+	     substr($text,-1,1) eq '}') {
+	return substr($text,1,-1);
+    }
+    return $text;
+}
 
 # Combine parenthesized parts
 sub recombine_parts {
@@ -397,12 +408,12 @@ sub _parse_simple {
     if ($words[0] and substr($words[0],-1) eq ':') {
 	my $tmp= lc(substr($words[0],0,-1));
 	if (exists $psh->{language}{$tmp}) {
-	    eval 'use Psh2::Language::'.ucfirst($words[0]);
+	    eval 'use Psh2::Language::'.ucfirst($tmp);
 	    if ($@) {
 		print STDERR $@;
 		# TODO: Error handling
 	    }
-	    return [ 'language', 'Psh2::Language::'.ucfirst($words[0]), \@options, \@words, $line, $opt];
+	    return [ 'language', 'Psh2::Language::'.ucfirst($tmp), \@options, \@words, $line, $opt];
 	} else {
 	    die "parse: unsupported language $tmp";
 	}
