@@ -291,7 +291,15 @@ sub completion
 	my $startchar= substr($line, $start, 1);
 	my $starttext= substr($line, 0, $start);
 	$starttext =~ /^\s*(\S+)\s+/;
-	my $startword= $1;
+	my $startword= $1 || '';
+
+	my $pretext= '';
+	if( $starttext =~ /\s(\S*)$/) {
+		$pretext= $1;
+	} elsif( $starttext =~ /^(\S*)$/) {
+		$pretext= $1;
+	}
+
 	if( $starttext =~ /[\|\`]\s*(\S+)\s+$/) {
 		$startword= $1;
 	}
@@ -320,20 +328,13 @@ sub completion
 	} elsif( @netprograms &&
 			 grep { $_ eq $startword } @netprograms)
 	{
-		$starttext =~ /\s(\S*)$/;
-		@tmp= cmpl_bookmarks($text,$1);
+		@tmp= cmpl_bookmarks($text,$pretext);
 	} else {
-		my $file=$text;
-		if( $starttext =~ /\s(\S*)$/) {
-			$file= $1.$text;
-		} elsif( $starttext =~ /^(\S*)$/) {
-			$file= $1.$text;
-		}
-		@tmp= cmpl_filenames($file);
+		@tmp= cmpl_filenames($pretext.$text);
 	}
+
 	if( grep { $_ eq $startword } Psh::Builtins::get_builtin_commands() ) {
-		$starttext =~ /\s(\S*)$/;
-		my @tmp2= eval "Psh::Builtins::cmpl_$startword('$text','$1','$starttext')";
+		my @tmp2= eval "Psh::Builtins::cmpl_$startword('$text','$pretext','$starttext')";
 		if( @tmp2 && $tmp2[0]) {
 			shift(@tmp2);
 			@tmp= @tmp2;
