@@ -1,6 +1,24 @@
 CHANGES
 
 ------------------------------------------------------------
+0.003
+------------------------------------------------------------
+
+  * Rudimentary background jobs handling and job management.
+
+  * Signal handling.
+
+  * Filename completion.
+
+  * Updates to history handling.
+
+  * Flexible %built_ins mechanism for adding built-in
+    functions.
+
+  * Smart mode is on by default.
+
+
+------------------------------------------------------------
 0.00205
 ------------------------------------------------------------
 

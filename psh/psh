@@ -6,9 +6,6 @@
 # so that the user cannot get them and their names don't interfere with user
 # code.
 #
-# TODO: Behave more like a shell so that, e.g. `use Shell qw(vi); vi "foo";'
-# does what one would expect.
-#
 # Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
 # This script is free software. It may be copied or modified according
 # to the same terms as Perl itself.
@@ -17,7 +14,7 @@
 package psh;
 
 use vars qw($VERSION);
-$VERSION   = '0.003pre1';
+$VERSION   = '0.003';
 
 use Cwd;
 use Cwd 'chdir';
@@ -25,6 +22,7 @@ use IPC::Open2;
 use POSIX ":sys_wait_h";
 use Getopt::Std;
 my %opt;
+#use POSIX qw(tcsetpgrp);
 
 getopts('dwr:', \%opt);
 
@@ -71,35 +69,45 @@ print_debug("Debugging!\n");
 # The other variables are private, lexical variables.
 #
 
-use vars qw($bin $news_file $cmd $prompt $smart @wday @mon %prompt_vars %built_ins %aliases);
+use vars qw($bin $news_file $cmd $prompt $smart @wday @mon %prompt_vars %built_ins %aliases
+	$history_file $save_history $history_length);
 
-my $default_prompt   = '\s\$ ';
-my $input;
-my %aliases          = ();
-my $currently_active = 0;
-my $flag_signal_sent = 0;
-my $signal_sent      = 0;
-my %jobs             = (),
-my @jobs_order       = ();
-
-my $last_dir         = '.'; # By default 'cd -' won't change directory at all.
+%aliases                   = ();
+$save_history              = 1;
+$history_length            = 50;
 
 %built_ins = (
-	'exit'  => \&builtin_exit,
-	'cd'    => \&builtin_cd,
-	'fg'    => \&builtin_fg,
-	'bg'    => \&builtin_bg,
-    'jobs'  => \&builtin_jobs,
 	'alias' => \&builtin_alias,
-	'which' => \&builtin_which
+	'bg'    => \&builtin_bg,
+	'cd'    => \&builtin_cd,
+	'exit'  => \&builtin_exit,
+	'fg'    => \&builtin_fg,
+    'jobs'  => \&builtin_jobs,
+    'kill'  => \&builtin_kill,
+	'which' => \&builtin_which,
 );
+
+
+#
+# Private, Lexical Variables:
+#
+
+my $default_prompt         = '\s\$ ';
+my $input;
+my $currently_active       = 0;
+my $flag_signal_sent       = 0;
+my $signal_sent            = 0;
+my %jobs                   = (),
+my @jobs_order             = ();
+my $readline_saves_history = 0;
+my $last_dir               = '.'; # By default 'cd -' won't change directory at all.
+my $term;                         # Term::ReadLine object.
+my @completion_buffer      = ();
 
 
 #
 # Set up Term::ReadLine:
 #
-
-my $term;
 
 eval "use Term::ReadLine;";
 
@@ -111,6 +119,12 @@ if ($@) {
 	$term->MinLine(0);   # We will handle history adding ourselves (undef causes trouble).
 	$term->ornaments(0);
 	print_debug("Using ", $term->ReadLine(), "\n");
+
+	if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
+		$readline_saves_history = 1;
+		$term->StifleHistory($history_length); # Limit history
+		$term->Attribs->{attempted_completion_function} = \&custom_completion;
+	}
 }
 
 
@@ -234,6 +248,48 @@ sub builtin_cd
 
 
 #
+# builtin_kill()
+#
+
+sub builtin_kill
+{
+	my $sig;
+	my $pid;
+
+	if (@_ == 1) {
+		$pid = shift;
+		$sig = 'TERM';
+	} elsif (@_ == 2) {
+		($sig, $pid) = shift;
+	} else {
+		print_error("kill: usage: kill <sig> <pid>\n");
+		return 1;
+	}
+
+	if ($pid =~ m|^%(\d+)$|) {
+		my $temp = $1 - 1;
+
+		if (($temp < 0) or ($temp >= scalar(@jobs_order))) {
+			print "pid   = $pid\n";
+			print "temp  = $temp\n";
+			print "#jobs = ", scalar(@jobs_order), "\n";
+			print_error("kill: No such job $pid\n");
+			return 1;
+		}
+
+		$pid = $jobs_order[$pid];
+	}
+
+	if (kill($sig, $pid) != 1) {
+		print_error("kill: Error sending signal $sig to process $pid\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+
+#
 # builtin_which()
 #
 
@@ -338,8 +394,11 @@ sub builtin_jobs {
 sub builtin_exit
 {
 	my $result = shift;
-
 	$result = 0 unless defined($result);
+
+	if ($save_history && $readline_saves_history) {
+		$term->WriteHistory($psh::history_file);
+	}
 
 	exit $result;
 }
@@ -645,10 +704,16 @@ sub iget
 	if($term and $line )
 	{
 		$term->addhistory($line);
-		open( HIST, ">>$ENV{HOME}/.${bin}_history");
-		print HIST $line."\n";
-		close( HIST);
+
+		if ($save_history && !$readline_saves_history) {
+			open(HIST, ">>$psh::history_file");
+			print HIST $line."\n";
+			close(HIST);
+		}
 	}
+
+	reap_children(); # Check wether we have dead children
+
 	return $line . "\n";         # This is expected by other code.
 }
 
@@ -673,15 +738,16 @@ sub news
 
 sub initialize
 {
-	$|         = 1;                # Set ouput autoflush on
-	$prompt    = $default_prompt;  # Set default prompt
-	$smart     = 1;
-	$cmd       = 1;
+	$|            = 1;                # Set ouput autoflush on
+	$prompt       = $default_prompt;  # Set default prompt
+	$smart        = 1;
+	$cmd          = 1;
 
-	$bin       = $0;
-	$bin       =~ s/.*\///;
+	$bin          = $0;
+	$bin          =~ s/.*\///;
 
-	$news_file = "$bin.NEWS";
+	$news_file    = "$bin.NEWS";
+	$history_file = "$ENV{HOME}/.${bin}_history";
 
 	#
 	# TODO: Internationalize!
@@ -722,13 +788,20 @@ sub process_rc
 		}
 	}
 
-	open( HIST, "<$ENV{HOME}/.${bin}_history") || return;
-	while( <HIST>)
-	{
-		chomp;
-		$term->addhistory($_);
+	if ($save_history) {
+		if ($readline_saves_history) {
+			$term->ReadHistory($psh::history_file);
+		} else {
+			open(HIST, "<$psh::history_file") || return;
+
+			while(<HIST>) {
+				chomp;
+				$term->addhistory($_);
+			}
+
+			close(HIST);
+		}
 	}
-	close( HIST);
 }
 
 
@@ -740,10 +813,10 @@ sub process_rc
 
 sub process_args
 {
-	my @rc;
-	my $rc_name = ".pshrc";
+#	my @rc;
+#	my $rc_name = ".pshrc";
 
-#	print_out( "[ PROCESSING @ARGV FILES ]\n");
+#	print_out("[ PROCESSING @ARGV FILES ]\n");
 
 	foreach my $arg (@ARGV) {
 		if (-r $arg) {
@@ -871,7 +944,6 @@ sub signal_handler {
 
 sub ignore_handler { }
 
-
 #
 # handle_resize()
 #
@@ -881,8 +953,7 @@ sub handle_resize
 	my ($cols, $rows) = (80, 24);
 
 	eval {
-#		use Term::Size 'chars';
-		($cols,$rows)= chars;
+		($cols,$rows)= &Term::Size::chars();
 	};
 
 	if(($cols > 0) && ($rows > 0)) {
@@ -901,6 +972,16 @@ sub handle_resize
 sub my_system {
 	my($call) = @_;
 
+	# TODO: This is an absolute hack... we need
+	# a full parser for quoting and all special
+	# characters soon!!
+	
+	my $fgflag=1;
+	if( $call =~ /^(.*)\&\s*$/ )
+	{
+		$call= $1;
+		$fgflag=0;
+	}
 	eval {
 		open(TMPOUT,">-");
 		open(TMPIN,"-");
@@ -910,7 +991,15 @@ sub my_system {
 		my @tmp=($call,1);
 		$jobs{$pid}=\@tmp;
 	    push(@jobs_order,$pid);
-		wait_for_system($pid);
+		if( $fgflag)
+		{
+			wait_for_system($pid);
+		}
+		else
+		{
+			my $visindex=$#jobs_order+1;
+			print_out("[$visindex] Background $pid ".$tmp[0]."\n");
+		}
 	};
 
 	print_debug("Status $@\n") if $@;
@@ -926,7 +1015,6 @@ sub my_system {
 sub wait_for_system {
 	my($pid) = @_;
 
-	$currently_active = 0;
 	$flag_signal_sent = 0;
 
 	while(1) {
@@ -937,6 +1025,8 @@ sub wait_for_system {
 					$signal_sent eq "STOP" ) {
 					my $tmp= $jobs{$pid};
 					@$tmp[1]=0;
+					my $visindex= get_job_number($pid);
+					print_out( "[$visindex] Stopped $pid ".@$tmp[0]."\n");
 					# mark job stopped
 				} elsif( $signal_sent eq "INT") {
 					delete_from_joblist($pid);
@@ -951,10 +1041,32 @@ sub wait_for_system {
 
 
 #
+# reap_children()
+#
+# Checks wether any children we spawned died
+#
+
+sub reap_children
+{
+	for($i = 0; $i <= $#jobs_order; $i++) {
+		my $visindex = $i+1;
+		my $pid      = $jobs_order[$i];
+		my $tmp      = $jobs{$pid};
+
+		if( waitpid( $pid, &WNOHANG)==$pid) {
+			delete_from_joblist( $pid);
+			print_out( "[$visindex] Done $pid ".@$tmp[0]."\n");
+		}
+	}
+}
+
+
+#
 # delete_from_joblist()
 #
 
-sub delete_from_joblist {
+sub delete_from_joblist
+{
 	my($pid) =@_;
 
 	delete $jobs{$pid};
@@ -974,37 +1086,118 @@ sub delete_from_joblist {
 # restart_job()
 #
 
-sub restart_job {
+sub restart_job
+{
 	my ($fg_flag, $job_to_start) = @_;
 
-	if($job_to_start < 0) { # Search for the last job which is not running
-		for( $i=$#jobs_order; $i>=0; $i--) {
-			my $pid= $jobs_order[$i];
-			my $tmp= $jobs{$pid};
+	if ($job_to_start < 0) { # Search for the last job which is not running
+		for ($i = $#jobs_order; $i >= 0; $i--) {
+			my $pid = $jobs_order[$i];
+			my $tmp = $jobs{$pid};
+
 			if(! @$tmp[1]) {
-				$job_to_start=$i;
+				$job_to_start = $i;
 				last;
 			}
 		}
+
 		print_debug("Found job $job_to_start\n");
 	}
 
-	if($job_to_start>-1) {
+	if ($job_to_start >- 1) {
 		my $pid = $jobs_order[$job_to_start];
 		my $tmp = $jobs{$pid};
 
-		if($tmp) {
+		if ($tmp) {
 			my $command = @$tmp[0];
 			return if(@$tmp[1]);
-			print_out("Restart $pid $command\n");
+			my $visindex = get_job_number($pid);
+			print_out("[$visindex] Restart $pid $command\n");
 			kill 'CONT', $pid;
 			@$tmp[1]=1;
 
 			if($fg_flag) {
-				eval { wait_for_system($pid,$command); };
+#				tcsetpgrp($pid); # TODO: Is this right?
+				eval { wait_for_system($pid, $command); };
 			}
 		}
 	}
+}
+
+
+#
+# Tries to find executables for possible completions
+# TODO: This is sloooow... but probably not only because
+# of searching the whole path but also because of the way
+# Term::ReadLine::Gnu works... hmm
+#
+
+sub try_executable_completion
+{
+	my ($cmd, $state) = @_;
+
+	if (!$state)
+	{
+		my @path           = split(':', $ENV{PATH});
+		@completion_buffer = ();
+
+		foreach my $dir (@path) {
+			chdir abs_path($dir);
+			push( @completion_buffer, grep { -x } glob "$cmd*" );
+		}
+
+		chdir $last_dir;
+	}
+
+	return shift @completion_buffer;
+}
+
+
+#
+# custom_completion()
+#
+# Main completion hook
+#
+
+sub custom_completion
+{
+	my ($text, $line, $start, $end) = @_;
+	my $attribs                     = $term->Attribs;
+	my @tmp;
+
+	if (substr($line, $start, 1) eq "~") {
+		return $term->completion_matches($text,
+								  $attribs->{username_completion_function});
+	}
+
+	if(substr($line, 0, $start) =~ /^\s*$/) { # First word
+		@tmp = $term->completion_matches($text, \&try_executable_completion);
+		return @tmp if defined @tmp;
+	} # Only return if executable match found something, otherwise try
+	  # filename completion
+
+	return $term->completion_matches($text,
+		   $attribs->{filename_completion_function});
+}
+
+
+#
+# get_job_number()
+#
+# Returns the visible number of a job or -1 if theres no such job
+# TODO: Is there an array search function in perl except grep?
+# I don't remember...
+#
+
+sub get_job_number
+{
+	my ($pid) = @_;
+
+	for ($i = 0; $i <= $#jobs_order; $i++) {
+		return $i + 1 if ($jobs_order[$i] == $pid);
+	}
+
+	return -1;
 }
 
 
