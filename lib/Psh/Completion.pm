@@ -33,7 +33,7 @@ sub init
 	}
 
 	# Wow, both ::Perl and ::Gnu understand it
-	my $word_break=" \\\n\t\"&{('`\$\%\@~<>=;|/";
+	my $word_break=" \\\n\t\"&{}('`\$\%\@~<>=;|/";
 	$attribs->{special_prefixes}= "\$\%\@\~\&";
 	$attribs->{word_break_characters}= $word_break;
 	$attribs->{completer_word_break_characters}= $word_break ;
@@ -92,7 +92,7 @@ sub cmpl_filenames
 
 	# HACK: This won't help much if user tries to do another completion
 	# on the same item afterwards
-	@result= map { s/([ \'\"\´\`])/\\$1/g; $_ } @result;
+	@result= map { s/([ \'\"\´\`])/\\$1/g; $_ } @result unless $prepend eq '"';
 
 	if(@result==1) {
 		if( -d $result[0]) {

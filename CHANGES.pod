@@ -96,6 +96,13 @@ Half-hearted attempt at getting whitespace and special characters in
 TAB completion right
 - warp [2000-07-08]
 
+=head2 Fixes
+
+=item *
+
+The parser now allows usage of ->
+- warp [2000-07-27]
+
 =back
 
 
