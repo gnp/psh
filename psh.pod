@@ -305,6 +305,11 @@ in a way similar to shells such as bash. For example, if
 If set to true, B<psh> will ignore all segfaults and attempt to
 continue.
 
+=item C<$Psh::ignore_die> (0)
+
+If set to true, B<psh> will attempt to continue after internal
+errors.
+
 =item C<$Psh::history_file> ("F<$ENV{HOME}/.${bin}_history>") [late]
 
 The filename B<psh> will use to save the command history in from one

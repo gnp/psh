@@ -322,17 +322,10 @@ sub system {
 # SIGNALS
 ###################################################################
 
-#
-# void remove_signal_handlers()
-#
-# This used to manually set INT, QUIT, CONT, STOP, TSTP, TTIN,
-# TTOU, and CHLD.
-#
-# The new technique changes the settings of *all* signals. It is
-# from Recipe 16.13 of The Perl Cookbook (Page 582). It should be
-# compatible with Perl 5.004 and later.
-#
-
+# Setup special treatment of certain signals
+# Having a value of 0 means to ignore the signal completely in
+# the loops while a code ref installs a different default
+# handler
 my %special_handlers= (
 					   'CHLD' => \&_ignore_handler,
 					   'CLD'  => \&_ignore_handler,
@@ -344,6 +337,18 @@ my %special_handlers= (
 # has the advantage of avoiding Perl internal signals
 
 my @signals= split(' ', $Config{sig_name});
+
+
+#
+# void remove_signal_handlers()
+#
+# This used to manually set INT, QUIT, CONT, STOP, TSTP, TTIN,
+# TTOU, and CHLD.
+#
+# The new technique changes the settings of *all* signals. It is
+# from Recipe 16.13 of The Perl Cookbook (Page 582). It should be
+# compatible with Perl 5.004 and later.
+#
 
 sub remove_signal_handlers
 {
