@@ -1,3 +1,7 @@
 #!theme
 
 PS1="\h:[\W] "
+PS2="> "
+PS3=""
+PS4=""
+TITLE="\w"

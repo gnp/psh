@@ -83,9 +83,7 @@ sub bi_strategy
 		}
 	} elsif( $words->[0] eq 'available') {
 		my @list= Psh::Strategy::available_list();
-		foreach( @list) {
-			Psh::Util::print_out($_."\n");
-		}
+		Psh::Util::print_list(@list);
 	} else {
 		Psh::Util::print_error_i18n('bi_strategy_wrong_arg');
 		return (0,undef);

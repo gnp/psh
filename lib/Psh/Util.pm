@@ -114,6 +114,7 @@ sub print_list
 
 sub abs_path {
 	my $dir= shift;
+	return undef unless $dir;
 	return $path_hash{$dir} if $path_hash{$dir};
 	my $result= Psh::OS::abs_path($dir);
 	unless ($result) {
