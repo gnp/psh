@@ -511,7 +511,6 @@ sub perl_symbol_display_match_list {
     map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@{$matches});
 	map { $_ =~ s/^([^\/]+)\/$/\001\e[01;34m\002$1\001\e[00m\002\//; } (@{$matches});
     #$Psh::term->display_match_list($matches);
-	print "max_len=$max_length\n";
 	Psh::Util::print_list($matches,$max_length);
     $Psh::term->forced_update_display;
 }

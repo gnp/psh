@@ -678,6 +678,7 @@ sub remove_readline_handler
 
 sub reinstall_resize_handler
 {
+	Psh::OS::fb_reinstall_resize_handler();
 	&_resize_handler('WINCH');
 }
 
@@ -752,29 +753,8 @@ sub _error_handler
 sub _resize_handler
 {
 	my ($sig) = @_;
-	my ($cols, $rows); # Assume nothing so that unless works!
 
-    eval "use Term::Size;";             # We really need to do the 'use' and then not call the function if it doesn't exist.
-    my $has_term_size = $@ ? 0 : 1;
-    
-	eval {
-		($cols,$rows)= Term::Size::chars();
-	} unless $has_term_size;
-
-	unless( $cols) {
-		eval {
-			($cols,$rows)= Term::ReadKey::GetTerminalSize(*STDOUT);
-		};
-	}
-
-	if($cols && $rows && ($cols > 0) && ($rows > 0)) {
-		$ENV{COLUMNS} = $cols;
-		$ENV{LINES}   = $rows;
-		if( $Psh::term) {
-			$Psh::term->Attribs->{screen_width}=$cols-1;
-		}
-		# for ReadLine::Perl
-	}
+	Psh::OS::check_terminal_size();
 
 	$SIG{$sig} = \&_resize_handler;
 }
