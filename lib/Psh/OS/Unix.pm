@@ -216,6 +216,8 @@ sub execute_complex_command {
 
 	for( my $i=0; $i<@array; $i++) {
 		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
+		$text||='';
+
 		my $line= join(' ',@$words);
 		($eval_thingie,@return_val)= &$coderef( \$line, $words,$how,$i>0);
 		
@@ -235,7 +237,7 @@ sub execute_complex_command {
 
 			if( $i<$#array && $#array) {
 				close(WRITE);
-				open(INPUT,"<&READ"); # TODO: This is the only mention of INPUT filehandle, causing warnings on make test.
+				open(INPUT,"<&READ");
 			}
 			if( @return_val < 1 ||
 				!defined($return_val[0])) {
@@ -276,6 +278,10 @@ sub _setup_redirects {
 				open(STDIN,$file);
 				select(STDIN);
 				$|=1;
+				if( $file eq '<&INPUT') {
+					close(INPUT);
+					# Just to get rid of the warning
+				}
 			} elsif( $type==1) {
 				open(OLDOUT,">&STDOUT");
 				open(STDOUT,$file);
@@ -573,7 +579,7 @@ sub _ignore_handler
 sub _error_handler
 {
 	my ($sig) = @_;
-	Psh::Util::print_error_18n('unix_received_strange_sig',$sig);
+	Psh::Util::print_error_i18n('unix_received_strange_sig',$sig);
 	$SIG{$sig} = \&_error_handler;
 	kill 'INT', $$; # HACK to stop a possible endless loop!
 }

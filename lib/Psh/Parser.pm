@@ -489,7 +489,7 @@ sub parse_simple_command {
 	my $line= join ' ', @words;
 	foreach my $strat (@use_strats) {
 		if (!defined($Psh::strategy_which{$strat})) {
-			Psh::Util::print_warning_18n('no_such_strategy',
+			Psh::Util::print_warning_i18n('no_such_strategy',
 										 $strat,$Psh::bin);
 			next;
 		}
@@ -502,7 +502,7 @@ sub parse_simple_command {
 					 $how, \@options, \@words, $strat, $line ], @tokens;
 		}
 	}
-	Psh::Util::print_error_18n('clueless',$line,$Psh::bin);
+	Psh::Util::print_error_i18n('clueless',$line,$Psh::bin);
 }
 
 #

@@ -731,7 +731,7 @@ sub process
 		if (ref($echo) eq 'CODE') {
 			$qEcho = &$echo(@result);
 		} elsif (ref($echo)) {
-			print_warning_18n('psh_echo_wrong',$bin);
+			print_warning_i18n('psh_echo_wrong',$bin);
 		} else {
 			if ($echo) { $qEcho = defined_and_nonempty(@result); }
 		}
@@ -749,7 +749,7 @@ sub process
 						$result_array_name = 'anonymous';
 					}
 				} elsif ($what) {
-					print_warning_18n('psh_result_array_wrong',$bin);
+					print_warning_i18n('psh_result_array_wrong',$bin);
 					$result_array_ref = \@Psh::val;
 					$result_array_name = 'Psh::val';
 				} else { # Ordinary string
@@ -924,6 +924,7 @@ sub iget
 	} while ($sigint);
 
 	Psh::OS::remove_readline_handler();
+	Psh::OS::reinstall_resize_handler();
 
 	chomp $line;
 
