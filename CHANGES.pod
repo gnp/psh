@@ -4,7 +4,8 @@ Change log for B<psh2> - The Perl SHell 2
 
 =head1 DESCRIPTION
 
-A reverse-chronological ordered list of changes
+A reverse-chronological ordered list of changes. This is a NEWS file,
+actually. More detailled changelogs are in ChangeLog
 
 =cut
 
