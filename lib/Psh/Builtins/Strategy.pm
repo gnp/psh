@@ -72,7 +72,8 @@ sub bi_strategy
 				my $tmpfile= File::Spec->catfile(
 								File::Spec->catdir($line,'Psh','Strategy'),
 												 ucfirst($words->[1]).'.pm');
-				$tmp= Psh::Builtins::Help::get_pod_from_file($tmpfile,$arg);
+				$tmp= Psh::Builtins::Help::get_pod_from_file($tmpfile,
+															$words->[1]);
 				last if $tmp;
 			}
 			if( $tmp ) {

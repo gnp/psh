@@ -40,6 +40,7 @@ lib/Psh/Strategy/Debug.pm
 lib/Psh/Strategy/Eval.pm
 lib/Psh/Strategy/Executable.pm
 lib/Psh/Strategy/Fallback_builtin.pm
+lib/Psh/Strategy/Perl.pm
 lib/Psh/Strategy/Perlfunc.pm
 lib/Psh/Strategy/Perlscript.pm
 lib/Psh/Util.pm

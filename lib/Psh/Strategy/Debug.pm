@@ -23,7 +23,7 @@ sub runs_before {
 }
 
 sub applies {
-	my $fnname= ${$_[0]};
+	my $fnname= ${$_[1]};
 
 	if ($fnname=~/^\?/) {
 		return "debug $fnname";
@@ -32,7 +32,7 @@ sub applies {
 }
 
 sub execute {
-	my $fnname= ${$_[0]};
+	my $fnname= ${$_[1]};
 	eval "use Data::Dumper";
 	if ($@) {
 		print STDERR "Please install the module Data::Dumper first!\n";
