@@ -93,8 +93,7 @@ sub _decompose
 		my ($prefix,$delimiter,$quote,$rest) =
 	      ($line =~ m/$regexp/s);
 	    if (!$keep and defined($prefix)) {
-			# remove backslashes in unquoted part:
-			$prefix =~ s/\\(.)/$1/g;
+			$prefix= remove_backslash($prefix);
 	    }
 	    if (defined($delimiter)) {
 		    $pieces[$#pieces] .= $prefix;
@@ -113,18 +112,13 @@ sub _decompose
 			my ($restOfQuote,$remainder) = 
 			  ($rest =~ m/^((?:[^\\]|\\.)*?)$quotedquotes{$quote}(.*)$/s);
 			if (defined($restOfQuote)) {
-				if ($keep) {
-					$pieces[$#pieces]= join('',$pieces[$#pieces],$prefix,
-											$quote,$restOfQuote,
-											$quotehash{$quote});
-				} else { #Not keeping, so remove backslash
-					#from backslashed $quote occurrences
-					if (substr($restOfQuote,0,1) eq "\\") {
-						$restOfQuote= substr($restOfQuote,1);
-					}
-					$pieces[$#pieces]= join('',$pieces[$#pieces],
-											$prefix, $restOfQuote);
+				if (!$keep and
+				    $quote ne "\'" and $quote ne 'q(') {
+					$restOfQuote= remove_backslash($restOfQuote);
 				}
+				$pieces[$#pieces]= join('',$pieces[$#pieces],$prefix,
+										$quote,$restOfQuote,
+										$quotehash{$quote});
 				$line = $remainder;
 				$freshPiece = 0;
 			} else { # can't find matching quote, give up
@@ -133,7 +127,7 @@ sub _decompose
 			}
 	    } else { # nothing found, so remainder all one unquoted piece
 			if (!$keep and length($line)) {
-				$line =~ s/\\(.)/$1/g;
+				$line= remove_backslash($line);
 		    }
 		    last;
 	    }
@@ -256,6 +250,22 @@ sub unquote {
 	return $text;
 }
 
+sub remove_backslash {
+	my $text= shift;
+
+	$text=~ s/\\t/\t/g;
+	$text=~ s/\\n/\n/g;
+	$text=~ s/\\r/\r/g;
+	$text=~ s/\\f/\f/g;
+	$text=~ s/\\b/\b/g;
+	$text=~ s/\\a/\a/g;
+	$text=~ s/\\e/\e/g;
+	$text=~ s/\\(0[0-7][0-7])/chr(oct($1))/ge;
+	$text=~ s/\\(x[0-9a-fA-F][0-9a-fA-F])/chr(oct($1))/ge;
+	$text=~ s/\\(.)/$1/g;
+	return $text;
+}
+
 sub ungroup {
 	my $text= shift;
 	if (substr($text,0,1) eq '(' and
@@ -302,7 +312,9 @@ sub parse_fileno {
 
 sub make_tokens {
 	my $line= shift;
-	my @tmpparts= @{scalar(_decompose($line,$stdallinall, 1))};
+	my $splitonly= shift;
+	my @tmpparts= @{scalar(_decompose($line,$stdallinall, 0))};
+	return @tmpparts if $splitonly;
 
 	# Walk through parts and combine parenthesized parts properly
 	my @parts=();
