@@ -2,15 +2,13 @@
 #
 # psh - Perl Shell
 #
-# Copyright (C) 1999-2001 Gregor N. Purdy. All rights reserved.
+# Copyright (C) 1999-2003 Gregor N. Purdy. All rights reserved.
 # This script is free software. It may be copied or modified according
 # to the same terms as Perl itself.
 #
 
 package Psh; # still use a package so getopt etc. is not imported into
              # the shell namespace
-
-$Psh::VERSION='0.010pre1';
 
 use Psh;
 require Psh::Locale;
