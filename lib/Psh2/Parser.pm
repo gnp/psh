@@ -367,9 +367,12 @@ sub _parse_simple {
     } elsif ($words[0] and substr($words[0],0,1) eq "\\") {
 	$words[0]= substr($words[0],1);
     }
-    
+
     my $line= join ' ', @words;
     $psh->{tmp}{options}= $opt;
+
+    @words= @{glob_expansion($psh, \@words)} unless $opt->{noglob};
+    @words= map { unquote($_)} @words;
 
     if ($words[0] and substr($words[0],-1) eq ':') {
 	my $tmp= lc(substr($words[0],0,-1));
@@ -414,6 +417,30 @@ sub _parse_simple {
     use Data::Dumper;
     print STDERR Dumper(\@words);
     die "duh";
+}
+
+sub glob_expansion {
+    my ($psh, $words)= @_;
+    my @retval  = ();
+
+    for my $word (@{$words}) {
+	if ( $word=~ m/['#`]/ or
+	     (substr($word,0,1) eq '(' and substr($word,-1) eq ')') or
+	     (substr($word,0,1) eq '{' and substr($word,-1) eq '}') or
+	     $word !~ m/\[.*\]|[*?]/
+	   ) {
+	    push @retval, $word;
+	} else {
+	    my @results = $psh->glob($word);
+	    if (scalar(@results) == 0) {
+		@results = ($word);
+	    } elsif (scalar(@results)>1 or $results[0] ne $word) {
+		foreach (@results) { $_ = "'$_'"; }
+	    }
+	    push @retval, @results;
+	}
+    }
+    return \@retval;
 }
 
 
