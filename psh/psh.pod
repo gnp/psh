@@ -766,6 +766,18 @@ Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@;
 page 161 of the Camel Book (2nd Edition).
 
 
+=head2 Lee Eakin's Perl Shell
+
+Lee Eakin E<lt>F<leakin@dfw.nostrum.com>E<gt> has written the Fancy Poor Man's Perl SHell
+(fpmpsh), a simple Perl shell that he has used for a number of years now (it is derived from
+Larry Wall's Perl Shell).  He has added some numeric conversion functions because he often
+uses it as a calculator.
+
+He has placed it on the web at C<http://www.dfw.nostrum.com/~leakin/psh> (for the
+code) and C<http://www.dfw.nostrum.com/~leakin/psh.README> for a short explanation
+of the code and a reference to the main Perl Shell site.
+
+
 =head2 Perl Debugger Shell
 
 Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
@@ -811,11 +823,13 @@ Tim says B<timtosh> ``is focused quite differently than B<psh> is, but is curren
 still waiting for a rewrite of the command line parsing.
 (It has been for almost a year now)''.
 
+
 =head2 vbsh
 
 Tom Christiansen and Nathan Torkington's book B<Perl Cookbook>, published by
 O'Reilly in 1998 (ISBN 1-56592-243-3) has "Example 15-4. vbsh" on page 531 for
 section 15.11 (Editing Input). It stands for Very Bad SHell.
+
 
 =head2 Comparison of perl shells
 
@@ -840,6 +854,7 @@ brief table indicating whether or not each has certain features.
     Shell Name         PE    SHE   CLE   JC    PL
  psh (this one)         *     *     *     *     *            
  Larry Wall shell       *     -     -     -     -
+ fpmpsh                 *     -     *     -     -
  Perl debugger shell    *     -     *     -     -
  perlsh                 *     -     *     -     -
  Krynicky PSH.pm        *     *     ?     -     ?
