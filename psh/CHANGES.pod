@@ -44,6 +44,8 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * On Unix, support for a global pshrc file at /etc/pshrc - warp [2000-03-13]
 
+=item * New variable @Psh::executable_noexpand - warp [2000-03-13]
+
 =back
 
 =head2 Bugfixes

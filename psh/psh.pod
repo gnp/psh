@@ -192,7 +192,8 @@ If the first word of the input line matches the name of an executable
 file in the path given by C<$ENV{PATH}>, then pass the line to
 system. Perl variable substitution will be done on the line first if
 the C<$Psh::executable_expand_arguments> configuration variable is
-true. 
+true and the binary which is executed does not match one of the
+regular expresions in C<@Psh::executable_noexpand>
 
 =item * C<fallback_builtin>
 
@@ -480,6 +481,13 @@ Supposed to contain your most used IP numbers, hostnames or URLs.
 Those will be eligible for TAB completion if you use one of the
 programs in C<@Psh::Completion::netprograms>. C<psh> will
 initialize this list with your /etc/hosts file
+
+=item I<@Psh::executable_noexpand> ( B<whois>, B<^ezmlm->, etc. )
+
+Contains regular expressions. If $Psh::executable_expand_arguments
+is set commands which match one of these REs won't have perl
+variables expanded. This is especially useful for commands which
+expect email adresses, and therefore an at-sign.
 
 =item I<@Psh::history>
 
