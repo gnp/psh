@@ -132,24 +132,37 @@ sub inc_shlvl {
 # Make pid the foreground process of the terminal controlling STDIN.
 #
 
-sub _give_terminal_to
 {
-	# If a fork of a psh fork tries to call this then exit
-	# as it would probably mess up the shell
-	# This hack is necessary as e.g.
-	# alias ls=/bin/ls
-	# ls &
-	# call fork_process from within a fork
+	my $terminal_owner=0;
 
-	return if $Psh::OS::Unix::forked_already;
+	sub _give_terminal_to
+    {
+		# If a fork of a psh fork tries to call this then exit
+		# as it would probably mess up the shell
+		# This hack is necessary as e.g.
+		# alias ls=/bin/ls
+		# ls &
+		# call fork_process from within a fork
 
-	local $SIG{TSTP}  = 'IGNORE';
-	local $SIG{TTIN}  = 'IGNORE';
-	local $SIG{TTOU}  = 'IGNORE';
-	local $SIG{CHLD}  = 'IGNORE';
+		return if $Psh::OS::Unix::forked_already;
+		return if $terminal_owner==$_[0];
+		$terminal_owner=$_[0];
 
-	tcsetpgrp(fileno STDIN,$_[0]);
+		local $SIG{TSTP}  = 'IGNORE';
+		local $SIG{TTIN}  = 'IGNORE';
+		local $SIG{TTOU}  = 'IGNORE';
+		local $SIG{CHLD}  = 'IGNORE';
+
+		my ($pkg,$file,$line,$sub)= caller(1);
+		my $status= tcsetpgrp(fileno STDIN,$_[0]);
+	}
+
+	sub _get_terminal_owner
+    {
+		return $terminal_owner;
+	}
 }
+
 
 
 #
@@ -181,15 +194,26 @@ sub _wait_for_system
 
 	my $output='';
 
+	my $returnpid;
 	while (1) {
 		if (!$job->{running}) { $job->continue; }
-		my $returnpid;
 		{
 			local $Psh::currently_active = $pid;
 			$returnpid = waitpid($pid,&WUNTRACED);
 			$pid_status = $?;
 		}
 		last if $returnpid<1;
+
+		# Very ugly work around for the problem that
+		# processes occasionally get SIGTTOUed without reason
+		# We can do this here because we know the process has
+		# to run and could not have been stopped by TTOU
+		if ($returnpid== $pid &&
+			&WIFSTOPPED($pid_status) &&
+			Psh::OS::signal_name(WSTOPSIG($pid_status)) eq 'TTOU') {
+			$job->continue;
+			next;
+		}
 		# Collect output here - we cannot print it while another
 		# process might possibly be in the foreground;
 		$output.=_handle_wait_status($returnpid, $pid_status, $quiet, 1);
