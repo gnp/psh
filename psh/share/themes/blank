@@ -1,0 +1,5 @@
+## @(#) created by arne
+# the blank prompt - when you don't want to
+
+PS1="\[\]"
+TITLE=" "
