@@ -1,21 +1,16 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($VERSION @bookmarks @user_completions $ac $complete_first_word_dirs);
+use vars qw(@bookmarks @user_completions $ac $complete_first_word_dirs);
 
 use Psh::Util qw(:all starts_with ends_with);
 use Psh::OS;
 use Psh::PCompletion;
 
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
-
 my $APPEND="not_implemented";
 my $GNU=0;
 
-#%custom_completions= ();
-
-#@netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute');
-@bookmarks= Psh::OS::get_known_hosts();
+@bookmarks= ();
 
 sub init
 {
@@ -42,14 +37,13 @@ sub init
 	    = \&perl_symbol_display_match_list;
 }
 
-sub cmpl_bookmarks
 {
-	my ($text, $prefix)= @_;
-	my $length=length($prefix);
-	return
-		sort grep { length($_)>0 }
-           map { substr($_,$length) }
-	         grep { starts_with($_,$prefix.$text) } @bookmarks;
+	my $kh_loaded=0;
+	sub bookmarks {
+		return @bookmarks if $kh_loaded;
+		@bookmarks= Psh::OS::get_known_hosts();
+		return @bookmarks;
+	}
 }
 
 # Returns a list of possible file completions
@@ -461,10 +455,6 @@ sub completion
 			# Afterwards we add possible matches for perl barewords
 			push @tmp, cmpl_perl_function($text);
 		}
-#    	} elsif( !$firstflag && @netprograms &&
-#    			 grep { $_ eq $startword } @netprograms)
-#    	{
-#    		@tmp= cmpl_bookmarks($text,$pretext);
   	} else {
 		@tmp = cmpl_filenames($pretext.$text);
 	}
@@ -519,7 +509,3 @@ Hiroo Hayashi, hiroo.hayashi@computer.org
 
 
 =cut
-
-# Local Variables:
-# cperl-indent-level:8
-# End:

@@ -137,33 +137,33 @@ sub pcomp_list {
 	push(@l, grep { /^\Q$text/ } keys %ENV);
     }
     if ($cs->{action} & CA_FILE) {
-	my @f = Psh::Completion::cmpl_filenames($pretext . $text);
-	if (defined $cs->{ffilterpat}) {
-	    my $pat = $cs->{ffilterpat};
-	    if ($pat =~ /^!/) {
-		$pat = glob2regexp(substr($pat, 1));
-		@f = grep(/$pat/, @f);
-	    } else {
-		$pat = glob2regexp($pat);
-		@f = grep(! /$pat/, @f);
-	    }
+		my @f = Psh::Completion::cmpl_filenames($pretext . $text);
+		if (defined $cs->{ffilterpat}) {
+			my $pat = $cs->{ffilterpat};
+			if ($pat =~ /^!/) {
+				$pat = glob2regexp(substr($pat, 1));
+				@f = grep(/$pat/, @f);
+			} else {
+				$pat = glob2regexp($pat);
+				@f = grep(! /$pat/, @f);
+			}
+		}
+		push(@l, @f);
+		push(@l, Psh::Completion::cmpl_directories($pretext . $text));
 	}
-	push(@l, @f);
-	push(@l, Psh::Completion::cmpl_directories($pretext . $text));
-    }
-    if ($cs->{action} & CA_HOSTNAME) { # bookmarks: wrong name !!!
-	push(@l, grep { /^\Q$text/ } @Psh::Completion::bookmarks);
+    if ($cs->{action} & CA_HOSTNAME) {
+		push(@l, grep { /^\Q$text/ } Psh::Completion::bookmarks());
     }
     if ($cs->{action} & CA_KEYWORD) {
-	push(@l, grep { /^\Q$text/ } @Psh::Completion::keyword);
+		push(@l, grep { /^\Q$text/ } @Psh::Completion::keyword);
     }
     if ($cs->{action} & CA_SIGNAL) {
-	push(@l, grep { /^\Q$text/ } grep(!/^__/, keys %SIG));
+		push(@l, grep { /^\Q$text/ } grep(!/^__/, keys %SIG));
     }
     if ($cs->{action} & CA_USER) {
-	# Why are usernames in @user_completion prepended by `~'?
-	push(@l, map { substr($_, 1) }
-	     grep { /^~\Q$text/ } @Psh::Completion::user_completions);
+		# Why are usernames in @user_completion prepended by `~'?
+		push(@l, map { substr($_, 1) }
+			 grep { /^~\Q$text/ } @Psh::Completion::user_completions);
     }
     # job list
     if ($cs->{action} & CA_JOB) {

@@ -162,7 +162,7 @@ sub bi_export
 			Psh::protected_eval("use Env '$var';");
 			if( exists($Psh::array_exports{$var})) {
 				eval "use Env::Array;";
-				if( ! @$) {
+				if( ! $@) {
 					Psh::protected_eval("use Env::Array qw($var $Psh::array_exports{$var});",'hide');
 				}
 			}
@@ -225,7 +225,7 @@ sub bi_cd
 	my $dirpath='.';
 
 	if ($ENV{CDPATH} && !File::Spec->file_name_is_absolute($in_dir)) {
-		$dirpath=$ENV{CDPATH};
+		$dirpath.=$ENV{CDPATH};
 	}
 
 	foreach my $cdbase (split $PS,$dirpath) {

@@ -2,7 +2,6 @@ package Psh::OS;
 
 use strict;
 use vars qw($VERSION $AUTOLOAD $ospackage);
-use Carp 'croak';
 use Cwd;
 use Config;
 use File::Spec;
@@ -22,7 +21,8 @@ sub AUTOLOAD {
 	no strict 'refs';
 	my $name="${ospackage}::$AUTOLOAD";
 	$name="Psh::OS::fb_$AUTOLOAD" unless ref *{$name}{CODE} eq 'CODE';
-	croak "Function `$AUTOLOAD' in Psh::OS does not exist." unless
+	require Carp;
+	Carp::croak "Function `$AUTOLOAD' in Psh::OS does not exist." unless
 		ref *{$name}{CODE} eq 'CODE';
 	*$AUTOLOAD=  *$name;
 	goto &$AUTOLOAD;
@@ -174,7 +174,7 @@ sub fb_exit_psh {
 	CORE::exit(0);
 }
 
-sub fb_getcwd {
+sub fb_getcwd_psh {
 	return Cwd::getcwd();
 }
 

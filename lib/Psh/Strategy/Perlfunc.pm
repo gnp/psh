@@ -8,8 +8,8 @@ $packages=1;
 
 =item * C<perlfunc>
 
-If the input line matches the name of a directory then
-it will be handled as an implicit cd.
+Tries to detect perl builtins - this is helpful if you e.g. have
+a print command on your system.
 
 =cut
 

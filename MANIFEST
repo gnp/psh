@@ -55,6 +55,7 @@ lib/Psh/Builtins/Help.pm
 lib/Psh/Builtins/History.pm
 lib/Psh/Builtins/Jobs.pm
 lib/Psh/Builtins/Kill.pm
+lib/Psh/Builtins/Modules.pm
 lib/Psh/Builtins/Pshtokenize.pm
 lib/Psh/Builtins/Readline.pm
 lib/Psh/Builtins/Rename.pm

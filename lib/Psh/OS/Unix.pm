@@ -2,12 +2,10 @@ package Psh::OS::Unix;
 
 use strict;
 use vars qw($VERSION);
-use POSIX qw(:sys_wait_h tcsetpgrp setpgid getcwd);
+use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
 use Config;
 use File::Spec;
-use Sys::Hostname;
 use FileHandle;
-use User::pwent;
 
 use Psh::Util ':all';
 
@@ -35,7 +33,8 @@ sub set_window_title {
 #
 
 sub get_hostname {
-	return hostname;
+	require Sys::Hostname;
+	return Sys::Hostname::hostname();
 }
 
 #
@@ -86,7 +85,7 @@ sub display_pod {
 sub get_home_dir {
 	my $user = shift || $ENV{USER};
 	return $ENV{HOME} if ((! $user) && (-d $ENV{HOME}));
-	return getpwnam($user)->dir;
+	return (getpwnam($user))[7];
 }
 
 sub get_rc_files {
@@ -732,10 +731,6 @@ sub _resize_handler
 	}
 
 	$SIG{$sig} = \&_resize_handler;
-}
-
-sub getcwd_psh {
-	return POSIX::getcwd();
 }
 
 1;

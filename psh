@@ -13,9 +13,8 @@ package Psh; # still use a package so getopt etc. is not imported into
 use locale;
 use Psh;
 use Psh::Locale::Base;
-use Getopt::Std;
 
-use vars qw($VERSION %opt);
+use vars qw($VERSION);
 
 $VERSION='0.009';
 
@@ -27,30 +26,34 @@ $VERSION='0.009';
 #
 # option -i is ignored
 
-getopts('Fiwrd:f:c:', \%opt);
+my %opt=();
 
-if ($opt{'r'}) {
-	Psh::Util::print_error_i18n('no_r_flag');
-	exit 1;
+if (@ARGV) {
+	require Getopt::Std;
+	Getopt::Std::getopts('Fiwrd:f:c:', \%opt);
+
+	if ($opt{'r'}) {
+		Psh::Util::print_error_i18n('no_r_flag');
+		exit 1;
+	}
+
+	#
+	# -w is "warnings mode":
+	#
+
+	if ($opt{'w'}) {
+		Psh::Util::print_out_i18n('simulate_perl_w');
+		$^W = 1;
+		use strict;
+	}
+
+	#
+	# -d is "debug mode":
+	#
+
+	if (exists($opt{'d'})) { $Psh::debugging = $opt{'d'}||'soi'; }
+	else                   { $Psh::debugging = 0; }
 }
-
-#
-# -w is "warnings mode":
-#
-
-if ($opt{'w'}) {
-	Psh::Util::print_out_i18n('simulate_perl_w');
-
-	$^W = 1;
-	use strict;
-}
-
-#
-# -d is "debug mode":
-#
-
-if (exists($opt{'d'})) { $Psh::debugging = $opt{'d'}||'soi'; }
-else                   { $Psh::debugging = 0; }
 
 Psh::Util::print_debug("Debugging!\n");
 
