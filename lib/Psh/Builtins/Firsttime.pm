@@ -79,19 +79,23 @@ EOT
 	if ($line eq 's') {
 		foreach my $file (@sh_files) {
 			$tmp=File::Spec->catfile($home,$file);
-			$line=_prompt('yn',
-						  "Found file $file - parse it (y/n)? ");
-			if ($line eq 'y') {
-				_parse_sh_file($tmp);
+			if (-r $tmp) {
+				$line=_prompt('yn',
+							  "Found file $file - parse it (y/n)? ");
+				if ($line eq 'y') {
+					_parse_sh_file($tmp);
+				}
 			}
 		}
 	} else {
 		foreach my $file (@csh_files) {
 			$tmp=File::Spec->catfile($home,$file);
-			$line=_prompt('yn',
-						  "Found file $file - parse it (y/n)? ");
-			if ($line eq 'y') {
-				_parse_csh_file($tmp);
+			if (-r $tmp) {
+				$line=_prompt('yn',
+							  "Found file $file - parse it (y/n)? ");
+				if ($line eq 'y') {
+					_parse_csh_file($tmp);
+				}
 			}
 		}
 	}
@@ -149,7 +153,11 @@ sub _parse_sh_file {
 			}
 			$aliases{$key}=$value;
 		} elsif ($line=~/^\s*function (\S+) \{/) {
-			print STDERR "Warning: Could not convert function $1.\n";
+			my $tmp=$line;
+			while (Psh::Parser::incomplete_expr($tmp)>0 && <FILE>) {
+				$tmp.=$_;
+			}
+			$env.="$tmp\n";
 		} elsif ($line=~/^\s*(\S+)\=(.*)$/) {
 			my $key= uc($1);
 			my $value= _change_env_value($2);

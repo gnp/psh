@@ -5,18 +5,15 @@ use Psh::Util ':all';
 
 =item * C<function>
 
-Function is currently just a dummy built in for sh compatibility so
-e.g. sourcing alias files containing functions won't cause
-any trouble.
-
+Function tries to emulate the functionality of bash's function builtin
 =cut
 
 sub bi_function
 {
-	if ($Psh::interactive) {
-		eval { use Psh::Builtins::Help; };
-		Psh::Builtins::Help::bi_help('function');
-	}
+	$_[0]=~/(\S+)\s*\{(.*)\}/;
+	my $name=$1;
+	my $def= $2;
+	Psh::PerlEval::protected_eval(qq[sub $name {Psh::evl('$def')}],'eval');
 	return undef;
 }
 
