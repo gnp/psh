@@ -84,7 +84,7 @@ bi_strategy_notfound=Could not find strategy %1.
 bi_fc_notfound=no command found.
 bi_pshtoken_dumper=The pshtokenize command needs the Data::Dumper module!!
 bi_builtin_inactive=The strategy 'built_in' is currently not active.
-
+bi_bsdresource=Please install the BSD::Resource package. This builtin will not work otherwise!
 
 # Stuff for Job handling
 done=done\
