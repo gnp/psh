@@ -104,6 +104,7 @@ sub decompose {
     if (length($line)) {
 	$pieces[$#pieces].= $line;
     }
+
     my @pieces2= ();
     my @open= ();
     my @tmp= ();
@@ -111,7 +112,7 @@ sub decompose {
     my $language_mode= 0;
 
     foreach my $piece (@pieces) {
-        if ($start_of_command and length($piece)>1 and
+        if (!@open and $start_of_command and length($piece)>1 and
             $piece=~ /^(\S+\:)(.*)$/) {
             push @pieces2, $1;
             $piece=$2;
@@ -137,6 +138,7 @@ sub decompose {
                  substr($tmp,0,2) eq '${')) {
 		$tmp= expand_dollar($psh,$tmp);
 	    }
+            push @pieces2, $tmp;
 	} else {
 	    if ($start_of_command and $psh->{aliases}) {
 		if ($piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s*)$/ or

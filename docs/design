@@ -57,5 +57,7 @@ command := languagename: code | builtin | function | executable |
 "..." means: any number of elements, [] signifies optional components
 | means an alternative
 
+Support missing currently for: << (here-docs used as STDIN) <{ } and >{ }
 
-Maybe we'll also support <{ } and >{ }
+<{ } and >{ } use named pipes
+
