@@ -1,3 +1,14 @@
+1999-12-26
+
+  * Investigate the relationship between the Perl Power Tools project
+	http://www.perl.com/pub/language/ppt/index.html, and the Perl Shell.
+	They are reimplementing Unix utilities in Perl. It would be nice if
+	the implementations were all modules with thin command-line hook
+	programs that basically hand over control to the module. Then, we
+	could leverage the modules without doing an exec by being aware of
+	the namespace they use...
+
+
 1999-12-13
 
   * Term::ReadLine::Gnu segfault issues with Linux. We need to nail
@@ -62,6 +73,16 @@
     be done in psh to make interaction via XML Shell especially nice.
 	(I lost the URL. Please patch this file if you find it...).
     [GNP]
+
+	Update 1999-12-26: It is acutally called XMLTerm. It was mentioned on
+	MozillaZine on 1999-09-27:
+
+		http://www.mozillazine.org/talkback.html?article=813
+
+	More information can be found at http://xmlterm.com
+
+	There is another XMLTerm project, related to the LunuXML project. Info
+	at http://www.geocities.com/ResearchTriangle/Forum/6751/#anchor3
 
   * Along those same lines, create a mode whereby the shell intercepts
     all command output (rather than letting it stream to its own STDOUT)
