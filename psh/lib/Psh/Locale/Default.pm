@@ -46,7 +46,8 @@ while(<DATA>) {
 
 __DATA__
 # Misc texts
-exec_failed=Error (exec %1) failed.
+exec_failed=Error - Could not exec %1.
+fork_failed=Error - Could not fork.
 simulate_perl_w=Simulating -w switch and strict
 perm_denied=%2: %1: Permission denied.
 no_such_dir=%2: %1: No such directory.
