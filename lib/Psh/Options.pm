@@ -82,6 +82,50 @@ sub get_option {
 	return undef;
 }
 
+sub get_printable_option {
+	my $option= shift;
+	my $noquote= shift;
+	my $tmpval= get_option($option);
+	my $val= '';
+	if (ref $tmpval) {
+		if (ref $tmpval eq 'HASH') {
+			$val='{';
+			while (my ($k,$v)= each %$tmpval) {
+				next unless defined $k;
+				if (defined $v) {
+					$val.=" \'".$k."\' => \'".$v."\', ";
+				} else {
+					$val.=" \'".$k."\' => undef, ";
+				}
+			}
+			$val= substr($val,0,-2).' }';
+		} elsif (ref $tmpval eq 'ARRAY') {
+			$val='[';
+			foreach (@$tmpval) {
+				if (defined $_) {
+					$val.=" \'".$_."\', ";
+				} else {
+					$val.=" undef, ";
+				}
+			}
+			$val= substr($val,0,-2).' ]';
+		} elsif (ref $tmpval eq 'CODE') {
+			$val='CODE';
+		}
+	} else {
+		if (defined $tmpval) {
+			if ($noquote) {
+				$val= $tmpval;
+			} else {
+				$val= qq['$tmpval'];
+			}
+		} else {
+			$val= 'undef';
+		}
+	}
+	return $val;
+}
+
 sub has_option {
 	my $option= lc(shift());
 	return 1 if exists $options{$option} or ($env_options{$option} and

@@ -19,6 +19,10 @@ Deactivates an option
 
 Sets an options
 
+=item * C<option NAME>
+
+Prints the value of an option
+
 =cut
 
 
@@ -29,40 +33,7 @@ sub bi_option {
 		my @opts= Psh::Options::list_options();
 		@opts= sort @opts;
 		foreach my $opt (@opts) {
-			my $val='';
-			my $tmpval= Psh::Options::get_option($opt);
-			if (ref $tmpval) {
-				if (ref $tmpval eq 'HASH') {
-					$val='{';
-					while (my ($k,$v)= each %$tmpval) {
-						next unless defined $k;
-						if (defined $v) {
-							$val.=" \'".$k."\' => \'".$v."\', ";
-						} else {
-							$val.=" \'".$k."\' => undef, ";
-						}
-					}
-					$val= substr($val,0,-2).' }';
-				} elsif (ref $tmpval eq 'ARRAY') {
-					$val='[';
-					foreach (@$tmpval) {
-						if (defined $_) {
-							$val.=" \'".$_."\', ";
-						} else {
-							$val.=" undef, ";
-						}
-					}
-					$val= substr($val,0,-2).' ]';
-				} elsif (ref $tmpval eq 'CODE') {
-					$val='CODE';
-				}
-			} else {
-				if (defined $tmpval) {
-					$val= qq['$tmpval'];
-				} else {
-					$val= 'undef';
-				}
-			}
+			my $val= Psh::Options::get_printable_option($opt);
 			Psh::Util::print_out("$opt=$val\n");
 		}
 	} else {
@@ -84,18 +55,22 @@ sub bi_option {
 				my $char= substr($val,0,1);
 				if ($char eq '(') {
 					$val=qq:[$val]:;
-				} elsif ($char ne "'" and $char ne '"' and $char ne '['
-						and $char ne '{' and $char ne "\\" and
+				} elsif ($char ne "'" and $char ne '"' and 
+						 $char ne '[' and $char ne '{' and $char ne "\\" and
+						 $char ne '%' and $char ne '$' and $char ne '%' and
 						 $val !~ /^sub\s*\{/) {
 					$val=qq['$val'];
 				}
 				$val=~ s/\033/\\033/g;
 				my @tmp= Psh::PerlEval::protected_eval($val,'eval');
-				Psh::Options::set_option($key,$tmp[0]);
+				$val= $tmp[0];
+				if (@tmp>1) {
+					$val= \@tmp;
+				}
+				Psh::Options::set_option($key, $val);
 			} else {
-				require Psh::Builtins::Help;
-				Psh::Builtins::Help::bi_help('option');
-				return (0,undef);
+				my $val= Psh::Options::get_printable_option($tmp,1);
+				Psh::Util::print_out("$val\n");
 			}
 		}
 	}
