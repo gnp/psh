@@ -1232,8 +1232,8 @@ sub finish_initialize
 		chomp $longhost;
 	}
 	if (!defined($host)) {
-		$longhost=~ /([^\.]+)\..*/;
-		$host=$1;
+		$host= $longhost;
+		$host= $1 if( $longhost=~ /([^\.]+)\..*/);
 	}
 	if (!defined($history_file)) {
 		$history_file                = "$ENV{HOME}/.${bin}_history";

@@ -13,6 +13,9 @@ CVS HEAD
   * The builtin eval strategy now checks the Psh::Builtins
     namespace for a function with the name of the builtin
 	after it checked %built_ins
+  * Fixed the initialization so the short hostname is
+    calculated from the longhost name instead of calling
+	hostname -s
 
 ------------------------------------------------------------
 0.004                                           [1999-12-13]
