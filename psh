@@ -373,14 +373,22 @@ sub builtin_which
 sub builtin_alias
 {
   my ($command,$text) = split('[ =]', "@_", 2);
-  print_debug("[[ Aliasing '$command' to '$text']]\n");
-  # my apologies for the gobbledygook
-  my $string_to_eval = "\$psh::built_ins{$command} = "
-    . " sub { local \$psh::built_ins{$command} = undef; psh::evl(\"$text" 
-    . ' @_"); }';
-  print_debug("[[ alias evaluating: $string_to_eval]]\n");
-  eval($string_to_eval);
-  if ($@) { print_error($@); return 1; }
+  if( $command eq "" &&
+      $text eq "" ) {
+    print_out("Alias List currently not implemented anymore.\n");
+    # This was already in my alias code but vanished with the move
+    # to simulate aliases as a built-in. I recommend adding my
+    # old code as new evaluation strategy
+  } else {
+    print_debug("[[ Aliasing '$command' to '$text']]\n");
+    # my apologies for the gobbledygook
+    my $string_to_eval = "\$psh::built_ins{$command} = "
+      . " sub { local \$psh::built_ins{$command} = undef; psh::evl(\"$text" 
+      . ' @_"); }';
+    print_debug("[[ alias evaluating: $string_to_eval]]\n");
+    eval($string_to_eval);
+    if ($@) { print_error($@); return 1; }
+  }
   return 0;
 }
 
@@ -451,8 +459,7 @@ sub builtin_jobs {
 sub builtin_exit
 {
 	my $result = shift;
-	$result = 0 unless defined($result);
-	if ($result eq '') { $result = 0; }
+	$result = 0 unless defined($result) && $result;
 
 	if ($save_history && $readline_saves_history) {
 		$term->WriteHistory($psh::history_file);
@@ -688,11 +695,11 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
 
 sub protected_eval {
   my $string = shift;
-  my $old_currently_active = $currently_active;
-  $currently_active = 0;
+  $currently_active = -1; # So the handlers know we are evaluating perl,
+			  # no need to store the old value as it MUST be 0
   my @result = eval "$eval_preamble $string"; 
+  $currently_active = 0;
   handle_message($@);
-  $currently_active = $old_currently_active;
   return @result;
 }
 
@@ -908,6 +915,7 @@ sub process_file
 			return "$wday $mon $mday";
 		},
 	'h' => sub { return $host; },
+        'H' => sub { return $longhost; },
 	's' => sub {
 			my $shell = $bin;
 			$shell =~ s/^.*\///;
@@ -1066,8 +1074,10 @@ sub initialize
 
 	$bin                    = $0;
 	$bin                    =~ s/.*\///;
-	$host                   = qx(hostname);
+	$longhost		= qx(hostname);
+	$host                   = `hostname -s`;
         chomp $host;
+	chomp $longhost;
 
 	$news_file              = "$bin.NEWS";
 	$history_file           = "$ENV{HOME}/.${bin}_history";
@@ -1267,21 +1277,25 @@ sub symbols
 sub signal_handler {
 	my( $sig) = @_;
 	
-	if ($currently_active) {
+	if ($currently_active>0) {
 	  print_debug( "Received signal SIG$sig, sending to $currently_active\n");
 	  kill $sig, $currently_active;
+	} elsif ($currently_active<0) {
+	  print_debug( "Received signal SIG$sig, sending to Perl code\n");
+	  die "SECRET $bin: Signal $sig\n";
 	} else {
 	  print_debug("Received signal SIG$sig, die-ing\n");
 	}
 	$SIG{$sig}=\&signal_handler;
-        if (!$currently_active) { die "SECRET $bin: Signal $sig\n"; }
 }
 
 
 #
 # ignore_handler()
 #
-
+# Apparently letting a signal execute an empty sub is not the same
+# as setting the sighandler to IGNORE
+#
 sub ignore_handler { }
 
 #
@@ -1515,6 +1529,7 @@ sub try_executable_completion
 	if (!$state)
 	{
 		my @path           = split(':', $ENV{PATH});
+		my $old_cwd	   = cwd;
 		@completion_buffer = ();
 
 		foreach my $dir (@path) {
@@ -1522,7 +1537,7 @@ sub try_executable_completion
 			push( @completion_buffer, grep { -x } glob "$cmd*" );
 		}
 
-		chdir $last_dir;
+		chdir $old_cwd;
 	}
 
 	return shift @completion_buffer;
@@ -1543,7 +1558,7 @@ sub custom_completion
 
 	if (substr($line, $start, 1) eq "~") {
 		return $term->completion_matches($text,
-								  $attribs->{username_completion_function});
+						 $attribs->{username_completion_function});
 	}
 
 	if(substr($line, 0, $start) =~ /^\s*$/) { # First word
@@ -1610,12 +1625,17 @@ sub get_job_command {
 #
 # Returns true if the job with the given PID exists and is currently
 # running (as far as psh can tell), false otherwise.
-#
+# Also checks wether any untraced children terminated
+# (therefore the strange while is necessary)
 
 sub is_job_running {
   my ($pid) = @_;
-  waitpid($pid,&WNOHANG | &WUNTRACED);
-  handle_wait_status($pid,$?);
+  my $cur_pid;
+  while( ($cur_pid=waitpid($pid,&WNOHANG | &WUNTRACED))>0)
+  {
+    waitpid($pid,&WNOHANG | &WUNTRACED);
+    handle_wait_status($cur_pid,$?);
+  }
   return $job_running{$pid};
 }
 
