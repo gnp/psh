@@ -8,23 +8,38 @@ a new program with that name
 
 =cut
 
-$Psh::strategy_which{auto_resume}= sub {
+require Psh::Strategy;
+
+use vars qw(@ISA);
+@ISA=('Psh::Strategy');
+
+
+sub new { Psh::Strategy::new(@_) }
+
+
+sub consumes {
+	return Psh::Strategy::CONSUME_TOKENS;
+}
+
+sub applies {
 	my $fnname= ${$_[1]}[0];
     if( my($index, $pid, $call)=
 		   Psh::Joblist::find_last_with_name($fnname,1))
     {
-		return "(auto-resume $call)";
+		return "auto-resume $call";
 	}
     return '';
-};
+}
 
-$Psh::strategy_eval{auto_resume}=sub {
+sub execute {
 	my $fnname= ${$_[1]}[0];
     my ($index)= Psh::Joblist::find_last_with_name($fnname,1);
     Psh::OS::restart_job(1,$index);
     return undef;
-};
+}
 
-@always_insert_before= qw( perlscript executable);
+sub runs_before {
+	return qw(perlscript executable);
+}
 
 1;

@@ -85,6 +85,10 @@ tree now only contains valid locales.
 The C<@Psh::mon> and C<@Psh::wday> variables were removed. Please see the
 perldoc for Psh::Locale
 
+=item *
+
+Switch to new evaluation strategies system. Please also see README.upgrade
+
 =back
 
 =cut
