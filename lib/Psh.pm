@@ -381,6 +381,18 @@ sub process_file
 	print_debug("[FINISHED PROCESSING FILE $path]\n");
 }
 
+sub process_variable {
+	my $var= shift;
+	local $Psh::interactive=0;
+	my @lines;
+	if (ref $var eq 'ARRAY') {
+		@lines=@$var;
+	} else {
+		@lines= split /\n/, $var;
+	}
+	process(0, sub { shift @lines });
+}
+
 #
 # string iget(string PROMPT [, boolean returnflag [, code prompt_hook]])
 #
