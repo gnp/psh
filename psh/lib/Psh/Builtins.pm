@@ -205,7 +205,7 @@ directory".
 
     sub cmpl_cd {
 		my( $text, $pre) = @_;
-		return Psh::Completion::cmpl_directories($pre.$text);
+		return 1,Psh::Completion::cmpl_directories($pre.$text);
 	}
 }
 
