@@ -23,7 +23,12 @@ sub init {
 	    eval { $self->{term}= Term::EditLine->new('psh2'); };
 	    if ( $self->{term} ) {
                 $self->{term}->add_fun('tabcompl','', sub { tab_completion($self, @_)});
-		$self->{term}->parse('bind', '-e');
+                my $tmp= $self->{psh}->get_option('editmode');
+                if ($tmp and $tmp eq 'vi') {
+                    $self->{term}->parse('bind', '-v');
+                } else {
+                    $self->{term}->parse('bind', '-e');
+                }
                 $self->{term}->parse('bind', "\\t", 'tabcompl');
 	    }
 	}

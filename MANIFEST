@@ -30,13 +30,14 @@ lib/Psh2/Builtins/If.pm
 lib/Psh2/Builtins/Jobs.pm
 lib/Psh2/Builtins/Kill.pm
 lib/Psh2/Builtins/Modules.pm
+lib/Psh2/Builtins/Option.pm
 lib/Psh2/Builtins/Package.pm
 lib/Psh2/Builtins/Push.pm
 lib/Psh2/Builtins/Printenv.pm
 lib/Psh2/Builtins/Printf.pm
 lib/Psh2/Builtins/Rehash.pm
 lib/Psh2/Builtins/Rename.pm
-lib/Psh2/Builtins/Option.pm
+lib/Psh2/Builtins/Sleep.pm
 lib/Psh2/Builtins/Setenv.pm
 lib/Psh2/Builtins/Source.pm
 lib/Psh2/Builtins/Sub.pm

@@ -166,6 +166,7 @@ sub init_minimal {
 	$ENV{HOME}= $self->get_home_dir();
     }
     setup_signal_handlers();
+    delete $ENV{_};
     foreach my $key (keys %ENV) {
         $self->get_variable($key);
     }
