@@ -12,9 +12,9 @@ my @lvl1order=();
 my @lvl2order=();
 my @lvl3order=();
 
-sub CONSUME_LINE { 1; }
-sub CONSUME_WORDS { 2; } # currently unsupported
-sub CONSUME_TOKENS { 3; }
+sub CONSUME_LINE() { 1; }
+sub CONSUME_WORDS() { 2; } # currently unsupported
+sub CONSUME_TOKENS() { 3; }
 
 #####################################################################
 #  Strategy List

@@ -173,7 +173,7 @@ my $special_locale=0;
 
 sub load_locale {
 	return if $locale_loaded;
-	require Psh::Locale::Default;
+	eval "require Psh::Locale::Default";
 
 	my $lang= $ENV{LANG};
 	# Now try to use a locale module depending on LANG
