@@ -38,7 +38,7 @@ use vars qw($bin $cmd $host $debugging
 			$eval_preamble $currently_active
 			$result_array $which_regexp $old_shell
 		    $login_shell $window_title
-            $interactive $trace $current_options
+            $interactive $current_options
 			@val @history %text );
 
 #
@@ -101,9 +101,6 @@ sub evl {
 		return;
 	}
 
-	if ($trace) {
-		print STDERR "+ $line\n";
-	}
 	my @elements= eval { Psh::Parser::parse_line($line, @use_strats) };
 	Psh::Util::print_debug_class('e',"(evl) Error: $@") if $@;
 	return undef unless @elements;
@@ -116,10 +113,16 @@ sub evl {
 sub _evl {
 	my @elements= @_;
 	my @result=();
+	my $trace= Psh::Options::get_option('trace');
 	while( my $element= shift @elements) {
 		my @tmp= @$element;
 		my $type= shift @tmp;
 		if ($type == Psh::Parser::T_EXECUTE()) {
+			if ($trace) {
+				for (my $i=1; $i<@tmp; $i++) {
+					print STDERR "+ $tmp[$i][4]\n";
+				}
+			}
 			eval {
 				@result= Psh::OS::execute_complex_command(\@tmp);
 			};

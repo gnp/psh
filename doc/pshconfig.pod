@@ -103,6 +103,10 @@ Please see below for more information.
 
 This is the continuation prompt.
 
+=item * B<trace>
+
+If set, the shell will display each line again before it executes it.
+
 =item * B<window_title>
 
 Controls the window title in interactive use. See prompt evaluation
