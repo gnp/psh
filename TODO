@@ -1,3 +1,8 @@
+1999-12-13
+
+  * When we say 'foo' at it, and there is no executable in the path,
+    and no perl function, psh really should complain at us.
+
 1999-11-01
 
   * There is something called the XML Shell that is like an xterm, but
