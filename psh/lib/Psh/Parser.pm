@@ -451,11 +451,10 @@ sub parse_line {
 	}
 
 	my @tokens= _make_tokens( $line);
-
 	my @elements=();
 	my $element;
 	while( @tokens > 0) {
-		($element,@tokens)=parse_complex_command(\@tokens,\@use_strats);
+		$element=parse_complex_command(\@tokens,\@use_strats);
 		return undef if ! defined( $element); # TODO: Error handling
 
 		if (@tokens > 0 && $tokens[0]->[0] eq 'END') {
@@ -467,46 +466,41 @@ sub parse_line {
 }
 
 sub parse_complex_command {
-	my @tokens = @{shift()};
-	my @use_strats= @{shift()};
-	my @simplecommands;
-
-	($simplecommands[0], @tokens) = parse_simple_command(\@tokens,
-														 \@use_strats);
-
+	my $tokens= shift;
+	my $use_strats= shift;
 	my $piped= 0;
-
-	while (@tokens > 0 && $tokens[0]->[0] eq 'PIPE') {
-		shift @tokens;
-		my $sc;
-		($sc, @tokens) = parse_simple_command(\@tokens,\@use_strats,$piped);
-		push @simplecommands, $sc;
-		$piped= 1;
-	}
-
 	my $foreground = 1;
-	if (@tokens > 0 && $tokens[0]->[0] eq 'BACKGROUND') {
-		shift @tokens;
-		$foreground = 0;
+	return [ $foreground, _subparse_complex_command($tokens,$use_strats,\$piped,\$foreground,{})];
+}
+
+sub _subparse_complex_command {
+	my ($tokens,$use_strats,$piped,$foreground,$alias_disabled)=@_;
+	my @simplecommands= parse_simple_command($tokens,$use_strats, $piped,$alias_disabled,$foreground);
+
+	while (@$tokens > 0 && $tokens->[0]->[0] eq 'PIPE') {
+		shift @$tokens;
+		push @simplecommands, parse_simple_command($tokens,$use_strats,$piped,$alias_disabled,$foreground);
+		$$piped= 1;
 	}
 
-	return [ $foreground, @simplecommands ], @tokens;
+	if (@$tokens > 0 && $tokens->[0]->[0] eq 'BACKGROUND') {
+		shift @$tokens;
+		$$foreground = 0;
+	}
+	return @simplecommands;
 }
 
 sub parse_simple_command {
-	my @tokens = @{shift()};
-	my @use_strats= @{shift()};
-	my $piped= shift;
-
+	my ($tokens,$use_strats,$piped,$alias_disabled,$foreground)=@_;
 	my @words;
 	my @options;
 
-	my $token = shift @tokens;
+	my $token = shift @$tokens;
 	push @words, $token->[1];
-	while (@tokens > 0 &&
-		   ($tokens[0]->[0] eq 'WORD' ||
-			$tokens[0]->[0] eq 'REDIRECT')) {
-		my $token = shift @tokens;
+	while (@$tokens > 0 &&
+		   ($tokens->[0]->[0] eq 'WORD' ||
+			$tokens->[0]->[0] eq 'REDIRECT')) {
+		my $token = shift @$tokens;
 		if ($token->[0] eq 'WORD') {
 			push @words, $token->[1];
 		} elsif ($token->[0] eq 'REDIRECT') {
@@ -514,29 +508,29 @@ sub parse_simple_command {
 		}
 	}
 
-	# Hmm.. the code below sucks... doesn't allow to pipe etc.
-	# within an alias
-	if( $Psh::Builtins::aliases{$words[0]}) {
+	if( !$alias_disabled->{$words[0]} && $Psh::Builtins::aliases{$words[0]}) {
 		my $alias= $Psh::Builtins::aliases{$words[0]};
 		$alias =~ s/\'/\\\'/g;
-		shift(@words);
-		unshift(@words,std_tokenize($alias));
+		$alias_disabled->{$words[0]}=1;
+		shift @words;
+		unshift @words, _make_tokens($alias);
+		return _subparse_complex_command(\@words,$use_strats,$piped,$foreground,$alias_disabled);
 	}
 
 	my $line= join ' ', @words;
-	foreach my $strat (@use_strats) {
+	foreach my $strat (@$use_strats) {
 		if (!exists($Psh::strategy_which{$strat})) {
 			Psh::Util::print_warning_i18n('no_such_strategy',
 										 $strat,$Psh::bin);
 			next;
 		}
 
-		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words,$piped);
+		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words,$$piped);
 
 		if ($how) {
 			Psh::Util::print_debug_class('s',"[Using strategy $strat by $how]\n");
-			return [ $Psh::strategy_eval{$strat},
-					 $how, \@options, \@words, $strat, $line ], @tokens;
+			return ([ $Psh::strategy_eval{$strat},
+					 $how, \@options, \@words, $strat, $line ]);
 		}
 	}
 	Psh::Util::print_error_i18n('clueless',$line,$Psh::bin);

@@ -70,6 +70,10 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * Builtin unalias does not remove builtins of the same name anymore - warp [2000-03-14]
 
+=item * Piping is now possible in aliases - warp [2000-04-01]
+
+=item * The parser now allows nesting aliases - warp [2000-04-01]
+
 =back
 
 =cut
