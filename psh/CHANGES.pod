@@ -121,6 +121,10 @@ returned the help of setenv)
 
 The parser parsed '&&' as if the user entered '& &&'.
 
+=item *
+
+C<@_> and C<$_> are saved between input lines.
+
 =back
 
 =head2 Cleanups
