@@ -2,10 +2,6 @@ package Psh::OS::Unix;
 
 use strict;
 use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
-require Config;
-require File::Spec;
-require Psh::Util;
-require Psh::OS;
 
 $Psh::OS::PATH_SEPARATOR=':';
 $Psh::OS::FILE_SEPARATOR='/';
@@ -13,6 +9,7 @@ $Psh::OS::FILE_SEPARATOR='/';
 $Psh::rc_file = ".pshrc";
 $Psh::history_file = ".psh_history";
 
+sub T_REDIRECT() { 3; }
 
 # Sets the title of the current window
 sub set_window_title {
@@ -303,10 +300,10 @@ sub execute_complex_command {
 				pipe READ,WRITE;
 			}
 			if( $i>0) {
-				unshift(@$options,['REDIRECT','<&',0,'INPUT']);
+				unshift(@$options,[T_REDIRECT,'<&',0,'INPUT']);
 			}
 			if( $i<$#array) {
-				unshift(@$options,['REDIRECT','>&',1,'WRITE']);
+				unshift(@$options,[T_REDIRECT,'>&',1,'WRITE']);
 			}
 			my $termflag=!($i==$#array);
 
@@ -353,7 +350,7 @@ sub _setup_redirects {
 
 	my @cache=();
 	foreach my $option (@$options) {
-		if( $option->[0] eq 'REDIRECT') {
+		if( $option->[0] == T_REDIRECT) {
 			my $file= $option->[1].$option->[3];
 			my $type= $option->[2];
 
