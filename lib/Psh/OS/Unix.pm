@@ -387,6 +387,7 @@ sub _setup_redirects {
 			my $type= $option->[2];
 
 			if( $type==0) {
+				no warnings; # Don't complain about 'Name ... used only once'
 				open(OLDIN,"<&STDIN") if $save;
 				close(STDIN);
 				open(STDIN,$file);
@@ -397,12 +398,14 @@ sub _setup_redirects {
 					# Just to get rid of the warning
 				}
 			} elsif( $type==1) {
+				no warnings; # Don't complain about 'Name ... used only once'
 				open(OLDOUT,">&OLDOUT") if $save;
 				close(STDOUT);
 				open(STDOUT,$file);
 				select(STDOUT);
 				$|=1;
 			} elsif( $type==2) {
+				no warnings; # Don't complain about 'Name ... used only once'
 				open(OLDERR,">&OLDERR") if $save;
 				close(STDERR);
 				open(STDERR,$file);
@@ -751,9 +754,12 @@ sub _resize_handler
 	my ($sig) = @_;
 	my ($cols, $rows); # Assume nothing so that unless works!
 
+    eval "use Term::Size;";             # We really need to do the 'use' and then not call the function if it doesn't exist.
+    my $has_term_size = $@ ? 0 : 1;
+    
 	eval {
 		($cols,$rows)= Term::Size::chars();
-	};
+	} unless $has_term_size;
 
 	unless( $cols) {
 		eval {

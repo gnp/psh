@@ -671,10 +671,11 @@ sub initialize_interactive_mode {
 		#
 		# Set up Term::Size:
 		#
-		eval { require Term::Size; };
+		eval "use Term::Size;";
 		if ($@) {
 			Psh::Util::print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey]\n");
-			eval { require Term::ReadKey; };
+
+			eval "use Term::ReadKey;";
 			if( $@) {
 				Psh::Util::print_debug_class('i',"[Term::ReadKey not available]\n");
 			}
