@@ -632,11 +632,9 @@ sub get_option {
     my $self= shift;
     my $option= lc(shift());
     my $val;
-    if ($env_option{$option}) {
-	$val= $ENV{uc($option)};
-    } else {
-	$val=$self->{option}{$option};
-    }
+
+    $val=$self->{option}{$option};
+
     if (defined $val) {
 	if (wantarray()) {
 	    if (ref $val and ref $val eq 'ARRAY') {
@@ -655,19 +653,14 @@ sub get_option {
 sub has_option {
     my $self= shift;
     my $option= lc(shift());
-    return 1 if exists $self->{option}{$option} or
-	($env_option{$option} and $ENV{uc($option)});
+    return 1 if exists $self->{option}{$option};
     return 0;
 }
 
 sub del_option {
     my $self= shift;
     my $option= lc(shift());
-    if ($env_option{$option}) {
-	delete $ENV{uc($option)};
-    } else {
-	delete $self->{option}{$option};
-    }
+    delete $self->{option}{$option};
 }
 
 ############################################################################
