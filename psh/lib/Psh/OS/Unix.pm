@@ -79,7 +79,7 @@ sub display_pod {
 # MacOS
 #
 sub exit() {
-        CORE::exit(@_[0]) if $_[0];
+        CORE::exit($_[0]) if $_[0];
         CORE::exit(0);
 }
 
