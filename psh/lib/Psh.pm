@@ -208,13 +208,13 @@ $strategy_eval{brace}= $strategy_eval{eval}= sub {
 		$todo=~ s/\}([qg])\s*$/\}/;
 		my $mods= $1 || '';
 		if( $mods eq 'q' ) { # non-print mode
-			$code='while(<STDIN>) { '.$todo.' ; }';
+			$code='while(<STDIN>) { @_= split /\s+/; '.$todo.' ; }';
 		} elsif( $mods eq 'g') { # grep mode
 			$code='while(<STDIN>) { @_= split /\s+/; print $_ if eval { '.$todo.' }; } ';
 		} else {
-			$code='while(<STDIN>) { '.$todo.' ; print $_ if $_; }';
+			$code='while(<STDIN>) { @_= split /\s+/; '.$todo.' ; print $_ if $_; }';
 		}
-		return (sub {return protected_eval($code,'eval'); }, undef);
+		return (sub {return protected_eval($code,'eval'); }, [], 0, undef);
     } else {
 		return (sub {
 			return protected_eval($todo,'eval');
