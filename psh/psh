@@ -17,36 +17,48 @@
 package psh;
 
 use vars qw($VERSION);
-$VERSION   = '0.00205';
+$VERSION   = '0.003pre1';
 
 use Cwd;
 use Cwd 'chdir';
-
+use IPC::Open2;
+use POSIX ":sys_wait_h";
 use Getopt::Std;
-
 my %opt;
 
-getopts('dr:', \%opt);
+getopts('dwr:', \%opt);
 
 
 #
-# TODO: Figure out how to make this useful, including abandoning the current
+# TODO: Figure out how to make SIGINT abandon the current
 # input even when it is under the control of ReadLine...
 #
-# $SIG{'INT'} = sub { print "\n!!!\n"; };
-#
+
+$SIG{'INT'}   = \&signal_handler;
+$SIG{'QUIT'}  = \&signal_handler;
+$SIG{'USR1'}  = \&signal_handler;
+$SIG{'USR2'}  = \&signal_handler;
+$SIG{'CONT'}  = \&signal_handler;
+$SIG{'STOP'}  = \&signal_handler;
+$SIG{'TSTP'}  = \&signal_handler;
+$SIG{'TTIN'}  = \&signal_handler;
+$SIG{'TTOU'}  = \&signal_handler;
+$SIG{'CHLD'}  = \&ignore_handler;
+$SIG{'WINCH'} = \&handle_resize;
 
 
 #
 # Deal with debug mode:
 #
 
-if ($opt{'d'}) {
-	print "DEBUGGING!\n";
+if ($opt{'w'}) {
+	print_out("Simulating -w switch and strict\n");
 
 	$^W = 1;    # Simulate the -w command-line switch
 	use strict; # Turned on when debugging
 }
+
+print_debug("Debugging!\n");
 
 
 #
@@ -59,14 +71,32 @@ if ($opt{'d'}) {
 # The other variables are private, lexical variables.
 #
 
-use vars qw($bin $news_file $cmd $prompt $smart @wday @mon %prompt_vars %built_ins);
-my $default_prompt = '\s\$ ';
+use vars qw($bin $news_file $cmd $prompt $smart @wday @mon %prompt_vars %built_ins %aliases);
 
+my $default_prompt   = '\s\$ ';
 my $input;
+my %aliases          = ();
+my $currently_active = 0;
+my $flag_signal_sent = 0;
+my $signal_sent      = 0;
+my %jobs             = (),
+my @jobs_order       = ();
+
+my $last_dir         = '.'; # By default 'cd -' won't change directory at all.
+
+%built_ins = (
+	'exit'  => \&builtin_exit,
+	'cd'    => \&builtin_cd,
+	'fg'    => \&builtin_fg,
+	'bg'    => \&builtin_bg,
+    'jobs'  => \&builtin_jobs,
+	'alias' => \&builtin_alias,
+	'which' => \&builtin_which
+);
 
 
 #
-# Set up ReadLine:
+# Set up Term::ReadLine:
 #
 
 my $term;
@@ -75,11 +105,25 @@ eval "use Term::ReadLine;";
 
 if ($@) {
 	$term = undef;
-	print "Term::ReadLine not available.\n" if $opt{'d'};
+	print_debug("Term::ReadLine not available.\n");
 } else {
 	$term = Term::ReadLine->new('psh');
 	$term->MinLine(0);   # We will handle history adding ourselves (undef causes trouble).
-	print "Using ReadLine: ", $term->ReadLine(), "\n" if $opt{'d'};
+	$term->ornaments(0);
+	print_debug("Using ", $term->ReadLine(), "\n");
+}
+
+
+#
+# Set up Term::Size:
+#
+
+eval "use Term::Size 'chars'";
+
+if ($@) {
+	print_debug("Term::Size not available.\n");
+} else {
+	print_debug("Using &Term::Size::chars().\n");
 }
 
 
@@ -112,6 +156,196 @@ sub read_until
 
 
 #
+# abs_path()
+#
+
+sub abs_path
+{
+	my $dir = shift;
+
+	$dir = '~' unless defined $dir and $dir ne '';
+
+	if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
+		my $user = $2; 
+		my $rest = $3;
+
+		my $home;
+
+		if ($user eq '') { $home = $ENV{HOME}; }
+		else             { $home = (getpwnam($user))[7]; }
+
+		if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
+	}
+
+	if (!$dir =~ m|^/|) { $dir = cwd . '/', $dir }
+	
+	return $dir;
+}
+
+
+#
+# which()
+#
+
+sub which
+{
+	my $cmd      = shift;
+	my @path     = split(':', $ENV{PATH});
+
+	foreach my $dir (@path) {
+		$dir = abs_path($dir);
+
+		my $try = "$dir/$cmd";
+
+		if ((-x $try) and (!-d _)) { return $try; }
+	}
+
+	return undef;
+}
+
+
+#
+# builtin_cd()
+#
+
+sub builtin_cd
+{
+	my $in_dir = shift;
+	my $dir = $in_dir;
+
+	$dir = $last_dir if $dir eq '-';
+	$dir = abs_path($dir);
+
+	if ((-e $dir) and (-d _)) {
+		if (-x _) {
+			$last_dir = cwd;
+			chdir $dir;
+		} else {
+			print_error("psh: $in_dir: Permission denied\n");
+			return 1;
+		}
+	} else  {
+		print_error("psh: $in_dir: No such directory\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+
+#
+# builtin_which()
+#
+
+sub builtin_which
+{
+	my $cmd   = shift;
+	if (!defined($cmd) or $cmd eq '') {
+		print_error( "which: requires one argument\n");
+	}
+
+	my $which;
+	if ($built_ins{$cmd}) { $which = '(built-in)'; }
+	else                  { $which = which $cmd;   }
+
+	if (!defined($which)) { print_error( "which: no $cmd in ($ENV{PATH})\n"); }
+
+	print_out("$which\n");
+
+	return 0;
+}
+
+
+#
+# builtin_alias()
+#
+# TODO: Handles alias ls=ls -F fine, but doesn't do well with alias ls='ls -F'.
+# Generally, we need work on quoting issues.
+#
+
+sub builtin_alias
+{
+	my $arg = shift;
+
+	if(!defined($arg) or $arg eq '') {
+		foreach $i (keys %aliases) {
+			print_out("alias $i=".$aliases{$i}."\n");
+		}
+	} else {
+		if ($arg=~/(\w+)\=(.+)/o) {
+			$aliases{$1} = $2;
+		}
+	}
+
+	return 0;
+}
+
+
+#
+# builtin_fg()
+#
+
+sub builtin_fg
+{
+	my $arg = shift;
+
+	$arg = -1 if (!defined($arg) or ($arg eq ''));
+
+	restart_job(1, $arg - 1);
+}
+
+
+#
+# builtin_bg()
+#
+
+sub builtin_bg
+{
+	my $arg = shift;
+
+	$arg = -1 if (!defined($arg) or ($arg eq ''));
+
+	restart_job(0, $arg - 1);
+}
+
+
+#
+# builtin_jobs()
+#
+
+sub builtin_jobs {
+	for($i = 0; $i <= $#jobs_order; $i++) {
+		my $visindex = $i+1;
+		my $pid      = $jobs_order[$i];
+		my $tmp      = $jobs{$pid};
+
+#		next unless $tmp;
+
+		print_out( "[$visindex] $pid ".@$tmp[0]);
+
+		if (@$tmp[1]) { print_out("\n");           }
+		else          { print_out(" (stopped)\n"); }
+	}
+}
+
+
+#
+# builtin_exit()
+#
+# TODO: What if a string is passed in?
+#
+
+sub builtin_exit
+{
+	my $result = shift;
+
+	$result = 0 unless defined($result);
+
+	exit $result;
+}
+
+
+#
 # process()
 #
 # Process a source of lines until it returns undef.
@@ -132,44 +366,14 @@ sub read_until
 # TODO: Undo any side effects, e.g. done by m//.
 #
 
-sub which
-{
-	my $cmd  = shift;
-	my @path = split(':', $ENV{PATH});
-
-	foreach my $dir (@path) {
-		my $try = "$dir/$cmd";
-
-		if ((-r $try) and (-x $try) and (!-d $try)) { return $try; }
-	}
-
-	return undef;
-}
-
-%built_ins = (
-	'exit'  => sub { exit; },
-	'cd'    => sub { chdir @_; },
-	'which' => sub {
-		my $cmd   = shift;
-		if (!defined($cmd) or $cmd eq '') {
-			print STDERR "which: requires one argument\n";
-		}
-
-		my $which;
-		if ($built_ins{$cmd}) { $which = '(built-in)'; }
-		else                  { $which = which $cmd;   }
-
-		if (!defined($which)) { print STDERR "which: no $cmd in ($ENV{PATH})\n"; }
-		print "$which\n";
-	}
-);
 
 sub process
 {
 	my ($get, $put, $prompt) = @_;
 	local $cmd;
+	my $first_part="", $rest="";
 
-#	print "[[PROCESSING GENERIC INPUT]]\n";
+#	print_out("[[PROCESSING GENERIC INPUT]]\n");
 
 	while (1) {
 		if ($prompt) {
@@ -184,6 +388,15 @@ sub process
 
 		chomp $input;
 
+		$input =~ /^\s*(\S+)(.*)/;
+		$first_part= $1;
+		$rest= $2;
+
+		if ( $first_part && $aliases{$first_part} ) {
+			$input= $aliases{$first_part}.$rest;
+			$input =~ /^\s*(\S+).*/;
+			$first_part= $1;
+		}
 		if      ($input =~ m/^\s*\#.*$/) {
 			undef $input;
 		} elsif ($input =~ m/^\s*$/) {
@@ -194,7 +407,7 @@ sub process
 			process_file($1);
 			undef $input;
 		} elsif ($input =~ m/^\s*!(.+)\s*$/) {
-			system($1);
+			my_system($1);
 			undef $input;
 
 		#
@@ -212,17 +425,23 @@ sub process
 			my $arg = $3;
 
 			if (ref $psh::built_ins{$cmd} eq 'CODE') {
-				print "Using built-in '$cmd'.\n" if $opt{'d'};
+				print_debug("Using built-in '$cmd'.\n");
 				&{$psh::built_ins{$cmd}}($arg);
 				undef $input;
 			} elsif ($psh::smart) {
 				my $which = which($cmd);
 
 				if (defined($which)) {
-					print "Using smart '$which'.\n" if $opt{'d'};
-					system("$which $arg");
+					print_debug("Using smart '$which'.\n");
+					if( $arg) { my_system("$which $arg"); }
+					else { my_system("$which"); }
 					undef $input;
 				}
+			}
+		} elsif ($input =~ m|^\s*\.?\/.*|o && $psh::smart ) {
+			if( -x $first_part && ! -d _) {
+				my_system($input);
+				undef $input;
 			}
 		}
 
@@ -244,21 +463,28 @@ sub process
 		#
 
 		my $result;
+		my $pid;
+		local $SIG{INT}= sub { die; };
 		package main;
 		$result = eval $input;
 		package psh;
-
+		local $SIG{INT}= \&signal_handler;
 		my $msg = $@;
 		chomp $msg;
 
 		if (!defined($result)) {
 			# TODO: This *should* be an indication of trouble, too!
 			# But, sub { ... }; and use ...; both have undef results from eval!
-#			print STDERR "Error ($msg) evaluating input: `$input'!\n";
+#			print_error( "Error ($msg) evaluating input: `$input'!\n");
 		}
+		elsif( $prompt && is_number($result))
+		{
+			print_out("Result: $result\n");
+		}
+		
 
 		if ($msg) {
-			print STDERR "Error ($msg)!\n";
+			print_error( "Error ($msg)!\n");
 		}
 	}
 }
@@ -272,15 +498,15 @@ sub process_file
 {
 	my ($path) = @_;
 
-#	print "[[PROCESSING FILE $path]]\n";
+#	print_out("[[PROCESSING FILE $path]]\n");
 
 	if (!-r $path) {
-		print STDERR "$bin: Cannot read script `$path'\n";
+		print_error( "$bin: Cannot read script `$path'\n");
 		return;
 	}
 
 	if (!open(FILE, $path)) {
-		print STDERR "$bin: Cannot open script `$path'\n";
+		print_error( "$bin: Cannot open script `$path'\n");
 		return;
 	}
 
@@ -288,7 +514,7 @@ sub process_file
 
 	close(FILE);
 
-#	print "[[FINISHED PROCESSING FILE $path]]\n";
+#	print_out("[[FINISHED PROCESSING FILE $path]]\n");
 }
 
 
@@ -308,7 +534,7 @@ sub process_file
 			return "$wday $mon $mday";
 		},
 	'h' => sub {
-			my $host = `uname -n`;
+			my $host = `hostname -s`;
 			chomp $host;
 			return $host;
 		},
@@ -343,7 +569,7 @@ sub prompt_string
 	if (ref($prompt) eq 'CODE') { # If it is a subroutine,
 		$temp = &$prompt();
 	} elsif (ref($prompt)) {      # If it isn't a scalar
-		print "psh: Warning: $psh::prompt is neither a SCALAR nor a CODE reference.\n";
+		print_warning("psh: Warning: \$psh::prompt is neither a SCALAR nor a CODE reference.\n");
 		$temp = $default_prompt;
 	} else {
 		$temp = $prompt;
@@ -361,16 +587,17 @@ sub prompt_string
 		if (ref $var eq 'CODE') {
 			$sub = &$var();
 		} else {
-			print "psh: Warning: \$psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n";
+			print_warning("psh: Warning: \$psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n");
 			$sub = ''
 		}
 
 		{
 			local $1;
 			if ($sub =~ m/\\(.)/) {
-				print "psh: Warning: Expansion of `\\$2' in prompt string yielded\n";
-				print "     string containing `$1'. Stripping escape sequences from\n";
-				print "     substitution.\n";
+				print_warning("psh: Warning: Expansion of `\\$2' in prompt string yielded\n");
+							  
+				print_warning("     string containing `$1'. Stripping escape sequences from\n");
+				print_warning("     substitution.\n");
 				$sub =~ s/\\(.)//g;
 			}
 		}
@@ -415,8 +642,13 @@ sub iget
 	$line =~ s/^\s+//;
 	$line =~ s/\s+$//;
 
-	if ($term and $line) { $term->addhistory($line); }
-
+	if($term and $line )
+	{
+		$term->addhistory($line);
+		open( HIST, ">>$ENV{HOME}/.${bin}_history");
+		print HIST $line."\n";
+		close( HIST);
+	}
 	return $line . "\n";         # This is expected by other code.
 }
 
@@ -443,7 +675,7 @@ sub initialize
 {
 	$|         = 1;                # Set ouput autoflush on
 	$prompt    = $default_prompt;  # Set default prompt
-	$smart     = 0;
+	$smart     = 1;
 	$cmd       = 1;
 
 	$bin       = $0;
@@ -474,7 +706,7 @@ sub process_rc
 	my @rc;
 	my $rc_name = ".pshrc";
 
-#	print "[ LOOKING FOR .pshrc ]\n";
+#	print_out("[ LOOKING FOR .pshrc ]\n");
 
 	if ($opt{'r'}) {
 		push @rc, $opt{'r'};
@@ -485,10 +717,18 @@ sub process_rc
 
 	foreach my $rc (@rc) {
 		if (-r $rc) {
-#			print "[ PROCESSING $rc ]\n";
+#			print_out("[ PROCESSING $rc ]\n");
 			process_file($rc);
 		}
 	}
+
+	open( HIST, "<$ENV{HOME}/.${bin}_history") || return;
+	while( <HIST>)
+	{
+		chomp;
+		$term->addhistory($_);
+	}
+	close( HIST);
 }
 
 
@@ -503,11 +743,11 @@ sub process_args
 	my @rc;
 	my $rc_name = ".pshrc";
 
-#	print "[ PROCESSING @ARGV FILES ]\n";
+#	print_out( "[ PROCESSING @ARGV FILES ]\n");
 
 	foreach my $arg (@ARGV) {
 		if (-r $arg) {
-#			print "[ PROCESSING $arg ]\n";
+#			print_out("[ PROCESSING $arg ]\n";
 			process_file($arg);
 		}
 	}
@@ -527,7 +767,7 @@ sub main_loop
 	my $interactive = (-t STDIN) and (-t STDOUT);
 	my $get;
 
-	#print "[[STARTING MAIN LOOP]]\n";
+	#print_out("[[STARTING MAIN LOOP]]\n");
 
 	if ($interactive) { $get = \&iget;                  }
 	else              { $get = sub { return <STDIN>; }; }
@@ -535,6 +775,32 @@ sub main_loop
 	process($get, sub { print @_; }, $interactive);
 }
 
+
+sub is_number
+{
+	my ( $test)=@_;
+	return $test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
+}
+
+sub print_warning
+{
+	print STDERR @_;
+}
+
+sub print_debug
+{
+	print STDERR @_ if $opt{'d'};
+}
+
+sub print_error
+{
+	print STDERR @_;
+}
+
+sub print_out
+{
+	print STDOUT @_;
+}
 
 #
 # symbols()
@@ -574,13 +840,171 @@ sub symbols
 		}
 	}
 
-	print "Reference: ", join(' ', @ref),    "\n";
-	print "Scalar:    ", join(' ', @scalar), "\n";
-	print "Array:     ", join(' ', @array),  "\n";
-	print "Hash:      ", join(' ', @hash),   "\n";
-	print "Code:      ", join(' ', @code),   "\n";
-#	print "Glob:      ", join(' ', @glob),   "\n";
-	print "Handle:    ", join(' ', @handle), "\n";
+	print_out("Reference: ", join(' ', @ref),    "\n");
+	print_out("Scalar:    ", join(' ', @scalar), "\n");
+	print_out("Array:     ", join(' ', @array),  "\n");
+	print_out("Hash:      ", join(' ', @hash),   "\n");
+	print_out("Code:      ", join(' ', @code),   "\n");
+#	print_out("Glob:      ", join(' ', @glob),   "\n");
+	print_out("Handle:    ", join(' ', @handle), "\n");
+}
+
+
+#
+# signal_handler()
+#
+
+sub signal_handler {
+	my( $sig) = @_;
+	print_debug( "Received signal SIG$sig, sending to $currently_active\n");
+	$flag_signal_sent=1;
+	$signal_sent= $sig;
+   
+	kill $sig, $currently_active if $currently_active;
+	$SIG{$sig}=\&signal_handler;
+}
+
+
+#
+# ignore_handler()
+#
+
+sub ignore_handler { }
+
+
+#
+# handle_resize()
+#
+
+sub handle_resize
+{
+	my ($cols, $rows) = (80, 24);
+
+	eval {
+#		use Term::Size 'chars';
+		($cols,$rows)= chars;
+	};
+
+	if(($cols > 0) && ($rows > 0)) {
+		$ENV{COLUMNS} = $cols;
+		$ENV{LINES}   = $rows;
+	}
+}
+
+
+#
+# my_system()
+#
+# Executes a program and allows jobcontrol
+#
+
+sub my_system {
+	my($call) = @_;
+
+	eval {
+		open(TMPOUT,">-");
+		open(TMPIN,"-");
+		my $pid= open2(">&TMPOUT", "<&TMPIN", $call);
+		my $status=-1;
+		$currently_active=$pid;
+		my @tmp=($call,1);
+		$jobs{$pid}=\@tmp;
+	    push(@jobs_order,$pid);
+		wait_for_system($pid);
+	};
+
+	print_debug("Status $@\n") if $@;
+}
+
+
+#
+# wait_for_system()
+#
+# Waits for a program to be stopped/ended
+#
+
+sub wait_for_system {
+	my($pid) = @_;
+
+	$currently_active = 0;
+	$flag_signal_sent = 0;
+
+	while(1) {
+		if( waitpid( $pid, &WNOHANG)==$pid || $flag_signal_sent) {
+			$currently_active=0;
+			if( $flag_signal_sent) {
+				if( $signal_sent eq "TSTP" ||
+					$signal_sent eq "STOP" ) {
+					my $tmp= $jobs{$pid};
+					@$tmp[1]=0;
+					# mark job stopped
+				} elsif( $signal_sent eq "INT") {
+					delete_from_joblist($pid);
+				}
+			} else {
+				delete_from_joblist($pid);
+			}
+			last;
+		}
+	}
+}
+
+
+#
+# delete_from_joblist()
+#
+
+sub delete_from_joblist {
+	my($pid) =@_;
+
+	delete $jobs{$pid};
+
+	my $position;
+	my $i;
+
+	for($i=0; $i <= $#jobs_order; $i++) {
+		last if($jobs_order[$i] == $pid);
+	}
+
+	splice(@jobs_order,$i,1);
+}
+
+
+#
+# restart_job()
+#
+
+sub restart_job {
+	my ($fg_flag, $job_to_start) = @_;
+
+	if($job_to_start < 0) { # Search for the last job which is not running
+		for( $i=$#jobs_order; $i>=0; $i--) {
+			my $pid= $jobs_order[$i];
+			my $tmp= $jobs{$pid};
+			if(! @$tmp[1]) {
+				$job_to_start=$i;
+				last;
+			}
+		}
+		print_debug("Found job $job_to_start\n");
+	}
+
+	if($job_to_start>-1) {
+		my $pid = $jobs_order[$job_to_start];
+		my $tmp = $jobs{$pid};
+
+		if($tmp) {
+			my $command = @$tmp[0];
+			return if(@$tmp[1]);
+			print_out("Restart $pid $command\n");
+			kill 'CONT', $pid;
+			@$tmp[1]=1;
+
+			if($fg_flag) {
+				eval { wait_for_system($pid,$command); };
+			}
+		}
+	}
 }
 
 
@@ -598,193 +1022,6 @@ if (@ARGV) {
 }
 
 exit 0;
-
-__END__
-
-=pod
-
-=head1 NAME
-
-psh - Perl Shell
-
-
-=head1 SYNOPSIS
-
-A fairly simple read-eval loop. The C<-w> flag and 'C<use strict>' are
-not employed so that the user is not bound by their stipulations.
-Setting C<$^W = 1> will turn on warnings, and calling 'C<use strict>'
-will (almost) do the usual thing if called by the user (see LIMITATIONS,
-below).
-
-
-=head1 DESCRIPTION
-
-Each line of input is read and immediately evaluated.
-
-Multiline input may be entered by starting with a line like C<E<lt>E<lt>XXX>,
-followed by lines of input not having C<XXX> on a line by itself,
-followed by such a line. If C<XXX> is not specified, then the first
-blank line terminates the input.
-
-An input line beginning with `!' will be given as a parameter to
-the C<system()> Perl function.
-
-An input line beginning with `.' followed by a space and a file name
-will cause the contents of the specified file to be read in and
-evaluated.
-
-If C<$ENV{HOME}> is set, and the file C<$ENV{HOME}/.pshrc> is present,
-it will be read in and evaluated before processing begins. If not,
-but C<.pshrc> is present in the current directory, it will be
-read and executed.
-
-
-=head2 PROMPT STRINGS
-
-Setting the variable C<$psh::prompt> to a string will cause that string
-to be used as the prompt-string. Setting it to a subroutine reference
-causes the result of running that subroutine to be used each time.
-For example,
-
-  $psh::prompt = sub { $i++; "psh [$i]\$ "; }
-
-will cause the prompt to be C<psh [1]$> followed by C<psh [2]$>, and so on.
-
-C<psh> uses some of the same ``prompting variables'' as C<bash>. They are
-accessed by placing a backslash followed by the code in the prompt string,
-either hard coded, or as returned by the prompt string function. The
-variables supported are:
-
-=over 4
-
-=item d The date in ``Weekday Month Day'' format
-
-=item h The hostname
-
-=item n A carriage return and line feed
-
-=item s The name of the shell
-
-=item t The current time in HH:MM:SS format
-
-=item u The username of the current user
-
-=item w The current working directory
-
-=item W The basename of the current working directory
-
-=item # The command number of the current command
-
-=item $ `#' if the effective UID is zero, else `$'
-
-=back
-
-Custom prompting variables may be added by adding entries to the array
-C<%psh::prompt_vars> keyed by the single character code. The entries
-should be subroutine references that return the replacment string.
-
-
-=head2 BUILT-IN FUNCTIONS
-
-The following functions are built into C<psh>:
-
-=over 4
-
-=item * C<cd>
-
-Change the working directory.
-
-=item * C<exit>
-
-Exit out of the shell.
-
-=item * C<which>
-
-Search the directories in the C<PATH> environment variable for an executable
-of the name given. Return the path of the first such executable found.
-
-=back
-
-
-=head1 LIMITATIONS
-
-The loop inside C<psh> will clobber C<$1> and other variables because
-it uses matches to implement some of its special functions.
-
-Very little error checking is done.
-
-The effect of `use foo' is not as expected. Such statements, when
-sent to Perl's eval() function, cause eval() to return undef, which is
-supposed to indicate an error. Simple detection of isolated use statements
-could be hacked in, but it would not be general, and would therefore
-be fragile.
-
-
-=head1 OTHER PERL SHELLS
-
-Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
-page 161 of the Camel Book (2nd Edition).
-
-Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
-psh-0.001 announcement on C<http://freshmeat.net>, which contained this
-gem that leverages the Perl debugger: C<perl -d -e 1>;
-
-
-=head1 FILES
-
-C<psh> - The Perl Shell executable script.
-
-C<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
-current directory.
-
-
-=head1 AUTHOR
-
-Gregor N. Purdy, E<lt>F<gregor@focusresearch.com>E<gt>
-
-
-=head1 CREDITS
-
-The following people made contributions to this project.
-
-=over 4
-
-=item ReadLine Support
-
-Code examples showing how to apply the Term::ReadLine package were contributed
-by Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> (in his C<pash.pl> program,
-which is his own Perl shell).
-
-=item Symbol Table Dumping
-
-Billy Naylor E<lt>F<billy.naylor@eu.net>E<gt> also had an example of a symbol
-table printing function that was used as the starting point for the C<psh>
-function C<psh::symbols()>. The C<psh> version adds the ability to specify a
-package name, and it also filters out some special variables. The implementation
-technique is also different from Billy's.
-
-=item Prompt String Variables
-
-Matthew D. Allen E<lt>F<s2mdalle@titan.vcu.edu>E<gt> contributed an enhanced
-prompt string handling routine that emulates the C<bash> prompt variables. This
-was expanded into the form now present.
-
-=item Typo Spotting
-
-Allan Kelly E<lt>F<akelly@holyrood.ed.ac.uk>E<gt> found some problems with the
-generated documentation.
-
-=back
-
-
-=head1 COPYRIGHT
-
-Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
-This script is free software. It may be copied or modified according
-to the same terms as Perl itself.
-
-=cut
-
 
 #
 # End of file.
