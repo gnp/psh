@@ -21,7 +21,7 @@ sub bi_fg
 	}
 
 	if (!defined($arg) || $arg eq '') {
-		($arg)= $Psh::joblist->find_job();
+		($arg)= Psh::Joblist::find_job();
 	} else {
 		if( $arg !~ /^\%/) {
 			Psh::evl($arg.' &');
@@ -30,7 +30,7 @@ sub bi_fg
 		$arg =~ s/\%//;
 
 		if ( $arg !~ /^\d+$/) {
-			($arg)= $Psh::joblist->find_last_with_name($arg,0);
+			($arg)= Psh::Joblist::find_last_with_name($arg,0);
 		}
 		$arg-- if defined($arg);
 	}

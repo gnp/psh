@@ -170,19 +170,19 @@ sub pcomp_list {
 	push(@l,
 	     map { $_->{call} }
 	     grep { $_->{call} =~ /^\Q$text/ }
-	     @{$Psh::joblist->{jobs_order}});
+	      Psh::Joblist::list_jobs());
     }
     if ($cs->{action} & CA_RUNNING) {
 	push(@l,
 	     map { $_->{call} }
 	     grep { $_->{running} && $_->{call} =~ /^\Q$text/ }
-	     @{$Psh::joblist->{jobs_order}});
+		 Psh::Joblist::list_jobs());
     }
     if ($cs->{action} & CA_STOPPED) {
 	push(@l,
 	     map { $_->{call} }
 	     grep { ! $_->{running} && $_->{call} =~ /^\Q$text/ }
-	     @{$Psh::joblist->{jobs_order}});
+		 Psh::Joblist::list_jobs());
     }
 
     # Perl Symbol completions

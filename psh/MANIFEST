@@ -16,10 +16,9 @@ doc/psh.pod
 doc/pshdevel.pod
 tryme
 lib/Psh.pm
-lib/Psh/Job.pm
 lib/Psh/Joblist.pm
 lib/Psh/Completion.pm
-lib/Psh/Locale/Base.pm
+lib/Psh/Locale.pm
 lib/Psh/Locale/Default.pm
 lib/Psh/Locale/French.pm
 lib/Psh/Locale/German.pm

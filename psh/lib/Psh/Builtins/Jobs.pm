@@ -19,9 +19,9 @@ sub bi_jobs {
 	my $job;
 	my $visindex=1;
 
-	$Psh::joblist->enumerate;
+	Psh::Joblist::enumerate();
 
-	while( ($job=$Psh::joblist->each)) {
+	while( ($job=Psh::Joblist::each())) {
 		my $pid      = $job->{pid};
 		my $command  = $job->{call};
 	    

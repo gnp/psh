@@ -1,6 +1,7 @@
 package Psh::OS;
 
 use strict;
+use Fcntl qw(:flock);
 require Cwd;
 require Config;
 require File::Spec;
@@ -177,6 +178,22 @@ sub fb_exit_psh {
 
 sub fb_getcwd_psh {
 	return Cwd::getcwd();
+}
+
+sub fb_lock {
+	my $file= shift;
+	my $type= shift;
+	my $count=3;
+	my $status=0;
+	while ($count-- and !$status) {
+		$status= flock($file, $type|LOCK_NB);
+	}
+	return $status;
+}
+
+sub fb_unlock {
+	my $file= shift;
+	flock($file,LOCK_UN|LOCK_NB);
 }
 
 1;

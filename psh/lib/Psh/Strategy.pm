@@ -2,6 +2,7 @@ package Psh::Strategy;
 
 use strict;
 require File::Spec;
+require Psh::Util;
 require Psh::OS;
 
 my %loaded=();
@@ -16,7 +17,6 @@ sub new {
 }
 
 sub get {
-	my $class= shift;
 	my $name= shift;
 	$name=ucfirst(lc($name));
 	my $obj;
@@ -37,7 +37,6 @@ sub get {
 }
 
 sub remove {
-	my $class= shift;
 	my $name= shift;
 	@order= grep { $name ne $_ } @order;
 	delete $loaded{$name};
@@ -48,12 +47,17 @@ sub list {
 }
 
 sub available_list {
-	my @result= ();
+	my %result= ();
 	foreach my $tmp (@INC) {
 		my $tmpdir= File::Spec->catdir($tmp,'Psh','Strategy');
-		push @result, map { s/.pm$//; lc($_) } Psh::OS::glob('*.pm',$tmpdir);
+		my @tmp= Psh::OS::glob('*.pm',$tmpdir);
+		foreach my $strat (@tmp) {
+			$strat=~s/\.pm$//;
+			$strat=lc($strat);
+			$result{$strat}=1;
+		}
 	}
-	return @result;
+	return sort keys %result;
 }
 
 

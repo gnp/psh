@@ -35,7 +35,7 @@ sub bi_kill
 		if ($pid =~ m|^%(\d+)$|) {
 			my $temp = $1 - 1;
 			
-			$job= $Psh::joblist->find_job($temp);
+			$job= Psh::Joblist::find_job($temp);
 			if( !defined($job)) {
 				Psh::Util::print_error_i18n('bi_kill_no_such_job',$pid);
 				$status=1;
@@ -45,7 +45,7 @@ sub bi_kill
 			$pid = $job->{pid};
 		}
 
-		my ($index,$rpid)= $Psh::joblist->find_last_with_name($pid);
+		my ($index,$rpid)= Psh::Joblist::find_last_with_name($pid);
 		if( $rpid) {
 			$pid=$rpid;
 		} else {
@@ -58,8 +58,8 @@ sub bi_kill
 			next;
 		}
 		
-		if ($sig ne 'CONT' and $Psh::joblist->job_exists($pid)
-			and !(($job=$Psh::joblist->get_job($pid))->{running})) {
+		if ($sig ne 'CONT' and Psh::Joblist::job_exists($pid)
+			and !(($job=Psh::Joblist::get_job($pid))->{running})) {
 			#Better wake up the process so it can respond to this signal
 			$job->continue;
 		}
@@ -72,8 +72,8 @@ sub bi_kill
 			next;
 		}
 		
-		if ($sig eq 'CONT' and $Psh::joblist->job_exists($pid)) {
-			$Psh::joblist->get_job($pid)->{running}=1;
+		if ($sig eq 'CONT' and Psh::Joblist::job_exists($pid)) {
+			Psh::Joblist::get_job($pid)->{running}=1;
 		}
 	}
 	return $status;
@@ -84,8 +84,8 @@ sub cmpl_kill {
 	my( $text, $pretext, $starttext) = @_;
 	my @tmp= ();
 
-	$Psh::joblist->enumerate;
-	while( my $job= $Psh::joblist->each) {
+	Psh::Joblist::enumerate();
+	while( my $job= Psh::Joblist::each()) {
 		push @tmp, $job->{call};
 	}
 
