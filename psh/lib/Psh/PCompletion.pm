@@ -250,6 +250,11 @@ sub pcomp_list {
     if (defined $cs->{function} and !$pretext) {
 		#	warn "[$text,$line,$start,$cmd]\n";
 		$__line = $line; $__start = $start; $__cmd = $cmd; # for compgen()
+		if ($cs->{function} =~/^(.*)\:\:[^:]+$/) {
+			# Function is in a package, so try autoloading it
+			my $package= $1;
+			eval "require $package;";
+		}
 		my @t = eval { package main;
 					   no strict 'refs';
 					   &{$cs->{function}}($text, $line, $start, $cmd);
