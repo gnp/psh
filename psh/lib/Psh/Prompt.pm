@@ -40,15 +40,14 @@ my $default_prompt = '\s% ';
 			return getlogin || (getpwuid($>))[0] || "uid$>";
 		},
 	'w' => sub { 
-		    my $dir= cwd;
-			my $home= Psh::OS::get_home_dir();
-			if( $home) {
-				$dir =~ s/^$home/\~/;
-			}
-		    return $dir;
+			my $dir = cwd;
+			my $home = Psh::OS::get_home_dir();
+			return $dir unless (length($home) > length($Psh::OS::FILE_SEPARATOR));	# in case the home dir is the root dir
+			$dir =~ s/^${home}/\~/ if $home;
+			return $dir;
 		},
 	'W' => sub {
-		    my $dir = cwd;
+			my $dir = cwd;
 			$dir =~ s/^.*\///;
 			return $dir||'/';
 		},
