@@ -40,6 +40,8 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * Start of a new package "Psh::Completion::Defaults", which, when used, adds a couple of useful pre-made custom completions - warp [2000-03-11]
 
+=item * The 'cd' builtin now has a (currently unlimited) history list, accessible using cd -/+/%number. The new builtin 'dirs' displays the stack
+
 =back
 
 =head2 Bugfixes
