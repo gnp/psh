@@ -60,7 +60,9 @@ sub bi_strategy
 		Psh::Util::print_out_i18n('bi_strategy_list');
 		my @list= Psh::Strategy::list();
 		for( my $i=0; $i<@list; $i++) {
-			Psh::Util::print_out(($i+1).") ".$list[$i]->name."\n");
+			Psh::Util::print_out(($i+1).") ".$list[$i]->name.
+								 ($list[$i]->consumes == Psh::Strategy::CONSUME_LINE()?' (line)':'').
+								 "\n");
 		}
 	} elsif( $words->[0] eq 'help') {
 		require Psh::Builtins::Help;

@@ -8,6 +8,7 @@ way Perl Shell processes the input
 =cut
 
 require Psh::Strategy;
+require Psh::Support::Debug;
 
 use vars qw(@ISA);
 @ISA=('Psh::Strategy');
@@ -33,14 +34,9 @@ sub applies {
 
 sub execute {
 	my $fnname= ${$_[1]};
-	eval "use Data::Dumper";
-	if ($@) {
-		print STDERR "Please install the module Data::Dumper first!\n";
-	} else {
-		print STDERR "Generated tokens:\n";
-		my @tmp= Psh::Parser::make_tokens(substr($fnname,1));
-		print STDERR Dumper(\@tmp);
-	}
+	my @tmp= Psh::Parser::make_tokens(substr($fnname,1));
+	print "Tokenization:\n";
+	print Psh::Support::Debug::explain_tokens(\@tmp)."\n";
     return undef;
 }
 

@@ -65,7 +65,7 @@ lib/Psh/Builtins/History.pm
 lib/Psh/Builtins/Jobs.pm
 lib/Psh/Builtins/Kill.pm
 lib/Psh/Builtins/Modules.pm
-lib/Psh/Builtins/Pshtokenize.pm
+lib/Psh/Builtins/Printenv.pm
 lib/Psh/Builtins/Readline.pm
 lib/Psh/Builtins/Rename.pm
 lib/Psh/Builtins/Set.pm
@@ -82,6 +82,7 @@ lib/Psh/OS/Unix.pm
 lib/Psh/OS/Win.pm
 lib/Psh/Support/Alias.pm
 lib/Psh/Support/Builtins.pm
+lib/Psh/Support/Debug.pm
 lib/Psh/Support/Dirs.pm
 lib/Psh/Support/Env.pm
 lib/Psh/Support/Functions.pm

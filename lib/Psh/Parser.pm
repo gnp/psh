@@ -486,6 +486,7 @@ sub parse_simple_command {
 		}
 	}
 	Psh::Util::print_error_i18n('clueless',$line,$Psh::bin);
+	die '';
 }
 
 # TODO: right now this is pretty much of a hack. Could it be improved?

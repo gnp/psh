@@ -102,7 +102,7 @@ sub evl {
 		return;
 	}
 
-	my @elements= Psh::Parser::parse_line($line, @use_strats);
+	my @elements= eval { Psh::Parser::parse_line($line, @use_strats) };
 	return undef unless @elements;
 
 	my @result=();
