@@ -130,7 +130,6 @@ sub process_args {
 sub process_variable {
     my $self= shift;
     my $var= shift;
-    local $self->{interactive}= 0;
     my @lines;
     if (ref $var eq 'ARRAY') {
 	@lines= @$var;
@@ -755,7 +754,7 @@ sub del_option {
     my $current_job=0;
 
     sub start_job {
-	my $self= shift;
+	my $self =shift;
 	my $array= shift;
 	my $fgflag= shift @$array;
 
@@ -771,8 +770,7 @@ sub del_option {
 
 	    my $fork= 0;
 	    if ($i<$tmplen or !$fgflag or
-		($strategy ne 'builtin' and
-		 ($strategy ne 'language' or !$how->internal()))) {
+		$strategy eq 'execute') {
 		$fork= 1;
 	    }
 

@@ -43,10 +43,7 @@ if (@ARGV) {
     $psh->process_args(@ARGV);
 } else {
     $psh->init_interactive();
-    while (1) {
-	eval { $psh->main_loop(); };
-	if ($@) {
-	    print STDERR $@;
-	}
-    }
+    $psh->main_loop();
 }
+
+exit(!$psh->{init});

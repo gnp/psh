@@ -1,5 +1,7 @@
 package Psh2::Unix;
 
+use strict;
+
 use POSIX ':signal_h';
 
 POSIX::setpgid( 0, $$);
@@ -85,14 +87,13 @@ sub execute {
     if ($strategy eq 'execute') {
 	{ exec { $how } @$words };
 	return -1;
-    } elsif ($strategy eq 'builtin') {
+    } elsif ($strategy eq 'call') {
 	no strict 'refs';
-	my $coderef= *{$how.'::execute'};
-	return !&{$coderef}($self, $words);
-    } elsif ($strategy eq 'language') {
-	no strict 'refs';
-	my $coderef= *{$how.'::execute'};
-	return !&{$coderef}($self, $words);
+	my $coderef= *{$how};
+	return &{$coderef}($self, $words);
+    } elsif ($strategy eq 'reparse') {
+	$self->process_variable(Psh2::Parser::ungroup($words->[0]));
+	return $self->{status};
     }
 }
 
@@ -110,8 +111,8 @@ sub fork {
 	_setup_redirects($options);
 	POSIX::setpgid( 0, $pgrp_leader || $$);
 	give_terminal_to( $self, $pgrp_leader || $$ ) if $fgflag and $giveterm;
-	my @tmp= execute($self, $tmp);
-	CORE::exit($tmp[0]);
+	my $status= execute($self, $tmp);
+	CORE::exit(!$status);
     }
     POSIX::setpgid( $pid, $pgrp_leader || $pid);
     give_terminal_to( $self, $pgrp_leader || $pid) if $fgflag and $giveterm;

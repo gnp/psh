@@ -12,15 +12,21 @@ sub execute {
     shift @$words;
     my $name= shift @$words;
 
-    if( ($name eq '-a' || $name eq 'all')
-	and !$psh->{aliases}{$name}) {
-	$psh->{aliases}= {};
-	return 1;
-    } elsif ($psh->{aliases}{$name}) {
-	delete $psh->{aliases}{$name};
-	return 1;
+    if ($name) {
+	if( ($name eq '-a' || $name eq 'all')
+	    and !$psh->{aliases}{$name}) {
+	    $psh->{aliases}= {};
+	    return 1;
+	} elsif ($psh->{aliases}{$name}) {
+	    delete $psh->{aliases}{$name};
+	    return 1;
+	} else {
+	    $psh->printferrln($psh->gt('unalias: %s is no alias.'), $name);
+	    return 0;
+	}
     } else {
-	$psh->printferrln($psh->gt('unalias: %s is no alias.'), $name);
+	require Psh2::Builtins::Help;
+	Psh2::Builtins::Help::execute($psh,['help','unalias']);
 	return 0;
     }
 }
