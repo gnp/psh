@@ -15,6 +15,11 @@ WriteMakefile (
 		'lib/Psh/Parser.pm'     => '$(INST_LIBDIR)/Psh/Parser.pm',
 		'lib/Psh/Util.pm'       => '$(INST_LIBDIR)/Psh/Util.pm',
 		'lib/Psh/Builtins.pm'   => '$(INST_LIBDIR)/Psh/Builtins.pm',
+		'lib/Psh/OS.pm'         => '$(INST_LIBDIR)/Psh/OS.pm',
+		'lib/Psh/OS/Unix.pm'    => '$(INST_LIBDIR)/Psh/OS/Unix.pm',
+		'lib/Psh/OS/Mac.pm'     => '$(INST_LIBDIR)/Psh/OS/Mac.pm',
+		'lib/Psh/OS/Win.pm'      => '$(INST_LIBDIR)/Psh/OS/Win.pm',
+
 		'lib/Psh/Locale/Base.pm'    => '$(INST_LIBDIR)/Psh/Locale/Base.pm',
 		'lib/Psh/Locale/Default.pm' => '$(INST_LIBDIR)/Psh/Locale/Default.pm',
 		'lib/Psh/Locale/German.pm'  => '$(INST_LIBDIR)/Psh/Locale/German.pm'
