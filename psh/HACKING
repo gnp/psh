@@ -1,4 +1,5 @@
-1999-12-28
+These are instructions for using a SourceForge (http://www.sourceforge.net/) account to update
+psh with CVS.
 
 Make sure you have SSH 1.x installed (even if you already have 2.x installed).
 
@@ -10,7 +11,7 @@ Add:
     foo$ export CVSROOT=sfuser@cvs.psh.sourceforge.net:/cvsroot/psh
 
 to .bashrc (if using bash, or the equivalent if using another shell).
-Substitute your Source Forge user id for sfuser.
+Substitute your SourceForge user id (in all lowercase) for sfuser.
 
     foo$ cvs checkout 
     Host key not found from the list of known hosts.
@@ -22,7 +23,7 @@ Substitute your Source Forge user id for sfuser.
     ...
     foo$
 
-When prompted, agree to connect, and use your Source Forge password.
+When prompted, agree to connect, and use your SourceForge password.
 
 Go into the psh directory and do cvs upd -dP to prune the directories that
 we are not currently using.
