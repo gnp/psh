@@ -16,6 +16,11 @@ CVS HEAD
   * Fixed the initialization so the short hostname is
     calculated from the longhost name instead of calling
 	hostname -s
+  * Perl Symbol completion now supports package names and
+    package name completion
+  * Filename Completion respects the FIGNORE environment
+    variable now
+  * The 'cd' builtin respects CDPATH now and sets OLDPWD
 
 ------------------------------------------------------------
 0.004                                           [1999-12-13]

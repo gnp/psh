@@ -7,8 +7,8 @@ use Cwd;
 use Cwd 'chdir';
 use Psh::Util ':all';
 
-
-
+%Psh::array_exports=('PATH'=>':','CLASSPATH'=>':','LD_LIBRARY_PATH'=>':',
+					 'FIGNORE'=>':','CDPATH'=>':');
 
 #
 # string do_setenv(string command)
@@ -27,12 +27,12 @@ sub do_setenv
 		# Use eval so that variables may appear on RHS
 		# (expression $3); use protected_eval so that lexicals
 		# in this file don't shadow package variables
-        	protected_eval("\$ENV{$var}=\"$3\"", 'do_setenv');
+        	Psh::protected_eval("\$ENV{$var}=\"$3\"", 'do_setenv');
 		return $var;
 	} elsif( $arg=~ /(\w+)/ ) {
 		my $var= $1;
 		$var =~ s/^\$//;
-		protected_eval("\$ENV{$var}=\$$var if defined(\$$var);",
+		Psh::protected_eval("\$ENV{$var}=\$$var if defined(\$$var);",
 			       'do_setenv');
 		return $var;
         }
@@ -66,7 +66,7 @@ sub export
 {
 	my $var = do_setenv(@_);
 	if ($var) {
-		my @result = protected_eval("tied(\$$var)");
+		my @result = Psh::protected_eval("tied(\$$var)");
 		my $oldtie = $result[0];
 		if (defined($oldtie)) {
 			if (ref($oldtie) ne 'Env') {
@@ -75,11 +75,11 @@ sub export
 							  "can't export.\n");
 			}
 		} else {
-			protected_eval("use Env '$var';");
+			Psh::protected_eval("use Env '$var';");
 			if( exists($Psh::array_exports{$var})) {
 				eval "use Env::Array";
 				if( ! @$) {
-					protected_eval("use Env::Array qw($var $Psh::array_exports{$var});");
+					Psh::protected_eval("use Env::Array qw($var $Psh::array_exports{$var});");
 				}
 			}
 		}
@@ -99,29 +99,38 @@ sub export
 
 
 {
-	my $last_dir               = '.'; # By default 'cd -' won't change directory at all.
+	my $last_dir= '.'; # By default 'cd -' won't change directory at all.
+	$ENV{OLDPWD}= $last_dir;
+
 	sub cd
 	{
 		my $in_dir = shift;
-		my $dir = $in_dir;
-		
-		$dir = $last_dir if $dir eq '-';
-		$dir = Psh::Util::abs_path($dir);
-		
-		if ((-e $dir) and (-d _)) {
-			if (-x _) {
-				$last_dir = cwd;
-				chdir $dir;
+		my $dirpath= $ENV{CDPATH} || '.';
+
+		foreach my $cdbase (split ':',$dirpath) {
+			my $dir= $in_dir;
+			$dir = $last_dir if $dir eq '-';
+			if( $cdbase eq '.' ||
+				substr($dir,0,1) eq '/') {
+				$dir = Psh::Util::abs_path($dir);
 			} else {
-				print_error_i18n('perm_denied',$in_dir,$Psh::bin);
-				return 1;
+				$dir = Psh::Util::abs_path($cdbase.'/'.$dir);
 			}
-		} else  {
-			print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
-			return 1;
-		}
 		
-		return 0;
+			if ((-e $dir) and (-d _)) {
+				if (-x _) {
+					$last_dir = cwd;
+					$ENV{OLDPWD}= $last_dir;
+					chdir $dir;
+					return 0;
+				} else {
+					print_error_i18n('perm_denied',$in_dir,$Psh::bin);
+					return 1;
+				}
+			}
+		}
+		print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
+		return 1;
 	}
 }
 
