@@ -17,6 +17,7 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 @EXPORT= qw( );
 @EXPORT_OK= qw( starts_with ends_with print_list);
 %EXPORT_TAGS = ( all => [qw(print_warning print_debug print_error
+							print_warning_i18n
 							print_out print_error_i18n print_out_i18n
 							which abs_path)] );
 
@@ -61,6 +62,11 @@ sub _print_i18n
 
 
 sub print_error_i18n
+{
+	_print_i18n(*STDERR,@_);
+}
+
+sub print_warning_i18n
 {
 	_print_i18n(*STDERR,@_);
 }

@@ -285,6 +285,11 @@ sub restart_job
 	}
 }
 
+# Simply doing backtick eval - mainly for Prompt evaluation
+sub system {
+	return `@_`;
+}
+
 ###################################################################
 # SIGNALS
 ###################################################################

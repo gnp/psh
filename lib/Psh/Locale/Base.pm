@@ -30,7 +30,7 @@ sub init {
 	@Psh::wday= ();
 	for( my $i=0; $i<7; $i++)
 	{
-		push( @Psh::wday, strftime("%a",0,0,0,1,1,99,$i));
+		push( @Psh::wday, strftime("%a",0,0,0,19+$i,11,99,$i));
 	}
 
 	# Use the default locale for defaults
