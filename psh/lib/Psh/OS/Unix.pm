@@ -12,8 +12,6 @@ $Psh::history_file = ".psh_history";
 
 my @user_cache=();
 
-sub T_REDIRECT() { 3; }
-
 # Sets the title of the current window
 sub set_window_title {
 	my $title= shift;
@@ -298,7 +296,8 @@ sub execute_complex_command {
 
 	for( my $i=0; $i<@array; $i++) {
 		# ([ $strat, $how, \@options, \@words, $line]);
-		my ($strategy, $how, $options, $words, $text)= @{$array[$i]};
+		my ($strategy, $how, $options, $words, $text, $opt)= @{$array[$i]};
+		local $Psh::current_options= $opt;
 		$text||='';
 
 		my $line= join(' ',@$words);
@@ -312,10 +311,10 @@ sub execute_complex_command {
 				pipe READ,WRITE;
 			}
 			if( $i>0) {
-				unshift(@$options,[T_REDIRECT,'<&',0,'INPUT']);
+				unshift(@$options,[Psh::Parser::T_REDIRECT(),'<&',0,'INPUT']);
 			}
 			if( $i<$#array) {
-				unshift(@$options,[T_REDIRECT,'>&',1,'WRITE']);
+				unshift(@$options,[Psh::Parser::T_REDIRECT(),'>&',1,'WRITE']);
 			}
 			my $termflag=!($i==$#array);
 
@@ -362,7 +361,7 @@ sub _setup_redirects {
 
 	my @cache=();
 	foreach my $option (@$options) {
-		if( $option->[0] == T_REDIRECT) {
+		if( $option->[0] == Psh::Parser::T_REDIRECT()) {
 			my $file= $option->[1].$option->[3];
 			my $type= $option->[2];
 

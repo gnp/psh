@@ -108,7 +108,8 @@ sub execute_complex_command {
 
 	my $obj;
 	for( my $i=0; $i<@array; $i++) {
-		my ($strategy, $how, $options, $words, $text)= @{$array[$i]};
+		my ($strategy, $how, $options, $words, $text, $opt)= @{$array[$i]};
+		local $Psh::current_options=$opt;
 		my $line= join(' ',@$words);
 		my ($eval_thingie,$bgflag);
 		($success,$eval_thingie,$words,$bgflag,@return_val)= $strategy->execute( \$line, $words, $how, 0);

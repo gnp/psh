@@ -38,7 +38,7 @@ use vars qw($bin $cmd $echo $host $debugging
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $window_title
-            $interactive $trace
+            $interactive $trace $current_options
 			@val @history %text );
 
 #

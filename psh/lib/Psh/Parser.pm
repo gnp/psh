@@ -514,10 +514,19 @@ sub _subparse_complex_command {
 
 sub parse_simple_command {
 	my ($tokens,$use_strats,$piped,$alias_disabled,$foreground)=@_;
-	my (@words,@options,@savetokens);
+	my (@words,@options,@savetokens,@precom);
+	my $opt={};
 
 	my $token = shift @$tokens;
+	while ($token->[1] eq 'noglob' or
+		   $token->[1] eq 'noexpand' or
+		   $token->[1] eq 'noalias') {
+		push @precom, $token;
+		$opt->{$token->[1]}=1;
+		$token= shift @$tokens;
+	}
 	push @words, $token->[1];
+
 	while (@$tokens > 0 and
 		   ($tokens->[0][0] == T_WORD or
 			$tokens->[0][0] == T_REDIRECT)) {
@@ -531,18 +540,21 @@ sub parse_simple_command {
 	}
 
 	if (%Psh::Support::Alias::aliases and
+		!$opt->{noalias} and
 	    $Psh::Support::Alias::aliases{$words[0]} and
 	    !$alias_disabled->{$words[0]}) {
 		my $alias= $Psh::Support::Alias::aliases{$words[0]};
 		$alias =~ s/\'/\\\'/g;
 		$alias_disabled->{$words[0]}=1;
 		unshift @savetokens, make_tokens($alias);
+		unshift @savetokens, @precom;
 		return _subparse_complex_command(\@savetokens,$use_strats,$piped,$foreground,$alias_disabled);
 	} elsif (substr($words[0],0,1) eq "\\") {
 		$words[0]=substr($words[0],1);
 	}
 
 	my $line= join ' ', @words;
+	local $Psh::current_options= $opt;
 	foreach my $strat (@$use_strats) {
 		my $how= eval {
 			$strat->applies(\$line,\@words,$$piped);
@@ -554,7 +566,7 @@ sub parse_simple_command {
 			my $name= $strat->name;
 			Psh::Util::print_debug_class('s',
 										 "[Using strategy $name: $how]\n");
-			return ([ $strat, $how, \@options, \@words, $line]);
+			return ([ $strat, $how, \@options, \@words, $line, $opt]);
 		}
 	}
 	Psh::Util::print_error_i18n('clueless',$line,$Psh::bin);

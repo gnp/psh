@@ -35,9 +35,6 @@ sub runs_before {
 
 sub applies {
 	my $com= @{$_[2]}->[0];
-	if ($com eq 'noglob' or $com eq 'noexpand') {
-		$com= @{$_[2]}->[1];
-	}
 	my $executable= Psh::Util::which($com);
 	return $executable if defined $executable;
 	return '';
@@ -48,13 +45,8 @@ sub execute {
 	my @words= @{$_[2]};
 	my $tmp= shift @words;
 	my $executable= $_[3];
-	my $mod;
-	if ($tmp eq 'noglob' or $tmp eq 'noexpand') {
-		$mod=$tmp;
-		$tmp= shift @words;
-	}
 
-	if (!$mod or $mod ne 'noexpand') {
+	if (!$Psh::current_options or !$Psh::current_options->{noexpand}) {
 		if ($expand_arguments) {
 			my $flag=0;
 
@@ -66,7 +58,7 @@ sub execute {
 			}
 			@words= Psh::PerlEval::variable_expansion(\@words) unless $flag;
 		}
-		if (!$mod or $mod ne 'noglob') {
+		if (!$Psh::current_options or !$Psh::current_options->{noglob}) {
 			@words = Psh::Parser::glob_expansion(\@words);
 		}
 	}

@@ -126,7 +126,9 @@ sub applies {
 		$copy =~ s/{\S*,\S*}//g;
 
 		if (!$expand_arguments
-			or exists($perl_builtins_noexpand{$fnname})
+			or exists($perl_builtins_noexpand{$fnname}) or
+			($Psh::current_options and
+			 $Psh::current_options->{noexpand}) or
 			or $fnname ne $firstword
 			or $copy =~ m/[(){},]/) {
 			return ${$_[1]};
@@ -143,18 +145,23 @@ sub applies {
 			# No need to do variable expansion, because the whole thing
 			# will be evaluated later.
 			#
+			my @args;
+			if (!$Psh::current_options and
+			    !$Psh::current_options->{noglob}) {
+				@args = Psh::Parser::glob_expansion($_[2]);
 
-			my @args = Psh::Parser::glob_expansion($_[2]);
+				#
+				# But we will quote barewords, expressions involving
+				# $variables, filenames, and the like:
+				#
 
-			#
-			# But we will quote barewords, expressions involving
-			# $variables, filenames, and the like:
-			#
-
-			foreach (@args) {
-				if (&Psh::Parser::needs_double_quotes($_)) {
-					$_ = "\"$_\"";
+				foreach (@args) {
+					if (&Psh::Parser::needs_double_quotes($_)) {
+						$_ = "\"$_\"";
+					}
 				}
+			} else {
+				@args= @{$_[2]};
 			}
 
 			my $possible_proto = '';

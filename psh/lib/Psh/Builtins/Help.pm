@@ -71,7 +71,9 @@ sub any_help {
 	} else {
 		system("man $com");
 	}
-	$Psh::term->on_new_line();
+	eval {
+		$Psh::term->on_new_line();
+	};
 }
 
 sub cmpl_help {
