@@ -161,9 +161,9 @@ variables supported are:
 
 =item [ ] Used for Term::ReadLine::Gnu to ignore control characters while determining the length of the prompt
 
-Please note that bash's support of backticks to execute code from within the prompt is not supported in psh. Instead use the newer syntax \$(command) which is also support by bash.
-
 =back
+
+Please note that bash's support of backticks to execute code from within the prompt is not supported in psh. Instead use the newer syntax \$(command) which is also support by bash.
 
 Custom prompting variables may be added by adding entries to the array
 I<%Psh::prompt_vars> keyed by the single character code. The entries
