@@ -355,7 +355,7 @@ sub signal_description {
 	                 return "(alias $fnname)";
 	         } else {
 	                 return "(built_in $fnname)";
-		 }
+             }
          }
          if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
  	         return "(Psh::Builtins::bi_$fnname)";
