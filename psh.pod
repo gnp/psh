@@ -810,10 +810,19 @@ ignore when performing TAB completion. No default.
 B<HISTSIZE> - The maximum number of lines to save in the history file.
 Defaults to 50.
 
+B<LANG> - Sets the language of the shell.
+
 B<SHLVL> - The number of shells deep that B<psh> is nested. Initially set
 to 1. Many other shells do not increment this variable, so it is not
 authoritative.
 
+B<PS1> - If $Psh::prompt is unset, psh will try to use this
+environment variable as prompt.
+
+B<PS2> - If $Psh::prompt_cont is unset, psh will try to use
+this variable as continuation prompt.
+
+B<USER> - The name of the current user
 
 =head1 FILES
 
@@ -838,8 +847,9 @@ The following people have contributed to the development of C<psh>:
 =item Prodigious Contributors
 
 Markus Peter E<lt>F<warp@spin.de>E<gt> added job and signal handling,
-completion code, Win32 port, i18n code, bash compatibility builtins and
-environment variables and some more minor updates.
+globbing, redirection, pipelines, completion code, Win32 port, i18n code,
+bash compatibility builtins and environment variables and some more
+minor updates.
 
 Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
 strategies, improved interrupt/job handling, C<&Psh::evl>, C<$Psh::echo>,
