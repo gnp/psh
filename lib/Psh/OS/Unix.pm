@@ -297,7 +297,7 @@ sub setup_signal_handlers
 #
 sub setup_sigsegv_handler
 {
-	$SIG{SEGV} = \&error_handler;
+	$SIG{SEGV} = \&_error_handler;
 }
 
 #
@@ -305,7 +305,20 @@ sub setup_sigsegv_handler
 #
 sub setup_readline_handler
 {
-	$SIG{INT}= \&readline_handler;
+	$SIG{INT}= \&_readline_handler;
+}
+
+
+#
+# readline_handler()
+#
+# Readline ^C handler.
+#
+
+sub _readline_handler
+{
+	my $sig= shift;
+    die "SECRET $bin: Signal $sig\n"; # changed to SECRET... just in case
 }
 
 #
