@@ -165,7 +165,7 @@ use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
 	    $history_file $save_history $history_length
 	    $eval_preamble $currently_active $handle_segfaults
 	    @val @wday @mon @strategies @bookmarks @netprograms
-		%array_exports %text
+		%array_exports %text %perl_builtins %perl_builtins_noexpand
 	    %prompt_vars %built_ins %strategy_which %strategy_eval);
 
 
@@ -180,8 +180,6 @@ my $input;
 my $readline_saves_history = 0;
 my $last_dir               = '.'; # By default 'cd -' won't change directory at all.
 my $term;                         # Term::ReadLine object.
-my %perl_builtins;
-my %perl_builtins_noexpand;
 my @absed_path    = ();
 my $joblist;
 
