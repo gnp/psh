@@ -4,6 +4,14 @@ CHANGES
 CVS HEAD
 ------------------------------------------------------------
 
+1999-12-15 warp:
+  * A custom_completions may now also be code. If the
+    value of a custom_completions key/value pair is a sub
+	that sub will be called and the result used as rules
+  * A rule for custom_completions may now have an optional
+    third argument. If that argument is true, the
+	custom_completion will replace the standard completions
+	instead of adding to them
 
 1999-12-14 warp:
  Sorry for the rather unordered list - I did a lot of work

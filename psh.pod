@@ -456,16 +456,27 @@ LD_LIBRARY_PATH, FIGNORE and CDPATH.
 =item C<%Psh::Completion::custom_completions>
 
 Allows you to add own TAB completions. The keys are names of programs
-to which the TAB completion should apply. The value is a list reference
-with two values, the first one the character which should be appended
+to which the TAB completion should apply. The value is either a list
+reference with at least two values, up to three values, or a sub.
+If it's a sub it is called with the text to complete, text in front
+of the text to complete to the last whitespace and the word which
+triggered the completion.
+
+The first element of the rules list is the character which should be appended
 after the completion is successful, the second value is again a list
-reference containing all possible completions. This is probably complicated
-but worth the effort.
+reference containing all possible completions. If the optional third
+value is true, the custom completion will replace all results of
+standard completions (like filename or username completion), if the
+value is false, the custom completion just adds additional results.
+
+This is probably complicated but worth the effort.
 
 Example:
 
 %Psh::Completion::custom_completions= (
-      'scp'=>['',['server1:/path1','server1:/path2','server2:/path']]
+      'scp'=>['',['server1:/path1','server1:/path2','server2:/path']],
+	  'foo'=>[' ',['bar','bla','fish'],1],
+	  'hmm'=> sub { return ['/',['1','2','3'],1] }
      );
 
 

@@ -56,14 +56,18 @@ sub cmpl_custom
 {
 	my( $text, $prefix, $startword)= @_;
 	my $length=length($prefix);
-	my @rules= @{$custom_completions{$startword}};
+	my $rules= $custom_completions{$startword};
+	if(ref($rules) eq 'CODE') {
+		$rules= &$rules($text, $prefix, $startword);
+	}
+	my @rules= @{$rules};
 	my @result=
 		grep { length($_)>0 }
             map { substr($_,$length) }
 	         grep { starts_with($_,$prefix.$text) }
 	            @{$rules[1]};
 	$ac=$rules[0] if @result==1;
-	return @result;
+	return ($rules[2],@result);
 }
 
 
@@ -236,6 +240,7 @@ sub completion
 	my $attribs               = $Psh::term->Attribs;
 
 	my @tmp=();
+	my @custom=();
 
 	my $startchar= substr($line, $start, 1);
 	my $starttext= substr($line, 0, $start);
@@ -279,7 +284,14 @@ sub completion
 	}
 	if( $custom_completions{$startword}) {
 		$starttext =~ /\s(\S*)$/;
-		push(@tmp, cmpl_custom($text,$1,$startword));
+		@custom=cmpl_custom($text,$1,$startword);
+		if( @custom && $custom[0]) {
+			shift(@custom);
+			@tmp= @custom;
+		} else {
+			shift(@custom);
+			push @tmp, @custom;
+		}
 	}
 
 	$attribs->{$APPEND}=$ac;
