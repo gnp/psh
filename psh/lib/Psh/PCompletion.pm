@@ -12,6 +12,7 @@ use strict;
 use vars qw(%COMPSPEC %ACTION @ISA @EXPORT_OK $LOADED);
 require Exporter;
 require Psh::Completion;
+require Psh::Parser;
 
 $LOADED=1;
 @ISA = qw(Exporter);
@@ -296,13 +297,6 @@ sub pcomp_list {
 
 ########################################################################
 
-sub unquote {
-    local($_) = @_;
-    s/^'(.*)'$/$1/;
-    s/^"(.*)"$/$1/;
-    return $_;
-}
-
 sub pcomp_getopts {
     my $ar = $_[0];		# reference to an array of arguments
     my %cs;
@@ -332,24 +326,24 @@ sub pcomp_getopts {
 	} elsif (/^-v/) {
 	    $cs{action} |= CA_VARIABLE;
 	} elsif (/^-A/) {
-	    $_ = unquote(shift @{$ar}) || return undef;
+	    $_ = Psh::Parser::unquote(shift @{$ar}) || return undef;
 	    $cs{action} |= $ACTION{$_};
 	} elsif (/^-G/) {
-	    $cs{globpat}   = unquote(shift @{$ar});
+	    $cs{globpat}   = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-W/) {
-	    $cs{wordlist}  = unquote(shift @{$ar});
+	    $cs{wordlist}  = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-C/) {
-	    $cs{command}   = unquote(shift @{$ar});
+	    $cs{command}   = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-F/) {
-	    $cs{function}  = unquote(shift @{$ar});
+	    $cs{function}  = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-X/) {
-	    $cs{filterpat} = unquote(shift @{$ar});
+	    $cs{filterpat} = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-x/) {	# psh specific (at least now)
-	    $cs{ffilterpat} = unquote(shift @{$ar});
+	    $cs{ffilterpat} = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-P/) {
-	    $cs{prefix}    = unquote(shift @{$ar});
+	    $cs{prefix}    = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-S/) {
-	    $cs{suffix}    = unquote(shift @{$ar});
+	    $cs{suffix}    = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-p/) {
 	    $cs{print}  = 1;
 	} elsif (/^-r/) {

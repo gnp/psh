@@ -35,6 +35,7 @@ lib/Psh/Strategy/Auto_resume.pm
 lib/Psh/Strategy/Bang.pm
 lib/Psh/Strategy/Brace.pm
 lib/Psh/Strategy/Built_in.pm
+lib/Psh/Strategy/Darwin_apps.pm
 lib/Psh/Strategy/Debug.pm
 lib/Psh/Strategy/Eval.pm
 lib/Psh/Strategy/Executable.pm

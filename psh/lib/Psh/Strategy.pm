@@ -145,8 +145,8 @@ sub setup_defaults {
 			 get('executable'),
 			 get('eval'),
 			);
-	$active{comment}= $active{bang}= $active{brace}= $active{built_in}=
-	  $active{executable}= $active{eval}= 1;
+	$active{perl}= $active{bang}= $active{brace}= $active{built_in}=
+	  $active{perlfunc}= $active{executable}= $active{eval}= 1;
 	regenerate_cache();
 }
 
