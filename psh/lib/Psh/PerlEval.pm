@@ -105,14 +105,10 @@ sub variable_expansion
 			local $Psh::val = eval("$Psh::eval_preamble \"$Psh::word2\"");
 
 			if ($@) { push @Psh::retval, $Psh::word; }
-			else    {
-				if ($]<5.005) {
-					# TODO: Skip backslashes
-					push @Psh::retval, split( /\s+/, $Psh::val);
-				} else {
-					push @Psh::retval, split(/(?<!\\)\s+/,$Psh::val);
-				}
-			}
+			else    { push @Psh::retval, $Psh::val; }
+			# in former times we used to do a wordsplit here in
+			# case of success, but this breaks certain things and
+			# don't know exactly why it was here in the first place
 		}
 	}
 
