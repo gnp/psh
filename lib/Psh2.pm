@@ -50,6 +50,9 @@ sub new {
 	       status => 0,
                current_package => 'main',
 	   };
+    if ($^O eq 'darwin') {
+        $self->{language}{osascript}=1;
+    }
     bless $self, $class;
     return $self;
 }

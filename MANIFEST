@@ -52,6 +52,7 @@ lib/Psh2/Frontend/Editline.pm
 lib/Psh2/Frontend/Readline.pm
 lib/Psh2/Language/Perl.pm
 lib/Psh2/Language/C.pm
+lib/Psh2/Language/Osascript.pm
 lib/Psh2/Completor.pm
 lib/Psh2/Parser.pm
 lib/Psh2/Unix.pm
