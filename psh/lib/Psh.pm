@@ -204,8 +204,9 @@ $strategy_eval{brace}= $strategy_eval{eval}= sub {
 	my $todo= ${$_[0]};
 
 	if( $_[3]) { # we are second or later in a pipe
+		print STDERR "got: $todo\n";
 		my $code;
-		$todo=~ s/\}([qg])\s*$/\}/;
+		$todo=~ s/\} ?([qg])\s*$/\}/;
 		my $mods= $1 || '';
 		if( $mods eq 'q' ) { # non-print mode
 			$code='while(<STDIN>) { @_= split /\s+/; '.$todo.' ; }';

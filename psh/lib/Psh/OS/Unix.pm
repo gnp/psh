@@ -349,6 +349,7 @@ sub execute_complex_command {
 
 sub _setup_redirects {
 	my $options= shift;
+	my $save= shift;
 
 	return [] if ref $options ne 'ARRAY';
 
@@ -359,7 +360,7 @@ sub _setup_redirects {
 			my $type= $option->[2];
 
 			if( $type==0) {
-				push @cache, [$type,fileno(STDIN)];
+				open(OLDIN,"<&STDIN") if $save;
 				close(STDIN);
 				open(STDIN,$file);
 				select(STDIN);
@@ -369,18 +370,19 @@ sub _setup_redirects {
 					# Just to get rid of the warning
 				}
 			} elsif( $type==1) {
-				push @cache, [$type,fileno(STDOUT)];
+				open(OLDOUT,">&OLDOUT") if $save;
 				close(STDOUT);
 				open(STDOUT,$file);
 				select(STDOUT);
 				$|=1;
 			} elsif( $type==2) {
-				push @cache, [$type,fileno(STDERR)];
+				open(OLDERR,">&OLDERR") if $save;
 				close(STDERR);
 				open(STDERR,$file);
 				select(STDERR);
 				$|=1;
 			}
+			push @cache,$type if $save;
 		}
 	}
 	select(STDOUT);
@@ -391,15 +393,15 @@ sub _remove_redirects {
 	my $cache= shift;
 
 	foreach my $type (@$cache) {
-		if( $type->[0]==0) {
+		if( $type==0) {
 			close(STDIN);
-			open(STDIN,"<& $type->[1]");
-		} elsif( $type->[1]==1) {
+			open(STDIN,"<&OLDIN");
+		} elsif( $type==1) {
 			close(STDOUT);
-			open(STDOUT,">& $type->[1]");
-		} elsif( $type->[2]==2) {
+			open(STDOUT,">&OLDOUT");
+		} elsif( $type==2) {
 			close(STDERR);
-			open(STDERR,">& $type->[1]");
+			open(STDERR,">&OLDERR");
 		}
 	}
 }
@@ -421,7 +423,8 @@ sub _fork_process {
 	# we do not fork, otherwise we'll never get
 	# the result value, changed variables etc.
 	if( $fgflag && !$forcefork && ref($code) eq 'CODE') {
-		my $cache= _setup_redirects($options);
+		local(*OLDIN,*OLDOUT,*OLDERR);
+		my $cache= _setup_redirects($options,1);
 		my @result= eval { &$code };
 		_remove_redirects($cache);
 		Psh::Util::print_error($@) if $@ && $@ !~/^SECRET/;
@@ -436,7 +439,7 @@ sub _fork_process {
 
 		$Psh::OS::Unix::forked_already=1;
 		close(READ) if( $pgrp_leader);
-		_setup_redirects($options);
+		_setup_redirects($options,0);
 		setpgid(0,$pgrp_leader||$$);
 		_give_terminal_to($pgrp_leader||$$) if $fgflag && !$termflag;
 		remove_signal_handlers();
