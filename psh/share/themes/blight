@@ -3,11 +3,11 @@
 
 package themes;
 
-$color= "\033[36m";
-$grey= "\033[0m";
-$black= "\033[30m";
-$bold="\033[1m";
-$nobold="\033[0m";
+$color= "\\E[36m";
+$grey= "\\E[0m";
+$black= "\\E[30m";
+$bold="\\E[1m";
+$nobold="\\E[0m";
 
 $openright="/";
 $closeright="\\\\";
