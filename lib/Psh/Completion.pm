@@ -7,7 +7,6 @@ require Psh::Util;
 require Psh::OS;
 
 my $APPEND="not_implemented";
-my $GNU=0;
 
 @bookmarks= ();
 
@@ -19,15 +18,8 @@ sub init
 	if( $Psh::term->ReadLine eq 'Term::ReadLine::Perl') {
 		$APPEND='completer_terminator_character';
 	} elsif( $Psh::term->ReadLine eq 'Term::ReadLine::Gnu') {
-		$GNU=1;
 		$APPEND='completion_append_character';
 	}
-
-	# Wow, both ::Perl and ::Gnu understand it
-	my $word_break=" \\\n\t\"&{}('`\$\%\@~<>=;|/";
-	$attribs->{special_prefixes}= "\$\%\@\~\&";
-	$attribs->{word_break_characters}= $word_break;
-	$attribs->{completer_word_break_characters}= $word_break ;
 
 	# Only ::Gnu understand it, and ::Perl ignores it silently.
 	$attribs->{completion_display_matches_hook}
@@ -249,10 +241,13 @@ BEGIN { $CWP = 'main' }
 sub cmpl_hashkeys {
 	my ($text, $line, $start) = @_;
 
-	my ($var,$arrow) = (substr($line, 0, $start + 1)
-			    =~ m/\$([\w:]+)\s*(->)?\s*{\s*['"]?$/); # });
-	no strict qw(refs);
+	my $tmp= substr($line, 0, $start + 1);
+	my ($var,$arrow) = ($tmp =~ m/^[\$\%]([\w:]+)\s*(->)?\s*\{\s*['"]?/);
+	return () unless $var;
+
+	no strict 'refs';
 	$var = "${CWP}::$var" unless ($var =~ m/::/);
+	return () unless $var;
 	if ($arrow) {
 		my $hashref = eval "\$$var";
 		return grep(/^\Q$text/, keys %$hashref);
