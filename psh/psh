@@ -431,7 +431,7 @@ sub builtin_kill
 		return 1;
 	}
 
-	if ($sig ne 'CONT' and $joblist->job_exists($sig)
+	if ($sig ne 'CONT' and $joblist->job_exists($pid)
 		and !(($job=$joblist->get_job($pid))->{running})) {
 		#Better wake up the process so it can respond to this signal
 		$job->continue;
@@ -1302,7 +1302,7 @@ sub process
 		last unless defined($input);
 
 		chomp $input;
-
+		
 		if ($input =~ m/^\s*$/) { next; }
 		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
 			my $terminator = $1;
@@ -1598,10 +1598,13 @@ sub news
 
 
 #
-# void initialize()
+# void minimal_initialize()
 #
+# Initialize just enough to be able to read the .pshrc file; leave
+# uncritical user-accessible variables until later in case the user
+# sets them in .pshrc.
 
-sub initialize
+sub minimal_initialize
 {
 	$|                           = 1;                # Set ouput autoflush on
 
@@ -1609,12 +1612,9 @@ sub initialize
     # Set up accessible psh:: package variables:
 	#
 
-	$prompt                      = $default_prompt;  # Set default prompt
     @strategies                  = @default_strategies;
 	$eval_preamble               = 'package main;';
     $currently_active            = 0;
-	$save_history                = 1;
-	$history_length              = 50;
 	$perlfunc_expand_arguments   = 1;
 	$executable_expand_arguments = 0;
 	$cmd                         = 1;
@@ -1622,14 +1622,7 @@ sub initialize
 	$bin                         = $0;
 	$bin                         =~ s/.*\///;
 
-	$longhost                    = qx(hostname);
-	chomp $longhost;
-
-	$host                        = qx(hostname -s);
-	chomp $host;
-
 	$news_file                   = "$bin.NEWS";
-	$history_file                = "$ENV{HOME}/.${bin}_history";
 
 	%built_ins = (
 		      '.'        => \&builtin_source,
@@ -1647,11 +1640,60 @@ sub initialize
 			  'export'   => \&builtin_setenv
 	);
 
+	# The following accessible variable are undef during the
+	# .pshrc file:
+	undef $prompt;
+	undef $save_history;
+	undef $history_length;
+	undef $longhost;
+	undef $host;
+	undef $history_file;
+
 	$joblist= new Psh::Joblist();
 
 	@val = ();
 
 	&Psh::Locale::Base::init;
+}
+
+#
+# void finish_initialize()
+#
+# Set the remaining psh:: package variables if they haven't been set
+# in the .pshrc file, and do other "late" initialization steps that
+# depend on these variable values.
+
+sub finish_initialize
+{
+	$prompt          = $default_prompt if !defined($prompt);
+	$save_history    = 1               if !defined($save_history);
+	$history_length  = 50              if !defined($history_length);
+	if (!defined($longhost)) {
+		$longhost                    = qx(hostname);
+		chomp $longhost;
+	}
+	if (!defined($host)) {
+		$host                        = qx(hostname -s);
+		chomp $host;
+	}
+	if (!defined($history_file)) {
+		$history_file                = "$ENV{HOME}/.${bin}_history";
+	}
+
+	if (defined($term) and $save_history) {
+		if ($readline_saves_history) {
+			$term->ReadHistory($psh::history_file);
+		} else {
+			my $fhist = new FileHandle($psh::history_file);
+			if ($fhist) {
+				while (<$fhist>) {
+					chomp;
+					$term->addhistory($_);
+				}
+				$fhist->close();
+			}
+		}
+	}
 }
 
 
@@ -1679,21 +1721,6 @@ sub process_rc
 		if (-r $rc) {
 			print_debug("[ PROCESSING $rc ]\n");
 			process_file($rc);
-		}
-	}
-
-	if (defined($term) and $save_history) {
-		if ($readline_saves_history) {
-			$term->ReadHistory($psh::history_file);
-		} else {
-			my $fhist = new FileHandle($psh::history_file);
-			if ($fhist) {
-				while (<$fhist>) {
-					chomp;
-					$term->addhistory($_);
-				}
-				$fhist->close();
-			}
 		}
 	}
 }
@@ -2121,14 +2148,15 @@ sub restart_job
 
 
 
-initialize;
+minimal_initialize;
 process_rc;
+finish_initialize;
 
 if (@ARGV) {
 	process_args;
 } else {
 	while (1) {
-		exval { main_loop; };
+		eval { main_loop; };
 		handle_message($@,'main_loop');
     }
 }
