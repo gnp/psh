@@ -2,10 +2,6 @@
 #
 # psh - Perl Shell
 #
-# TODO: The background symbol & is currently handled in a hackish way
-# in three different places in this file. Could these be unified/made
-# less of a hack?
-#
 # Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
 # This script is free software. It may be copied or modified according
 # to the same terms as Perl itself.
