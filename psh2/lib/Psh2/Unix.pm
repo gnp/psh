@@ -2,6 +2,8 @@ package Psh2::Unix;
 
 use POSIX ':signal_h';
 
+POSIX::setpgid( 0, $$);
+
 sub path_separator { ':' }
 sub file_separator { '/' }
 sub getcwd {
@@ -25,16 +27,17 @@ sub get_home_dir {
 ############################################################################
 
 {
-    my $sigset_all= POSIX::SigSet->new(SIGTERM);
     my $sigact_term= POSIX::SigAction->new('Psh2::Unix::_term_handler', SIGTERM, SA_NOCLDSTOP|SA_RESTART);
-    my $sigact_term_dfl= POSIX::SigAction->new(SIG_DFL, SIGTERM);
+
+    my $sigset_all= POSIX::SigSet->new(SIGTERM);
+    my $sigact_all_dfl= POSIX::SigAction->new(SIG_DFL, $sigset_all);
 
     sub setup_signal_handlers {
 	POSIX::sigaction(SIGTERM, $sigact_term);
     }
 
     sub remove_signal_handlers {
-	POSIX::sigaction(SIGTERM, $sigact_term_dfl);
+	POSIX::sigaction(SIGTERM, $sigact_all_dfl);
     }
 
     sub _default_handler {
@@ -110,8 +113,8 @@ sub fork {
 	my @tmp= execute($self, $tmp);
 	CORE::exit($tmp[0]);
     }
-#    POSIX::setpgid( $pid, $pgrp_leader || $pid);
-#    give_terminal_to( $self, $pgrp_leader || $pid) if $fgflag and $giveterm;
+    POSIX::setpgid( $pid, $pgrp_leader || $pid);
+    give_terminal_to( $self, $pgrp_leader || $pid) if $fgflag and $giveterm;
     return $pid;
 }
 
@@ -122,6 +125,8 @@ sub fork {
 	my ($self, $pid)= @_;
 	return if $terminal_owner==$pid;
 	$terminal_owner= $pid;
+
+	local $SIG{TTOU}= 'IGNORE';
 	POSIX::tcsetpgrp( fileno STDIN, $pid);
     }
 }
