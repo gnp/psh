@@ -150,6 +150,7 @@ sub ungroup {
 
 sub _parse_fileno {
     my ($parts, $fileno)= @_;
+    my $bothflag= 0;
     while (@$parts>0) {
 	my $tmp= shift @$parts;
 	next if $tmp=~ /^\s+$/;
@@ -170,6 +171,7 @@ sub _parse_fileno {
 		no strict 'refs';
 		if (lc($_) eq 'all') {
 		    $_= 1;
+		    $bothflag= 1;
 		}
 		if (/^\d+$/) {
 		    push @result, $_+0;
@@ -183,6 +185,7 @@ sub _parse_fileno {
 	}
 	last;
     }
+    return $bothflag;
 }
 
 sub make_tokens {
@@ -204,8 +207,12 @@ sub make_tokens {
 	    push @tmp, [T_WORD, ';'];
 	} elsif ($tmp eq '|') {
 	    my @fileno= (1,0);
-	    _parse_fileno(\@parts, \@fileno);
+	    my $bothflag= 0;
+	    $bothflag ||= _parse_fileno(\@parts, \@fileno);
 	    push @tokens, [ T_REDIRECT, '>&', $fileno[0], 'chainout'];
+	    if ($bothflag) {
+		push @tokens, [ T_REDIRECT, '>&', 2, $fileno[0]];
+	    }
 	    push @tokens, @tmp;
 	    push @tokens, [ T_PIPE ];
 	    @tmp= ( [T_REDIRECT, '<&', $fileno[1], 'chainin']);
@@ -219,7 +226,7 @@ sub make_tokens {
 	    my @fileno= (1,0);
 	    my $file;
 
-	    _parse_fileno(\@parts, \@fileno);
+	    $bothflag ||= _parse_fileno(\@parts, \@fileno);
 	    if ($fileno[1]==0) {
 		while (@parts>0) {
 		    $file= shift @parts;
@@ -418,7 +425,7 @@ sub _parse_simple {
 	    }
 	}
     }
-    use Data::Dumper;
+    eval "use Data::Dumper;";
     print STDERR Dumper(\@words);
     die "duh";
 }
