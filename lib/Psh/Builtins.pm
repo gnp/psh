@@ -447,6 +447,26 @@ sub readline
 	return undef;
 }
 
+#
+# void env
+#
+# Prints out the current environment if no 'env' command is on
+# the system
+#
+
+sub env
+{
+	my $original_env=Psh::Util::which('env');
+	if( $original_env) {
+		Psh::evl($original_env.' '.shift);
+	} else {
+		foreach my $key (keys %ENV) {
+			print_out("$key=$ENV{$key}\n");
+		}
+	}
+	return undef;
+}
+
 1;
 
 __END__
