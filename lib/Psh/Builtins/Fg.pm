@@ -20,18 +20,23 @@ sub bi_fg
 		return undef;
 	}
 
-	$arg = -0 if (!defined($arg) or ($arg eq ''));
-	if( $arg !~ /^\%/) {
-		Psh::evl($arg);
-		return undef;
-	}
-	$arg =~ s/\%//;
+	if (!defined($arg) || $arg eq '') {
+		($arg)= $Psh::joblist->find_job();
+	} else {
+		if( $arg !~ /^\%/) {
+			Psh::evl($arg.' &');
+			return undef;
+		}
+		$arg =~ s/\%//;
 
-	if ( $arg !~ /^\d+$/) {
-		$arg= $Psh::joblist->find_last_with_name($arg,0);
+		if ( $arg !~ /^\d+$/) {
+			($arg)= $Psh::joblist->find_last_with_name($arg,0);
+		}
+		$arg-- if defined($arg);
 	}
+	return undef unless defined($arg);
 
-	Psh::OS::restart_job(1, $arg - 1);
+	Psh::OS::restart_job(1, $arg );
 
 	return undef;
 }

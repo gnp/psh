@@ -84,8 +84,7 @@ sub find_job {
 		my $job = $jobs_order->[$i];
 
 		if(!$job->{running}) {
-			$job_to_start = $i;
-			return $job;
+			return wantarray?($i,$job):$job;
 		}
 	}
 	return undef;
@@ -106,11 +105,11 @@ sub find_last_with_name {
 			$call= $1;
 		}
 		if( $call eq $name) {
-			return ($index,$job->{pid},$job->{call});
+			return wantarray?($index,$job->{pid},$job->{call}):$index;
 		}
 		$index++;
 	}
-	return ();
+	return wantarray?():undef;
 }
 
 #

@@ -22,19 +22,23 @@ sub bi_bg
 		return undef;
 	}
 
+	if (!defined($arg) || $arg eq '') {
+		($arg)= $Psh::joblist->find_job();
+	} else {
+		if( $arg !~ /^\%/) {
+			Psh::evl($arg.' &');
+			return undef;
+		}
+		$arg =~ s/\%//;
 
-	$arg = 0 if (!defined($arg) or ($arg eq ''));
-	if( $arg !~ /^\%/) {
-		Psh::evl($arg.' &');
-		return undef;
+		if ( $arg !~ /^\d+$/) {
+			($arg)= $Psh::joblist->find_last_with_name($arg,0);
+		}
+		$arg-- if defined($arg);
 	}
-	$arg =~ s/\%//;
+	return undef unless defined($arg);
 
-	if ( $arg !~ /^\d+$/) {
-		$arg= $Psh::joblist->find_last_with_name($arg,0);
-	}
-
-	Psh::OS::restart_job(0, $arg - 1);
+	Psh::OS::restart_job(0, $arg);
 
 	return undef;
 }
