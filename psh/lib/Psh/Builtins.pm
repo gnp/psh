@@ -107,7 +107,7 @@ Sets the environment variable NAME to VALUE.
 sub bi_setenv
 {
 	my $var = _do_setenv(@_);
-	print_error_18n('usage_setenv') if !$var;
+	print_error_i18n('usage_setenv') if !$var;
 	return undef;
 }
 
@@ -144,7 +144,7 @@ sub bi_export
 			}
 		}
 	} else {
-		print_error_18n('usage_export');
+		print_error_i18n('usage_export');
 	}
 	return undef;
 }
@@ -241,7 +241,7 @@ sub bi_kill
 
 		$job= $Psh::joblist->find_job($temp);
 		if( !defined($job)) {
-			print_error_18n('bi_kill_no_such_job',$pid);
+			print_error_i18n('bi_kill_no_such_job',$pid);
 			return 1;
 		}
 
@@ -249,7 +249,7 @@ sub bi_kill
 	}
 
 	if ($pid =~ m/\D/) {
-		print_error_18n('bi_kill_no_such_jobspec',$pid);
+		print_error_i18n('bi_kill_no_such_jobspec',$pid);
 		return 1;
 	}
 
@@ -260,7 +260,7 @@ sub bi_kill
 	}
 
 	if (CORE::kill($sig, $pid) != 1) {
-		print_error_18n('bi_kill_error_sig',$pid,$sig);
+		print_error_i18n('bi_kill_error_sig',$pid,$sig);
 		return 1;
 	}
 
@@ -294,7 +294,7 @@ sub bi_which
 	my $line   = shift;
 
 	if (!defined($line) or $line eq '') {
-		print_error_18n('bi_which_no_command');
+		print_error_i18n('bi_which_no_command');
 		return 1;
 	}
 
@@ -311,7 +311,7 @@ sub bi_which
 		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
 
 		if ($how) {
-			print_out_18n('evaluates_under',$line,$strat,$how);
+			print_out_i18n('evaluates_under',$line,$strat,$how);
 			return 0;
 		}
 	}
@@ -333,12 +333,12 @@ sub bi_which
 		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
 
 		if ($how) {
-			print_out_18n('evaluates_under',$line,$strat,$how);
+			print_out_i18n('evaluates_under',$line,$strat,$how);
 			return 0;
 		}
 	}
 
-	print_warning_18n('clueless',$line,'which');
+	print_warning_i18n('clueless',$line,'which');
 	return 1;
 }
 

@@ -100,7 +100,7 @@ sub prompt_string
 	if (ref($prompt_templ) eq 'CODE') { # If it is a subroutine,
 		$temp = &$prompt_templ();
 	} elsif (ref($prompt_templ)) {      # If it isn't a scalar
-		print_warning_18n('prompt_wrong_type',$Psh::bin);
+		print_warning_i18n('prompt_wrong_type',$Psh::bin);
 		$temp = $default_prompt;
 	} else {
 		$temp = $prompt_templ;
