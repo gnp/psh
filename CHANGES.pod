@@ -13,85 +13,11 @@
 ###############################################################################
 ###############################################################################
 
-=head1 CVSHEAD
-
-huggie, 2000-01-30
-
-=head2 Features:
-
-=over 4
-
-=item *
-
-New builtin "set".  Acts like bash set and returns environment.  Could be
-extended to allow "set -o noclobber" bash-isms to work.
-
 =back
 
-=head2 Changes:
+=head1 0.007 [2000-02-07]
 
-=over 4
-
-=item *
-
-Changed the Unix resize handler so that it does what is intended from the
-code not what it says.  This now works for me in big xterms.
-
-=item *
-
-Added print "\n" on CTRL-C to clean up display.
-
-=item *
-
-Added README.perl5.004 to explain about File::Spec
-
-=back
-
-Warp, 2000-01-28
-
-=head2 Features:
-
-=over 4
-
-=item *
-
-New strategy "auto_cd".
-
-=item *
-
-Builtin "strategy" now knows command "available" to list available strategies
-
-=back
-
-=head2 Changes:
-
-=over 4
-
-=item *
-
-Strategies "fallback_builtin","perlfunc" modularized and moved into Psh::Strategy::...
-
-=item *
-
-Perlfunc configuration variables are now in Psh::Strategy::Perlfunc for cleanness - sorry for that annoying change.
-
-=item *
-
-Removed &Psh::news() as I think there's no need for it being included in psh just for the tryme script.
-
-=item *
-
-List of builtins for which autoloading is supported is built automatically during startup.
-
-=item *
-
-Fixed generation of $Psh::history_file.
-
-=back
-
-=head1 0.007 [2000-01-24]
-
-Contributions primarily by Markus Peter (C<warp>).
+Contributions primarily by Markus Peter (C<warp>) and Simon Huggins (C<huggie>).
 
 New features:
 
@@ -130,6 +56,65 @@ Fallback and most other builtins are loaded on demand.
 =item *
 
 Converted C<&Psh::symbols()> into a builtin, B<symbols>.
+
+=item *
+
+New builtin B<set>.  Acts like B<bash>'s B<set> and returns environment.  Could be
+extended to allow C<set -o noclobber> B<bash>-isms to work.
+
+=item *
+
+New strategy C<auto_cd>.
+
+=item *
+
+Builtin B<strategy> now knows command B<available> to list available strategies
+
+=back
+
+
+=head2 Bug Fixes
+
+=over 4
+
+=item *
+
+The Unix resize handler now works correctly in big B<xterm>s.
+
+=item *
+
+Added C<print "\n"> on CTRL-C to clean up display.
+
+=item *
+
+Fixed generation of C<$Psh::history_file>.
+
+=back
+
+
+=head2 Other Changes
+
+=over 4
+
+=item *
+
+Added F<README.perl5.004> to explain about C<File::Spec>
+
+=item *
+
+Strategies C<fallback_builtin> and C<perlfunc> modularized and moved into C<Psh::Strategy::*>
+
+=item *
+
+C<Perlfunc> configuration variables are now in C<Psh::Strategy::Perlfunc> for cleanliness.
+
+=item *
+
+Removed C<&Psh::news()> since there's no need for it being included in B<psh> just for the B<tryme> script.
+
+=item *
+
+List of builtins for which autoloading is supported is built automatically during startup.
 
 =back
 
