@@ -183,7 +183,7 @@ sub _setup_redirects {
 ############################################################################
 
 sub canonpath {
-    my ($path) = @_;
+    my ($self, $path) = @_;
     $path =~ s|/+|/|g unless($^O eq 'cygwin');     # xx////xx  -> xx/xx
     $path =~ s|(/\.)+/|/|g;                        # xx/././xx -> xx/xx
     $path =~ s|^(\./)+||s unless $path eq "./";    # ./xx      -> xx
@@ -193,23 +193,26 @@ sub canonpath {
 }
 
 sub catfile {
+    my $self= shift;
     my $file = pop @_;
     return $file unless @_;
-    my $dir = catdir(@_);
+    my $dir = catdir($self, @_);
     $dir .= "/" unless substr($dir,-1) eq "/";
     return $dir.$file;
 }
 
 sub catdir {
+    my $self= shift;
     my @args = @_;
     foreach (@args) {
         # append a slash to each argument unless it has one there
         $_ .= "/" if $_ eq '' || substr($_,-1) ne "/";
     }
-    return canonpath(join('', @args));
+    return canonpath($self, join('', @args));
 }
 
 sub file_name_is_absolute {
+    my $self= shift;
     my $file= shift;
     return scalar($file =~ m:^/:s);
 }
@@ -219,7 +222,7 @@ sub rootdir {
 }
 
 sub splitdir {
-    my ($directories) = @_ ;
+    my ( $self, $directories) = @_ ;
 
     if ( $directories !~ m|/\Z(?!\n)| ) {
         return split( m|/|, $directories );
@@ -232,25 +235,25 @@ sub splitdir {
 }
 
 sub rel2abs {
-    my ($path,$base ) = @_;
+    my ($self, $path,$base ) = @_;
 
     # Clean up $path
-    if ( !file_name_is_absolute( $path ) ) {
+    if ( !file_name_is_absolute( $self, $path ) ) {
         # Figure out the effective $base and clean it up.
         if ( !defined $base or $base eq '' ) {
-            $base = Psh2::getcwd() ;
+            $base = getcwd() ;
         }
-        elsif ( !file_name_is_absolute( $base ) ) {
-            $base = rel2abs( $base ) ;
+        elsif ( !file_name_is_absolute( $self, $base ) ) {
+            $base = rel2abs( $self, $base ) ;
         }
         else {
-            $base = canonpath( $base ) ;
+            $base = canonpath( $self, $base ) ;
         }
 
         # Glom them together
-        $path = catdir( $base, $path ) ;
+        $path = catdir( $self, $base, $path ) ;
     }
-    return canonpath( $path ) ;
+    return canonpath( $self, $path ) ;
 }
 
 
