@@ -17,6 +17,8 @@ L<pshdevel|pshdevel>    Developing for the Perl Shell
 
 L<pshconfig|pshconfig>   Configuring the Perl Shell
 
+L<pshcomplete|pshcomplete> TAB completions in the Perl Shell
+
 =head1 DESCRIPTION
 
 B<psh> is a Perl program which executes a read-eval loop with enough
@@ -318,13 +320,14 @@ or similar facilities.
 
 There are other functions in the Psh:: package, but they are probably
 not useful except internally to B<psh>.
+
 =head1 LIMITATIONS
 
 Due to limitations of the Win32 type of operating system there's no
 job control available on those systems.
 
-The loop inside B<psh> will clobber I<$1> and other variables (including
-possible I<$_>) because it uses matches to implement some of its special
+The loop inside B<psh> will clobber I<$1> and other Perl-builtin variables 
+because it uses matches to implement some of its special
 functions.
 
 Right now, job control simply assumes that the POSIX interface is
@@ -354,6 +357,8 @@ psh needs several optional Perl modules to offer full functionality:
 =item Term::Size or Term::ReadKey to offer the ability to change the
 environment variables LINES and COLUMNS when the terminal window size
 changes while running as standard shell
+
+=item BSD::Resource is necessary for the ulimit builtin
 
 =back
 
@@ -510,7 +515,8 @@ code, login shell handling, various bits of documentation, and other minor
 features and updates.
 
 Hiroo Hayashi E<lt>F<hiroo.hayashi@computer.org>E<gt> added the current,
-bash compatible support for programmable completions and some small fixes
+bash compatible support for programmable completions and some small fixes.
+We also have to thank him for the existence of the Term::ReadLine::Gnu module.
 
 =item ReadLine Support
 
