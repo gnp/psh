@@ -9,15 +9,16 @@ sub T_AND() { 6; }
 sub T_EXECUTE() { 1; }
 
 # generate and cache regexpes
-my %quotehash= qw|' ' " " q[ ] qq[ ] $( ) ${ }|;
+my %quotehash= qw|' ' " " q[ ] qq[ ]|;
 my %quotedquotes= ("'" => "\'", "\"" => "\\\"", 'q[' => "\\]",
 		   'qq[' => "\\]");
-my %nesthash=  ('('=> ')',
-		'{'=> '}',
-		'['=> ']');
+my %nesthash=  ('('=> ')', '$(' => ')',
+		'{'=> '}', '${' => '}',
+		'['=> ']',
+	       );
 
 my $part2= '\\\'|\\"|q\\[|qq\\[';
-my $part1= '(\\s+|\\n|\\|\\||\\&\\&|\\||;;|;|\&>|\\&|>>|>|<|=|\\(|\\)|\\{|\\}|\\[|\\])';
+my $part1= '(\\n|\\|\\||\\&\\&|\\||;|\&>|\\&|>>|>|<|=|\\$\\{|\\$\\(|\\(|\\)|\\{|\\}|\\[|\\])';
 my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 ############################################################################
@@ -27,7 +28,7 @@ my $regexp= qr[^((?:[^\\]|\\.)*?)(?:$part1|($part2))(.*)$]s;
 ############################################################################
 
 sub decompose {
-    my ($psh, $line, $alias_disabled, $trackloc)= @_;
+    my ($psh, $line, $alias_disabled)= @_;
 
     if ($line=~/^[a-zA-Z0-9]*$/ and index($line,"\n")==-1) { # perl 5.6 bug
 	if ($psh->{aliases} and $psh->{aliases}{$line} and
@@ -72,9 +73,15 @@ sub decompose {
 		  ($rest =~ m/^(.*?)$quotedquotes{$quote}(.*)$/s);
 	    }
 	    if (defined $rest_of_quote) {
-		$pieces[$#pieces]= join('', $pieces[$#pieces], $prefix, $quote,
-					$rest_of_quote, $quotehash{$quote});
+		$pieces[$#pieces].= $prefix;
+		my $tmp= join('',$quote, $rest_of_quote, $quotehash{$quote});
+		if (length($pieces[$#pieces])) {
+		    push @pieces, $tmp;
+		} else {
+		    $pieces[$#pieces]= $tmp;
+		}
 		$line= $remainder;
+		$start_new_piece=1;
 	    } else { # can't find matching quote, give up
 		die "parse: needmore: quote: missing $quote";
 	    }
@@ -86,15 +93,16 @@ sub decompose {
 	$pieces[$#pieces].= $line;
     }
 
-    my @realpieces= ();
+    my @pieces2= ();
     my @open= ();
     my @tmp= ();
     my $expand_aliases= 1;
-    my $pos=0;
-    my $offset=0;
-    my $index= -1;
 
-    while (my $piece= shift @pieces) {
+    use Data::Dumper;
+    print STDERR Dumper(\@pieces);
+
+
+    foreach my $piece (@pieces) {
 	if (length($piece)<3) {
             if ($piece eq '[' or $piece eq '(' or $piece eq '{' or
 	        $piece eq '${'or $piece eq '$(') {
@@ -111,53 +119,95 @@ sub decompose {
         }
         if (@open) {
             push @tmp, $piece;
-	    $pos+= length($piece)
         } elsif (@tmp) {
 	    my $tmp= join('', @tmp, $piece);
 	    @tmp= ();
-	    $pos+= length($tmp);
-	    push @realpieces, $tmp;
-	} else {
-	    if ($piece=~/^\s+$/ and $piece ne "\n") {
-		next unless $trackloc;
+	    if (substr($tmp,0,2) eq '$(' or
+	        substr($tmp,0,2) eq '${') {
+		$tmp= expand_dollar($psh,$tmp);
 	    }
-	    if ($expand_aliases and !$trackloc and $psh->{aliases} and
+	    push @pieces2, $tmp;
+	} else {
+	    if ($expand_aliases and $psh->{aliases} and
 	        $psh->{aliases}{$piece} and
 	       !$alias_disabled->{$piece}) {
 		local $alias_disabled->{$piece}= 1;
-		push @realpieces, @{decompose($psh,$psh->{aliases}{$piece},
+		push @pieces2, @{decompose($psh,$psh->{aliases}{$piece},
 					     $alias_disabled)};
 		$expand_aliases= 0;
 		next;
 	    }
-            push @realpieces, $piece;
-	    $pos+= length($piece);
+	    $piece=~ s/(?<!\\)(\$[a-zA-Z0-9_]+)/&expand_dollar($psh,$1)/ge;
 
-	    if (!$trackloc and
+            push @pieces2, $piece;
+	    if (
 		$piece eq ';' or $piece eq '|' or $piece eq '&' or
 	        $piece eq "\n" or $piece eq '&&' or $piece eq '||') {
 		$expand_aliases= 1;
 		next;
 	    }
         }
-	if ($trackloc and $index<0 and $trackloc<=$pos) {
-	    $index= $#realpieces;
-	    $offset= $pos-$trackloc;
-	}
 	$expand_aliases= 0;
     }
     if (@open) {
 	die "parse: needmore: nest: missing @open";
     }
-    if ($trackloc) {
-	return ($index,$offset,\@realpieces);
+    my @pieces3= ();
+    my $space= 0;
+    while (my $piece= shift @pieces2) {
+	my $char= substr($piece,0,1);
+	if (length($piece)<3 and
+	    (
+	     $piece eq '|' or $piece eq ';' or $piece eq '&' or
+	     $piece eq '&&' or $piece eq '||' or $piece eq '>' or
+	     $piece eq '>>' or $piece eq '<' or $piece eq '=' or
+	     $piece eq '&>' or $piece eq "\n") or
+	    $char eq '{' or $char eq '(' or $char eq '[' or
+	    $char eq '"' or $char eq "'" or
+	    (length($piece)>2 and substr($piece,0,2) eq 'q[') or
+	    (length($piece)>3 and substr($piece,0,3) eq 'qq[')) {
+	    push @pieces3, $piece;
+	    $space= 1;
+	} else {
+	    @tmp= split /(?<!\\)\s+/, $piece, -1;
+	    if ($tmp[0] eq '') {
+		shift @tmp;
+		$space= 1;
+	    }
+	    if (!$space and @pieces3>0) {
+		my $old= pop @pieces3;
+		$tmp[0]=$old.$tmp[0];
+	    }
+	    if ($tmp[$#tmp] eq '') {
+		$space=1;
+		pop @tmp;
+	    } else {
+		$space=0;
+	    }
+	    push @pieces3, @tmp;
+	}
     }
-    return \@realpieces;
+
+    return \@pieces3;
 }
 
 sub expand_dollar {
     my ($psh, $piece)= @_;
-    return qq['$piece'];
+    print STDERR "piece=$piece\n";
+    if (length($piece)>2 and substr($piece,0,2) eq '${') {
+	return qq['$piece'];
+    }
+    else {
+	if (substr($piece,0,2) eq '$(') {
+	    $piece= substr($piece,2,-1);
+	} else {
+	    $piece= substr($piece,1);
+	}
+	my $tmp= $ENV{uc($piece)}||'';
+	$tmp=~ s/'/''/g;
+	$tmp=~ s/\s+/'/g;
+	return qq['$tmp'];
+    }
 }
 
 sub _remove_backslash {
@@ -294,9 +344,6 @@ sub make_tokens {
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
-		next;
-	    } elsif ($tmp eq ';;') {
-		push @$words, ';';
 		next;
 	    } elsif ($tmp eq '|') {
 		my @fileno= (1,0);
