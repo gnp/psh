@@ -37,19 +37,6 @@ New B<-F> command line switch to disable processing of any pshrc files
 
 =item *
 
-New builtin command B<modules> to display a list of loaded Perl modules
-
-=item *
-
-First attempt at a B<ulimit> command.
-
-=item *
-
-New builtin B<printenv> to display a list of environment variables (like
-B<env>) or the value of a certain environment variable.
-
-=item *
-
 New default strategy B<perl> - send everything after 'p!' unparsed to the
 perl interpreter (might be used later on for a special rc file compiler)
 
@@ -69,6 +56,22 @@ Alias expansion is escapable using backslash:
 The sequence ESC-h is now per default bound to the new readline function
 "run-help" which will display any help about the current input line it
 can find. (works only in Term::ReadLine::Gnu)
+
+=back
+
+=head2 New builtins
+
+=over 4
+
+=item * B<modules>
+
+=item * B<ulimit>
+
+=item * B<printenv>
+
+=item * B<hash>
+
+=item * B<rehash>
 
 =back
 
