@@ -267,10 +267,20 @@ sub alias
 	return 0;
 }
 
-#
-# TODO: I do believe we need an unalias.
-#
-
+sub unalias {
+	my $name= shift;
+	if( $name eq '-a' || $name eq 'all' ) {
+		%aliases= ();
+		$Psh::built_ins= ();
+	} elsif( exists($aliases{$name})) {
+		delete($aliases{$name});
+		delete($Psh::built_ins{$name});
+	} else {
+		print_error_i18n('unalias_noalias', $name);
+		return 1;
+	}
+	return 0;
+}
 
 #
 # void fg(int JOB_NUMBER)
@@ -282,7 +292,10 @@ sub fg
 
 	$arg = -0 if (!defined($arg) or ($arg eq ''));
 	$arg =~ s/\%//;
-	$arg = 0 if $arg =~ /[^0-9]/;
+	if( $arg =~ /[^0-9]/) {
+		Psh::evl($arg);
+		return undef;
+	}
 
 	Psh::restart_job(1, $arg - 1);
 
@@ -291,7 +304,7 @@ sub fg
 
 
 #
-# int bg(string JOB)
+# int bg(string JOB | command)
 #
 
 sub bg
@@ -300,7 +313,10 @@ sub bg
 
 	$arg = 0 if (!defined($arg) or ($arg eq ''));
 	$arg =~ s/\%//;
-	$arg = 0 if $arg =~ /[^0-9]/;
+	if( $arg =~ /[^0-9]/) {
+		Psh::evl($arg.' &');
+		return undef;
+	}
 
 	Psh::restart_job(0, $arg - 1);
 
@@ -392,7 +408,7 @@ sub source
 
 sub readline
 {
-	print_out("Using ReadLine: ", $Psh::term->ReadLine(), ", with features:\n");
+	print_out_i18n('builtin_readline_header',$Psh::term->ReadLine());
 
 	my $featureref = $Psh::term->Features();
 

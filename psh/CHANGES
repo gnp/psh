@@ -6,21 +6,31 @@ CVS HEAD
 
 
 1999-12-14 warp:
-  * Moved almost all code from psh into Psh, Psh::Builtins
-    and Psh::Util
-  * Changed builtin alias so that 'alias name' displays the
-    alias definition for that name
+ Internal:
   * The builtin eval strategy now checks the Psh::Builtins
     namespace for a function with the name of the builtin
 	after it checked %built_ins
   * Fixed the initialization so the short hostname is
     calculated from the longhost name instead of calling
 	hostname -s
+  * Moved almost all code from psh into Psh, Psh::Builtins
+    and Psh::Util
+
+ Features:
+  * Changed builtin alias so that 'alias name' displays the
+    alias definition for that name
   * Perl Symbol completion now supports package names and
     package name completion
   * Filename Completion respects the FIGNORE environment
     variable now
+  * New Perl Hashkey completion will TAB complete the name
+    of keys for Perl hashes (if they are not written in quotes)
   * The 'cd' builtin respects CDPATH now and sets OLDPWD
+  * Environment variable SHELL is set to the path to psh
+  * New builtin 'unalias'
+  * It's now possible to do "bg commandname" (e.g. "bg emacs")
+    fg has the same behaviour for consistency
+
 
 ------------------------------------------------------------
 0.004                                           [1999-12-13]

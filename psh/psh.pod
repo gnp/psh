@@ -203,11 +203,16 @@ Add C<I<NAME>> as a built-in so that NAME <REST_OF_LINE> will execute
 exactly as if REPLACEMENT <REST_OF_LINE> had been entered. For
 example, one can execute C<alias ls ls -F> to always supply the B<-F>
 option to "ls". Note the built-in is defined to avoid recursion
-here. Note also that any previous definition of NAME as a built-in is
-destroyed by alias, so that "alias source source /home/scripts/" won't
-work to prepend "/home/scripts/" to every source command.
+here.
 
 With no arguments, prints out a list of the current aliases.
+With only the C<I<NAME>> argument, prints out a definition of the
+alias with that name.
+
+=item * C<unalias NAME | -a | all]>
+
+Removes the alias with name <C<I<NAME>> or all aliases if either <C<I<-a>>
+(for bash compatibility) or <C<I<all>> is specified.
 
 =item * C<bg [JOB]>
 
@@ -444,7 +449,9 @@ evaluation of input lines. It is possible to add new strategies, see below.
 
 Contains a list of environment variables which should be tied
 to arrays. The key of the hash is the name of the variable, the
-value is the delimiter of the list (e.g. ':' in PATH)
+value is the delimiter of the list (e.g. ':' in PATH). The
+default value for array_exports currently contains PATH, CLASSPATH,
+LD_LIBRARY_PATH, FIGNORE and CDPATH.
 
 =back
 

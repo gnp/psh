@@ -11,6 +11,9 @@
 # to the same terms as Perl itself.
 #
 
+package Psh; # still use a package so getopt etc. is not imported into
+             # the shell namespace
+
 use locale;
 use Psh;
 use Psh::Locale::Base;
