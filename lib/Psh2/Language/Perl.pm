@@ -4,7 +4,7 @@ package Psh2::Language::Perl;
 # Must be on top of file before any "my" variables!
 #
 #
-# array protected_eval(string EXPR, string FROM) 
+# array protected_eval(string EXPR, int preservevars) 
 #
 # Evaluates "$Psh::eval_preamble EXPR", handling trapped signals and
 # printing errors properly. The FROM string is passed on to
@@ -13,12 +13,13 @@ package Psh2::Language::Perl;
 
 sub protected_eval
 {
+    my $psh= shift; # psh object is supposed to be accessible
+
     #
     # Local package variables because lexical variables here mask
     # variables of the same name in main!!
     #
-
-    local ($Psh2::Language::Perl::str, $Psh2::Language::Perl::from) = @_;
+    local ($Psh2::Language::Perl::str, $Psh2::Language::Perl::preserve) = @_;
     local $Psh2::Language::Perl::redo_sentinel        = 0;
 
     # It's not possible to use fork_process for foreground perl
@@ -33,11 +34,15 @@ sub protected_eval
 	}
 	$Psh2::Language::Perl::redo_sentinel = 1;
 	#local $Psh::currently_active= -1;
-	$_= $Psh2::Language::Perl::lastscalar;
-	@_= @Psh2::Language::Perl::lastarray;
+        if ($Psh2::Language::Perl::preserve) {
+            $_= $Psh2::Language::Perl::lastscalar;
+            @_= @Psh2::Language::Perl::lastarray;
+        }
 	local @Psh2::Language::Perl::result= eval "package $Psh2::Language::Perl::current_package; ".$Psh2::Language::Perl::str;
-	$Psh2::Language::Perl::lastscalar= $_;
-	@Psh2::Language::Perl::lastarray= @_;
+        if ($Psh2::Language::Perl::preserve) {
+            $Psh2::Language::Perl::lastscalar= $_;
+            @Psh2::Language::Perl::lastarray= @_;
+        }
 
 	if ( !$@ and @Psh2::Language::Perl::result and
 	     $#Psh2::Language::Perl::result==0 and $Psh2::Language::Perl::str and
@@ -74,7 +79,8 @@ sub protected_eval
 sub execute {
     my ($psh, $words)= @_;
     shift @$words;
-    return defined protected_eval(Psh2::Parser::ungroup(join(' ',@$words)));
+    return defined protected_eval($psh,
+                                  Psh2::Parser::ungroup(join(' ',@$words)),1);
 }
 
 sub internal {

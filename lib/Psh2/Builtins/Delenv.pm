@@ -11,10 +11,10 @@ sub execute {
     shift @$words;
 
     foreach my $var ( @$words ) {
-#	my @result = Psh::PerlEval::protected_eval("tied(\$$var)");
+#	my @result = Psh::PerlEval::protected_eval($psh,"tied(\$$var)");
 #	my $oldtie = $result[0];
 #	if (defined($oldtie)) {
-#	    Psh::PerlEval::protected_eval("untie(\$$var)");
+#	    Psh::PerlEval::protected_eval($psh,"untie(\$$var)");
 #	}
 #	my $oldval= $ENV{$var};
 	delete $ENV{$var};

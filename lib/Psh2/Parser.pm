@@ -143,7 +143,7 @@ sub decompose {
 	    }
 	    push @pieces2, $tmp;
 	} else {
-	    if ($start_of_command and %{$psh->{aliases}}) {
+	    if ($start_of_command and $psh->{aliases}) {
 		if ($piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s*)$/ or
 		    $piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s.*)$/) {
 		    my ($pre, $main, $post)= ($1, $2, $3);

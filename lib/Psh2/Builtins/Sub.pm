@@ -8,7 +8,7 @@ sub execute {
 
     $psh->delete_function($words->[0]);
     Psh2::Language::Perl::protected_eval
-      ("sub $words->[0] $words->[1]\n");
+      ($psh, "sub $words->[0] $words->[1]\n");
     my $coderef= *{$Psh2::Language::Perl::current_package.'::'.$words->[0]};
     if (defined $coderef) {
 	my $wrapper= sub {

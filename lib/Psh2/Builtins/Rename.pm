@@ -42,7 +42,7 @@ sub execute
 	}
 	my $was= $file;
 	$Psh2::Language::Perl::lastscalar=$was;
-	Psh2::Language::Perl::protected_eval($op);
+	Psh2::Language::Perl::protected_eval($psh,$op,1);
 	my $now= $Psh2::Language::Perl::lastscalar;
 	if ($was ne $now) {
 	    if ($inspect and -e $now) {
