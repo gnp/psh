@@ -31,7 +31,9 @@ lib/Psh2/Builtins/Rename.pm
 lib/Psh2/Builtins/Option.pm
 lib/Psh2/Builtins/Setenv.pm
 lib/Psh2/Builtins/Source.pm
+lib/Psh2/Builtins/Symbols.pm
 lib/Psh2/Builtins/True.pm
+lib/Psh2/Builtins/Unalias.pm
 lib/Psh2/Frontend/Editline.pm
 lib/Psh2/Frontend/Readline.pm
 lib/Psh2/Language/Perl.pm

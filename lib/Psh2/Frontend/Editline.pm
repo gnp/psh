@@ -20,10 +20,7 @@ sub init {
 	} else {
 	    eval { $self->{term}= Term::EditLine->new('psh2'); };
 	    if ( $self->{term} ) {
-		$self->{history}= Term::EditLine::history_init();
-#		$self->{term}->history_init();
 		$self->{term}->parse('bind', '-e');
-		$self->{term}->parse('bind');
 	    }
 	}
     }
@@ -36,7 +33,7 @@ sub getline {
 	$self->{term}->set_prompt('> ');
 	$line= $self->{term}->gets();
 	if (defined $line) {
-
+	    $self->{term}->history_enter($line);
 	}
     };
     if ($@) {
