@@ -431,7 +431,7 @@ sub completion
 	my $pretext= '';
         if( $starttext =~ /--\w+=(\S*)$/) {
                 $pretext= $1;
-        } elsif (( $starttext =~ /\s(\S*)$/) {
+        } elsif ( $starttext =~ /\s(\S*)$/) {
 		$pretext= $1;
 	} elsif( $starttext =~ /^(\S*)$/) {
 		$pretext= $1;
