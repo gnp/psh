@@ -137,7 +137,6 @@ sub decompose {
                  substr($tmp,0,2) eq '${')) {
 		$tmp= expand_dollar($psh,$tmp);
 	    }
-	    push @pieces2, $tmp;
 	} else {
 	    if ($start_of_command and $psh->{aliases}) {
 		if ($piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s*)$/ or
@@ -226,21 +225,23 @@ sub decompose {
             $space= 0;
         } else {
             @tmp= split /(?<!\\)\s+/, $piece, -1;
-            if ($tmp[0] eq '') {
-                shift @tmp;
-                $space= 1;
+            if (@tmp) {
+                if ($tmp[0] eq '') {
+                    shift @tmp;
+                    $space= 1;
+                }
+                if (!$space and @pieces3>0) {
+                    my $old= pop @pieces3;
+                    $tmp[0]=$old.$tmp[0];
+                }
+                if ($tmp[$#tmp] eq '') {
+                    $space=1;
+                    pop @tmp;
+                } else {
+                    $space=0;
+                }
+                push @pieces3, @tmp;
             }
-            if (!$space and @pieces3>0) {
-                my $old= pop @pieces3;
-                $tmp[0]=$old.$tmp[0];
-            }
-            if ($tmp[$#tmp] eq '') {
-                $space=1;
-                pop @tmp;
-            } else {
-                $space=0;
-            }
-            push @pieces3, @tmp;
         }
     }
     return \@pieces3;
@@ -257,8 +258,7 @@ sub expand_dollar {
 	} else {
 	    $piece= substr($piece,1);
 	}
-	my $tmp= $ENV{uc($piece)}||'';
-	return $tmp;
+	return $ENV{uc($piece)}||'';
     }
 }
 
