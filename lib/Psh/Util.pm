@@ -157,8 +157,11 @@ sub abs_path {
 					$result= Cwd::abs_path($tmp);
 				};
 			}
+			return undef unless $result;
 		}
-		$result.='/' unless $result=~m:[/\\]:; # abs_path strips / from letter: on Win
+		if ($result) {
+			$result.='/' unless $result=~ m:[/\\]:;  # abs_path strips / from letter: on Win
+		}
 	}
 	$path_hash{$dir}= $result;
 	return $result;

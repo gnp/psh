@@ -3,6 +3,7 @@ package Psh::Builtins::Cd;
 require Psh::Support::Dirs;
 require Psh::Completion;
 require Psh::OS;
+require Psh::Util;
 
 =item * C<cd DIR>
 
@@ -75,12 +76,12 @@ sub bi_cd
 				$ENV{PWD}=$dir;
 				return 0;
 			} else {
-				print_error_i18n('perm_denied',$in_dir,$Psh::bin);
+				Psh::Util::print_error_i18n('perm_denied',$in_dir,$Psh::bin);
 				return 1;
 			}
 		}
 	}
-	print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
+	Psh::Util::print_error_i18n('no_such_dir',$in_dir,$Psh::bin);
 	return 1;
 }
 
