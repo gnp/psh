@@ -11,19 +11,6 @@
 
 1999-12-13
 
-  * Term::ReadLine::Gnu segfault issues with Linux. We need to nail
-    this down, and at a minimum put warning logic in psh to know when
-    there might be trouble, and notify the user (and potentially refuse
-    to run, depending upon how useful overall psh would be in this case).
-    Ideally, if we can figure out precisely what the problem is, we should
-    solve it and submit a patch to the Term::ReadLine::Gnu maintainer
-    with a request that an update be made pronto.
-    [GW:gnp]
-
-  * When we say 'foo' at it, and there is no executable in the path,
-    and no Perl function, psh really should complain at us.
-    [GNP]
-
   * Get rid of calls to system() and mentions of it in the documentation,
     since a shell should not be dependent upon an underlying shell. We
     need to implement system()'s functionality in terms of fork and
