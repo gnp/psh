@@ -28,7 +28,7 @@ sub bi_jobs {
 		$result .= "[$visindex] $pid $command";
 
 		if ($job->{running}) { $result .= "\n"; }
-		else                 { $result .= ' ('.$Psh::text{stopped}.")\n"; }
+		else                 { $result .= ' ('.Psh::Locale::get_text('stopped').")\n"; }
 		$visindex++;
 	}
 

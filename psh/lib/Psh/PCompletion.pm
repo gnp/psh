@@ -11,6 +11,7 @@ package Psh::PCompletion;
 use strict;
 use vars qw(%COMPSPEC %ACTION @ISA @EXPORT_OK $LOADED);
 require Exporter;
+require Psh::Completion;
 
 $LOADED=1;
 @ISA = qw(Exporter);

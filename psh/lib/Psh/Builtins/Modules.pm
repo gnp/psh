@@ -14,18 +14,21 @@ sub bi_modules
 	my (@pragmas,@strategies,@builtins,@psh);
 	@modules= map { s/\.pm$//; s/\//::/g; $_ }
 	  grep { /\.pm$/ } @modules;
+
 	@pragmas= grep { /^[a-z]/ } @modules;
     @psh= grep { /^Psh/ } @modules;
+	@modules= grep { $_ !~ /^Psh/ } grep { /^[A-Z]/ } @modules;
 
-	@builtins= map { s/^Psh::Builtins:://; $_ }
-	  grep { /^Psh::Builtins::/ } @psh;
-	  @builtins;
-	@strategies= map { s/^Psh::Strategy:://; $_ }
-	  grep { /^Psh::Strategy::/ } @psh;
+	@builtins= grep { /^Psh::Builtins::/ } @psh;
+	@strategies= grep { /^Psh::Strategy::/ } @psh;
 	@psh=
 	  map { s/^Psh:://; $_ }
 		grep { $_ !~ /^Psh::Builtins::/ && $_!~ /^Psh::Strategy::/ } @psh;
-	@modules= grep { $_ !~ /^Psh/ } grep { /^[A-Z]/ } @modules;
+
+	@builtins= map { s/^Psh::Builtins:://; $_ }	@builtins;
+
+	@strategies= map { s/^Psh::Strategy:://; $_ } @strategies;
+
 	print_out('Pragmas:    '.join(', ',@pragmas)."\n\n");
 	print_out('Modules:    '.join(', ',@modules)."\n\n");
 	print_out('Builtins:   '.join(', ',@builtins)."\n\n");

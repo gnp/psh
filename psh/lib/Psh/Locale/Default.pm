@@ -4,8 +4,6 @@ package Psh::Locale::Default;
 # Main part of the module.
 #
 
-use strict;
-
 my %sig_description = (
 					   'TTOU' => 'TTY output',
 					   'TTIN' => 'TTY input',

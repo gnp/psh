@@ -1,7 +1,6 @@
 package Psh::OS;
 
 use strict;
-use Fcntl qw(:flock);
 require Cwd;
 require Config;
 require File::Spec;
@@ -142,7 +141,7 @@ sub fb_signal_name {
 
 sub fb_signal_description {
 	my $signal_name= signal_name(shift);
-	my $desc= $Psh::text{sig_description}->{$signal_name};
+	my $desc= Psh::Locale::get_text('sig_description')->{$signal_name};
    	if( defined($desc) and $desc) {
 		return "SIG$signal_name - $desc";
 	}
@@ -180,20 +179,25 @@ sub fb_getcwd_psh {
 	return Cwd::getcwd();
 }
 
+sub fb_LOCK_SH { 1; }
+sub fb_LOCK_EX { 2; }
+sub fb_LOCK_NB { 4; }
+sub fb_LOCK_UN { 8; }
+
 sub fb_lock {
 	my $file= shift;
-	my $type= shift;
+	my $type= shift || Psh::OS::LOCK_SH();
 	my $count=3;
 	my $status=0;
 	while ($count-- and !$status) {
-		$status= flock($file, $type|LOCK_NB);
+		$status= flock($file, $type| Psh::OS::LOCK_NB());
 	}
 	return $status;
 }
 
 sub fb_unlock {
 	my $file= shift;
-	flock($file,LOCK_UN|LOCK_NB);
+	flock($file, Psh::OS::LOCK_UN()| Psh::OS::LOCK_NB());
 }
 
 1;

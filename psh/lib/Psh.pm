@@ -7,7 +7,6 @@ require Psh::Locale;
 require Psh::Strategy;
 require Psh::OS;
 require Psh::Joblist;
-require Psh::Completion;
 require Psh::Parser;
 require Psh::PerlEval;
 require Psh::Prompt;
@@ -360,7 +359,7 @@ sub process_file
 		return;
 	}
 
-	Psh::OS::lock(*FILE, Psh::OS::LOCK_SH);
+	Psh::OS::lock(*FILE);
 
 	if ($Psh::debugging=~ /$class/ or
 	   $Psh::debugging==1) {
@@ -487,7 +486,7 @@ sub save_history
 			$Psh::term->WriteHistory($Psh::history_file);
 		} else {
 			if (open(F_HISTORY,">> $Psh::history_file")) {
-				Psh::OS::lock(*F_HISTORY, Psh::OS::LOCK_EX);
+				Psh::OS::lock(*F_HISTORY, Psh::OS::LOCK_EX());
 				foreach (@Psh::history) {
 					print F_HISTORY $_;
 					print F_HISTORY "\n";
@@ -553,8 +552,6 @@ sub minimal_initialize
 	@history= ();
 
 	Psh::Strategy::setup_defaults();
-
-	Psh::Locale::init();
 }
 
 #
@@ -615,9 +612,8 @@ sub finish_initialize
 					$readline_saves_history = 1;
 					$term->StifleHistory($history_length); # Limit history
 				}
-				&Psh::Completion::init();
 				$term->Attribs->{completion_function} =
-				  \&Psh::Completion::completion;
+				  \&completion_dummy;
 			}
 		}
 
@@ -643,7 +639,7 @@ sub finish_initialize
 			$term->ReadHistory($history_file);
 		} else {
 			if (open(F_HISTORY,"< $history_file")) {
-				Psh::OS::lock(*F_HISTORY, Psh::OS::LOCK_SH);
+				Psh::OS::lock(*F_HISTORY);
 				while (<F_HISTORY>) {
 					chomp;
 					$term->addhistory($_);
@@ -653,6 +649,21 @@ sub finish_initialize
 			}
 		}
 	}
+}
+
+
+#
+# We're used for the first TAB completion - load
+# the real completion module and call it
+#
+sub completion_dummy {
+	my @args= @_;
+
+	require Psh::Completion;
+	Psh::Completion::init();
+    $term->Attribs->{completion_function} =
+	  \&Psh::Completion::completion;
+	return Psh::Completion::completion(@_);
 }
 
 

@@ -198,14 +198,13 @@ my %alias_table= (
 );
 
 my (@mon,@wday);
+my $locale_loaded;
 
-sub init {
-
-	my $lang= $ENV{LANG};
-
-	# Use the default locale for defaults
+sub load_locale {
+	return if $locale_loaded;
 	require Psh::Locale::Default;
 
+	my $lang= $ENV{LANG};
 	# Now try to use a locale module depending on LANG
 	if( $lang and $lang ne "C" and $lang ne "POSIX") {
 		$lang=lc($lang);
@@ -218,6 +217,7 @@ sub init {
 		# but that would again increase the requirements for
 		# psh unnecessarily
 	}
+	$locale_loaded=1;
 }
 
 
@@ -251,6 +251,18 @@ sub weekdays {
 	return @wday;
 }
 
+sub get_text {
+	my $key= shift;
+	load_locale();
+	return $Psh::text{$key};
+}
+
+sub set_text {
+	my $key= shift;
+	my $val= shift;
+	load_locale();
+	$Psh::text{$key}= $val;
+}
 
 
 1;

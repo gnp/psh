@@ -2,6 +2,7 @@ package Psh::OS::Unix;
 
 use strict;
 use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
+require Psh::Locale;
 
 $Psh::OS::PATH_SEPARATOR=':';
 $Psh::OS::FILE_SEPARATOR='/';
@@ -240,17 +241,19 @@ sub _handle_wait_status {
 	if (&WIFEXITED($pid_status)) {
 		my $status=&WEXITSTATUS($pid_status);
 		if ($status==0) {
-			$verb= "\u$Psh::text{done}" if (!$quiet);
+			$verb= ucfirst(Psh::Locale::get_text('done')) unless $quiet;
 		} else {
-			$verb= "\u$Psh::text{error}";
+			$verb= ucfirst(Psh::Locale::get_text('error'));
 		}
 		Psh::Joblist::delete_job($pid);
 	} elsif (&WIFSIGNALED($pid_status)) {
-		$verb = "\u$Psh::text{terminated} (" .
+		my $tmp= Psh::Locale::get_text('terminated');
+		$verb = "\u$tmp (" .
 			Psh::OS::signal_description(WTERMSIG($pid_status)) . ')';
 		Psh::Joblist::delete_job($pid);
 	} elsif (&WIFSTOPPED($pid_status)) {
-		$verb = "\u$Psh::text{stopped} (" .
+		my $tmp= Psh::Locale::get_text('stopped');
+		$verb = "\u$tmp (" .
 			Psh::OS::signal_description(WSTOPSIG($pid_status)) . ')';
 		$job->{running}= 0;
 	}
@@ -496,10 +499,10 @@ sub restart_job
 		my $command = $job->{call};
 
 		if ($command) {
-			my $verb = "\u$Psh::text{restart}";
+			my $verb= ucfirst(Psh::Locale::get_text('restart'));
 			my $qRunning = $job->{running};
 			if ($fg_flag) {
-			  $verb = "\u$Psh::text{foreground}";
+				$verb= ucfirst(Psh::Locale::get_text('foreground'));
 			} elsif ($qRunning) {
 			  # bg request, and it's already running:
 			  return;

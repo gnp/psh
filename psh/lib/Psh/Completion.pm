@@ -16,9 +16,9 @@ sub init
 	my $attribs=$Psh::term->Attribs;
 
 	# The following is ridiculous, but....
-	if( $Psh::term->ReadLine eq "Term::ReadLine::Perl") {
+	if( $Psh::term->ReadLine eq 'Term::ReadLine::Perl') {
 		$APPEND='completer_terminator_character';
-	} elsif( $Psh::term->ReadLine eq "Term::ReadLine::Gnu") {
+	} elsif( $Psh::term->ReadLine eq 'Term::ReadLine::Gnu') {
 		$GNU=1;
 		$APPEND='completion_append_character';
 	}
