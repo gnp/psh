@@ -17,7 +17,7 @@ require Psh::Parser;
 $Psh::PCompletion::LOADED=1; # tell other packages which optionally want to call us that we're here now
 
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(pcomp_getopts %ACTION %COMPSPEC compgen redir_test);
+@EXPORT_OK = qw(compgen);
 
 # for COMPSPEC actions
 # borrowed from bash-2.04
@@ -121,12 +121,12 @@ sub pcomp_list {
     my ($pretext) = substr($line, 0, $start) =~ /(\S*)$/;
 
     # actions
-    if ($cs->{action} & CA_ALIAS) {
+    if ($cs->{action} & CA_ALIAS and !$pretext) {
 		if (Psh::Strategy::active('built_in')) {
 			push(@l, grep { /^\Q$text/ } Psh::Support::Alias::get_alias_commands());
 		}
     }
-    if ($cs->{action} & CA_BINDING) {
+    if ($cs->{action} & CA_BINDING and !$pretext) {
 	# only Term::ReadLine::Gnu 1.09 and later support funmap_names()
 	# use `eval' for other versions
 		eval { push(@l, grep { /^\Q$text/ } $Psh::term->funmap_names) };
@@ -137,13 +137,13 @@ sub pcomp_list {
 			push(@l, grep { /^\Q$text/ } Psh::Support::Builtins::get_builtin_commands());
 		}
     }
-    if ($cs->{action} & CA_COMMAND) {
+    if ($cs->{action} & CA_COMMAND and !$pretext) {
 		push(@l, Psh::Completion::cmpl_executable($text));
 	}
     if ($cs->{action} & CA_DIRECTORY) {
 		push(@l, Psh::Completion::cmpl_directories($pretext . $text));
 	}
-    if ($cs->{action} & CA_EXPORT) {
+    if ($cs->{action} & CA_EXPORT and !$pretext) {
 		push(@l, grep { /^\Q$text/ } keys %ENV);
     }
     if ($cs->{action} & CA_FILE) {
@@ -161,34 +161,34 @@ sub pcomp_list {
 		push(@l, @f);
 		push(@l, Psh::Completion::cmpl_directories($pretext . $text));
 	}
-    if ($cs->{action} & CA_HOSTNAME) {
+    if ($cs->{action} & CA_HOSTNAME and !$pretext) {
 		push(@l, grep { /^\Q$text/ } Psh::Completion::bookmarks());
     }
-    if ($cs->{action} & CA_KEYWORD) {
+    if ($cs->{action} & CA_KEYWORD and !$pretext) {
 		push(@l, grep { /^\Q$text/ } @Psh::Completion::keyword);
     }
-    if ($cs->{action} & CA_SIGNAL) {
+    if ($cs->{action} & CA_SIGNAL and !$pretext) {
 		push(@l, grep { /^\Q$text/ } grep(!/^__/, keys %SIG));
     }
-    if ($cs->{action} & CA_USER) {
+    if ($cs->{action} & CA_USER and !$pretext) {
 		# Why are usernames in @user_completion prepended by `~'?
 		push(@l, map { substr($_, 1) }
 			 grep { /^~\Q$text/ } Psh::OS::get_all_users());
     }
     # job list
-    if ($cs->{action} & CA_JOB) {
+    if ($cs->{action} & CA_JOB and !$pretext) {
 	push(@l,
 	     map { $_->{call} }
 	     grep { $_->{call} =~ /^\Q$text/ }
 	      Psh::Joblist::list_jobs());
     }
-    if ($cs->{action} & CA_RUNNING) {
+    if ($cs->{action} & CA_RUNNING and !$pretext) {
 	push(@l,
 	     map { $_->{call} }
 	     grep { $_->{running} && $_->{call} =~ /^\Q$text/ }
 		 Psh::Joblist::list_jobs());
     }
-    if ($cs->{action} & CA_STOPPED) {
+    if ($cs->{action} & CA_STOPPED and !$pretext) {
 	push(@l,
 	     map { $_->{call} }
 	     grep { ! $_->{running} && $_->{call} =~ /^\Q$text/ }
@@ -198,12 +198,12 @@ sub pcomp_list {
     # Perl Symbol completions
 #    printf "[$text,%08x]\n", $cs->{action};
     my $pkg = '::';		# assume main package now.  cf. cmpl_symbol()
-    if ($cs->{action} & CA_VARIABLE) {
+    if ($cs->{action} & CA_VARIABLE and !$pretext) {
 		no strict 'refs';
 		push(@l, grep { /^\w+$/ && /^\Q$text/
 						  && eval "defined \$$pkg$_" } keys %$pkg);
     }
-    if ($cs->{action} & CA_ARRAYVAR) {
+    if ($cs->{action} & CA_ARRAYVAR and !$pretext) {
 		my $sym;
 		no strict 'refs';
 		@l = grep {($sym = $pkg . $_, defined *$sym{ARRAY})
@@ -213,14 +213,14 @@ sub pcomp_list {
 			 grep { /^\w+$/ && ($sym = $pkg . $_, defined *$sym{ARRAY})
 				} keys %$pkg);
     }
-    if ($cs->{action} & CA_HASH) {
+    if ($cs->{action} & CA_HASH and !$pretext) {
 		my $sym;
 		no strict 'refs';
 		push(@l, grep { /^\w+$/ && /^\Q$text/
 						  && ($sym = $pkg . $_, defined *$sym{HASH})
 					  } keys %$pkg);
     }
-    if ($cs->{action} & CA_FUNCTION) {
+    if ($cs->{action} & CA_FUNCTION and !$pretext) {
 		my $sym;
 		no strict 'refs';
 		push(@l, grep { /^\w+$/ &&  /^\Q$text/
@@ -244,10 +244,10 @@ sub pcomp_list {
 
     # -W word list
     push(@l, grep { /^\Q$text/ } split(' ', $cs->{wordlist}))
-	  if defined $cs->{wordlist};
+	  if defined $cs->{wordlist} and !$pretext;
 
     # -F function
-    if (defined $cs->{function}) {
+    if (defined $cs->{function} and !$pretext) {
 		#	warn "[$text,$line,$start,$cmd]\n";
 		$__line = $line; $__start = $start; $__cmd = $cmd; # for compgen()
 		my @t = eval { package main;
@@ -262,7 +262,7 @@ sub pcomp_list {
     }
 
     # -C command 
-    if (defined $cs->{command}) {
+    if (defined $cs->{command} and !$pretext) {
 		#	$ENV{COMP_LINE} = $line;
 		#	$ENV{COMP_POINT} = $start;
 		my $cmd = "$cs->{command}";
@@ -328,6 +328,8 @@ sub pcomp_getopts {
 	    $cs{action} |= CA_USER;
 	} elsif (/^-v/) {
 	    $cs{action} |= CA_VARIABLE;
+	} elsif (/^-o/) {
+		$cs{option}    = Psh::Parser::unquote(shift @{$ar});
 	} elsif (/^-A/) {
 	    $_ = Psh::Parser::unquote(shift @{$ar}) || return undef;
 	    $cs{action} |= $ACTION{$_};

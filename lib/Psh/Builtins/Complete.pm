@@ -6,7 +6,7 @@
 
 package Psh::Builtins::Complete;
 
-use Psh::PCompletion qw(pcomp_getopts %ACTION %COMPSPEC compgen redir_test);
+require Psh::PCompletion;
 
 =item * C<complete>
 
@@ -15,26 +15,29 @@ Define programmable completion method.
 	complete [-abcdefjkvu] [-A ACTION] [-G GLOBPAT] [-W WORDLIST]
 		 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-x FILTERPAT]
 		 [-F FUNCTION] [-C COMMAND] NAME [NAME] ..
-	complete -pr [NAME ...]
+
+=item * C<complete -p [NAME ...]>
+
+Print completion spec for commands NAME
+
+=item * C<complete -r NAME>
+
+Delete completion spec for command NAME
 
 =cut
 
-sub usage_complete {
-    print STDERR <<EOM;
-complete [-abcdefjkvu] [-A ACTION] [-G GLOBPAT] [-W WORDLIST]
-	 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-x FILTERPAT]
-	 [-F FUNCTION] [-C COMMAND] NAME [NAME] ..
-complete -pr [NAME ...]
-EOM
-}
-
 sub bi_complete {
-    my $cs = pcomp_getopts($_[1]) or usage_complete, return;
+	my $cs;
+	if (!$_[1] or !($cs= Psh::PCompletion::pcomp_getopts($_[1]))) {
+		require Psh::Builtins::Help;
+		Psh::Builtins::Help::bi_help('complete');
+		return (0,undef);
+	}
     @_ = @{$_[1]};
 
     if (! $cs->{remove} && $#_ < 0) {
 		# no option or only -p
-		foreach (sort keys(%COMPSPEC)) {
+		foreach (sort keys(%Psh::PCompletion::COMPSPEC)) {
 			print_compspec($_);
 		}
 	} elsif ($cs->{print}) {
@@ -42,13 +45,13 @@ sub bi_complete {
 			print_compspec($_);
 		}
     } elsif ($cs->{remove}) {
-		@_ = keys %COMPSPEC if ($#_ < 0);
+		@_ = keys %Psh::PCompletion::COMPSPEC if ($#_ < 0);
 		foreach (@_) {
-			delete $COMPSPEC{$_};
+			delete $Psh::PCompletion::COMPSPEC{$_};
 		}
     } else {
 		foreach (@_) {
-			$COMPSPEC{$_} = $cs;
+			$Psh::PCompletion::COMPSPEC{$_} = $cs;
 		}
     }
 	return (1,undef);
@@ -56,10 +59,10 @@ sub bi_complete {
 
 sub print_compspec ($) {
     my ($cmd) = @_;
-    my $cs = $COMPSPEC{$cmd};
+    my $cs = $Psh::PCompletion::COMPSPEC{$cmd};
     print 'complete';
-    foreach (sort keys(%ACTION)) {
-	print " -A $_" if ($cs->{action} & $ACTION{$_});
+    foreach (sort keys(%Psh::PCompletion::ACTION)) {
+		print " -A $_" if ($cs->{action} & $Psh::PCompletion::ACTION{$_});
     }
     print " -G \'$cs->{globpat}\'"	if defined $cs->{globpat};
     print " -W \'$cs->{wordlist}\'"	if defined $cs->{wordlist};
@@ -69,6 +72,7 @@ sub print_compspec ($) {
     print " -x \'$cs->{ffilterpat}\'"	if defined $cs->{ffilterpat};
     print " -P \'$cs->{prefix}\'"	if defined $cs->{prefix};
     print " -S \'$cs->{suffix}\'"	if defined $cs->{suffix};
+	print " -o $cs->{option}" if defined $cs->{option};
     print " $cmd\n";
 }
 
@@ -77,7 +81,7 @@ sub cmpl_complete {
 
     my ($prev) = $start =~ /(\S+)\s+$/;
 
-    my @COMPREPLY = redir_test($cur, $prev);
+    my @COMPREPLY = Psh::PCompletion::redir_test($cur, $prev);
     return @COMPREPLY if @COMPREPLY;
 
     if ($start =~ /^\s*(\S+)\s+$/ || $cur eq '-' ) {

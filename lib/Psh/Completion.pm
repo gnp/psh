@@ -434,8 +434,14 @@ sub completion
 			$text =~ s/^\Q$cs->{prefix}//
 			  if (defined $cs->{prefix});
 			@tmp = Psh::PCompletion::pcomp_list($cs, $text, $line, $start, $cmd);
-			$attribs->{$APPEND}=$ac;
-			return @tmp;
+			if ($cs->{option} and !@tmp) {
+				if ($cs->{option} eq 'default') {
+					#defaults
+				}
+			} else {
+				$attribs->{$APPEND}=$ac;
+				return @tmp;
+			}
 		}
 	}
 
