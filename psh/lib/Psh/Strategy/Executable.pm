@@ -20,6 +20,7 @@ sub runs_before {
 }
 
 sub applies {
+	my $com= @{$_[2]}->[0];
 	my $executable= Psh::Util::which(@{$_[2]}->[0]);
 	return $executable if defined $executable;
 	return '';

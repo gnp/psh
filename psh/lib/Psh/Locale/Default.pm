@@ -83,6 +83,8 @@ bi_strategy_wrong_arg=Wrong argument for builtin strategy.
 bi_strategy_notfound=Could not find strategy %1.
 bi_fc_notfound=no command found.
 bi_pshtoken_dumper=The pshtokenize command needs the Data::Dumper module!!
+bi_builtin_inactive=The strategy 'built_in' is currently not active.
+
 
 # Stuff for Job handling
 done=done\
