@@ -156,6 +156,12 @@ Switch to new evaluation strategies system. Please also see README.upgrade
 The builtin B<pshtokenize> was removed as it duplicated code from the
 B<debug> strategy.
 
+=item *
+
+The builtin B<which> more conforms to the 'standard' which - it will only
+locate an executable. Strategy B<debug> is similar to the old function of
+B<which>
+
 =back
 
 =head2 Other changes
