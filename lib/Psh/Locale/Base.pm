@@ -176,13 +176,28 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 #
 
 my %alias_table= (
-				  "de_de"   => "German",
-				  "deutsch" => "German",
-				  "de"      => "German",
+				  "de_de"     => "German",
+				  "deutsch"   => "German",
+				  "de"        => "German",
 
-				  "es"      => "Spanish",
-				  "espanol" => "Spanish",
-				  "es_es"   => "Spanish",
+				  "es"        => "Spanish",
+				  "español"   => "Spanish",
+				  "espanol"   => "Spanish",
+				  "es_es"     => "Spanish",
+
+				  "fr"        => "French",
+				  "français"  => "French",
+				  "francais"  => "French",
+				  "fr_fr"     => "French",
+
+				  "it"        => "Italian",
+				  "italiano"  => "Italian",
+				  "it_it"     => "Italian",
+
+				  "pt"        => "Portuguese",
+				  "português" => "Portuguese",
+				  "portugues" => "Portuguese",
+				  "pt_pt"     => "Portuguese",
 );
 
 sub init {

@@ -44,12 +44,12 @@ BEGIN {
 
 	$Psh::text{prompt_expansion_error}=<<EOT;
 %3: Alerta: Extensión de '\\%1' en guía mensaje produjo
-mensaje conteniendo '%2'. Quitando secuencia de escape del
+mensaje conteniendo '\\%2'. Quitando secuencia de escape del
 resultado.
 EOT
 
 	$Psh::text{prompt_unknown_escape}="%2: Alerta: \$Psh::prompt contiene una secuencia de escape desconocida `\\%1'.\n";
-	$Psh::text{no_libwin32}="libwin32 requerido (disponible como manojo del CPAN o con la distribución ActivePerl\n";
+	$Psh::text{no_libwin32}="libwin32 requerido (disponible como manojo del CPAN o con la distribución ActivePerl).\n";
 }
 
 
