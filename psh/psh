@@ -93,8 +93,6 @@ my %signal_description;
 
 $SIG{'INT'}   = \&signal_handler;
 $SIG{'QUIT'}  = \&signal_handler;
-$SIG{'USR1'}  = \&signal_handler;
-$SIG{'USR2'}  = \&signal_handler;
 $SIG{'CONT'}  = \&signal_handler;
 $SIG{'STOP'}  = \&signal_handler;
 $SIG{'TSTP'}  = \&signal_handler;
@@ -249,47 +247,26 @@ sub protected_eval
 
 	if ($psh::string =~ m/^(.*)\&\s*$/) {
 		$psh::string = $1;
-		$fgflag      = 0;
+		$psh::fgflag      = 0;
 	}
 
 	local @psh::result = ();
 
-	if ($fgflag) {
-		$currently_active = -1; # So the handlers know we are evaluating perl.
-		@psh::result = eval "$psh::eval_preamble $psh::string"; 
+	# It's not possible to use fork_process for foreground perl
+	# as we would lose all variables etc.
+
+	if( $psh::fgflag) {
+		$currently_active = -1;
+		@psh::result= eval "$psh::eval_preamble $psh::string";
 		handle_message($@, $psh::from);
 		$currently_active = 0;
 	} else {
-		local $psh::pid;
-
-		unless ($psh::pid = fork) {
-			#
-			# Child
-			#
-
-			open(STDIN,"-");
-			open(STDOUT,">-");
-			open(STDERR,">-");
-			remove_signal_handlers();
-			setpgid(getpid(), getpid());
-
-			#
-			# Something like this is vital as otherwise Control-C
-			# (etc.) may automatically be sent to me, the
-			# child. Bash does this to the jobs it forks off.
-			#
-
-			eval "$psh::eval_preamble $psh::string";
+		fork_process( sub {
+			@psh::result= eval "$psh::eval_preamble $psh::string";
 			if ($@) { exit -1; }
 			exit 0;
-		}
+		}, $fgflag);
 
-		#
-		# Still the parent psh:
-		#
-
-		setpgid($psh::pid, $psh::pid);
-		create_job($psh::pid, $psh::string, 1);
 	}
 
 	return @psh::result;
@@ -1131,12 +1108,13 @@ sub signal_description {
 			my $switches;
 
 			if (($filename,$switches) = 
-				($firstline =~ m|^\#!\s*(/.*perl)\s+(.*)$|)
+				($firstline =~ m|^\#!\s*(/.*perl)(\s+.+)?$|go)
 				and matches_perl_binary($filename)) {
 				my $possibleMatch = $script;
 				my %bangLineOptions = ();
 
-				{
+				if( $switches) {
+					$switches=~ s/^\s+//go;
 					local @ARGV = split(' ', $switches);
 
 					#
@@ -1206,8 +1184,6 @@ sub remove_signal_handlers
 {
 	$SIG{INT}   = undef;
 	$SIG{QUIT}  = undef;
-	$SIG{USR1}  = undef;
-	$SIG{USR2}  = undef;
 	$SIG{CONT}  = undef;
 	$SIG{STOP}  = undef;
 	$SIG{TSTP}  = undef;
@@ -1274,33 +1250,15 @@ sub give_terminal_to
 
 		my $pid;
 
-		unless ($pid = fork) { #child
-			my %opts = ();
+		my %opts = ();
+		foreach (@options) { $opts{$_} = 1; }
 
-			foreach (@options) { $opts{$_} = 1; }
-
-			#
-			# Fine to do this explicitly, since scripts are
-			# always executed in package main.
-			#
-
+		fork_process(sub {
 			package main;
-
-			open(STDIN,"-");
-			open(STDOUT,">-");
-			open(STDERR,">-");
-
-			remove_signal_handlers();
-			setpgid(getpid(),getpid()); # Vital, see protected_eval
-
-			if ($fgflag) { give_terminal_to(getpid()); }
-
-			#
 			# TODO: Is it possible/desirable to put main in the pristine
 			# state that it typically is in when a script starts up,
 			# i.e. undefine all routines and variables that the user has set?
-			#
-
+			
 			local @ARGV = @arglist;
 			local $^W;
 
@@ -1310,20 +1268,7 @@ sub give_terminal_to
 			do $script;
 
 			exit 0;
-		}
-
-		# the "real me"
-		#
-		# TODO: This code needs to be unified with my_system; and we need
-		#       to provide an easy, modular way to allow other strategies
-		#       like eval to fork a background job if the command line
-		#       ends in &
-		#        
-
-		setpgid($pid,$pid);
-		create_job($pid, "$script @arglist", !$fgflag);
-
-		if ($fgflag) { wait_for_system($pid, 1); }
+		}, $fgflag);
 
 		return undef;
 	},
@@ -1972,8 +1917,9 @@ sub main_loop
 
 sub is_number
 {
-	my ( $test)=@_;
-	return $test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
+	my $test = shift;
+	return defined($test) && $test &&
+		$test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
 }
 
 sub print_warning
@@ -2131,6 +2077,28 @@ sub resize_handler
 ##############################################################################
 ##############################################################################
 
+#
+# void fork_process( code, int fgflag)
+#
+
+sub fork_process {
+	local( $psh::code, $psh::fgflag) = @_;
+	local $psh::pid;
+
+	unless ($psh::pid = fork) { #child
+		open(STDIN,"-");
+		open(STDOUT,">-");
+		open(STDERR,">&STDERR");
+		remove_signal_handlers();
+		setpgid(getpid(),getpid());
+		give_terminal_to(getpid()) if $psh::fgflag;
+		&{$psh::code};
+	}
+	setpgid($psh::pid,$psh::pid);
+	create_job($psh::pid, $psh::string, !$psh::fgflag);
+	wait_for_system($psh::pid, 1) if $psh::fgflag;
+}
+
 
 
 #
@@ -2157,29 +2125,11 @@ sub my_system
 		$fgflag=0;
 	}
 
-	eval {
-		my $pid;
-		unless ($pid = fork) { #child
-		  open(STDIN,"-");
-		  open(STDOUT,">-");
-		  open(STDERR,">&STDERR");
-		  remove_signal_handlers();
-		  setpgid(getpid(),getpid());
-		  if( $fgflag) { give_terminal_to(getpid()); }
-		  exec $call;
-		  print_error("Error (exec $call) failed.");
-		  exit -1;
-		}
-		# the real me
-		setpgid($pid,$pid);
-		create_job($pid, $call, !$fgflag);
-		if( $fgflag)
-		{
-			wait_for_system($pid, 1);
-		}
-	};
-
-	print_debug("Status $@\n") if $@;
+	fork_process( sub {
+		exec $call;
+		print_error("Error (exec $call) failed.");
+		exit -1;
+	}, $fgflag);
 }
 
 
