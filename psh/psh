@@ -17,7 +17,7 @@ use Getopt::Std;
 
 use vars qw($VERSION %opt);
 
-$VERSION='0.005';
+$VERSION='0.006pre';
 
 #
 # Parse the command line and deal with the options except -r, which is
