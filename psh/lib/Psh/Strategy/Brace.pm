@@ -1,5 +1,14 @@
 package Psh::Strategy::Brace;
 
+
+=item * C<bang>
+
+Input within curly braces will be sent unchanged to the perl
+interpreter.
+
+=cut
+
+
 require Psh::Strategy;
 require Psh::Strategy::Eval;
 
@@ -13,7 +22,7 @@ sub consumes {
 }
 
 sub runs_before {
-	return qw(buil_tin);
+	return qw(built_in);
 }
 
 sub applies {

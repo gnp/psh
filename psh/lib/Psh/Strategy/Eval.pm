@@ -1,5 +1,12 @@
 package Psh::Strategy::Eval;
 
+=item * C<eval>
+
+All input will be evaluated by the perl interpreter without
+any conditions.
+
+=cut
+
 require Psh::Strategy;
 
 use strict;

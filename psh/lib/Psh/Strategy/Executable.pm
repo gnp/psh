@@ -1,8 +1,22 @@
 package Psh::Strategy::Executable;
 
+
+=item * C<executable>
+
+This strategy will search for an executable file and execute it
+if possible.
+
+C<$Psh::Strategy::Executable::expand_arguments> is true if this
+strategy should do variable expansion at all.
+
+C<@Psh::Strategy::Executable::noexpand> holds a list of regular
+expressions. If the executable name matches one of those expressions,
+there won't be any variable expansion.
+
+=cut
+
 require Psh::Strategy;
 
-use strict;
 use vars qw(@ISA @noexpand $expand_arguments);
 
 $expand_arguments=1;

@@ -1,5 +1,14 @@
 package Psh::Strategy::Comment;
 
+
+=item * C<bang>
+
+If the input line starts with # all remaining input will be
+ignored.
+
+=cut
+
+
 require Psh::Strategy;
 
 use strict;

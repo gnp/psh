@@ -139,6 +139,7 @@ sub setup_defaults {
 	@order= (
 			 get('comment'),
 			 get('bang'),
+			 get('perl'),
 			 get('brace'),
 			 get('built_in'),
 			 get('executable'),

@@ -2,10 +2,17 @@ package Psh::Strategy::Bang;
 
 require Psh::Strategy;
 
-use strict;
+
+=item * C<bang>
+
+If the input line starts with ! all remaining input will be
+sent unchanged to /bin/sh
+
+=cut
+
+
+
 use vars qw(@ISA);
-
-
 @ISA=('Psh::Strategy');
 
 sub consumes {
