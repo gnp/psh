@@ -25,6 +25,23 @@ A reverse-chronological ordered list of changes
 ###############################################################################
 ###############################################################################
 
+=head1 1.1 [2003-01-16]
+
+=head2 Fixes
+
+=over 4
+
+=item *
+
+Put VERSION back in Psh.pm instead of in the main psh script.
+
+=item *
+
+Some copyright updates.
+
+=back
+
+
 =head1 1.0 [2003-01-02]
 
 =head2 New Features
