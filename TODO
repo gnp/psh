@@ -52,14 +52,11 @@
 
 1999-11-01
 
-  * There is something called the XML Shell that is like an xterm, but
+  * There is something called the XMLTerm that is like an xterm, but
     uses XML for its display. Find out if there is anything that can
     be done in psh to make interaction via XML Shell especially nice.
-	(I lost the URL. Please patch this file if you find it...).
-    [GNP]
 
-	Update 1999-12-26: It is acutally called XMLTerm. It was mentioned on
-	MozillaZine on 1999-09-27:
+	XMLTerm was mentioned in MozillaZine on 1999-09-27:
 
 		http://www.mozillazine.org/talkback.html?article=813
 
