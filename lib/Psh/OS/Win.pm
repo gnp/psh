@@ -308,7 +308,7 @@ sub abs_path {
 	undef;
 }
 
-sub getcwd {
+sub getcwd_psh {
 	my $tmp;
 	if (defined &Win32::GetCwd) {
 		$tmp= Win32::GetCwd();

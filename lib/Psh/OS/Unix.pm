@@ -734,7 +734,7 @@ sub _resize_handler
 	$SIG{$sig} = \&_resize_handler;
 }
 
-sub getcwd {
+sub getcwd_psh {
 	return POSIX::getcwd();
 }
 
