@@ -100,6 +100,15 @@ Switch to new evaluation strategies system. Please also see README.upgrade
 
 =back
 
+=head2 Other changes
+
+=over 4
+
+=item *
+
+The comment strategy was removed. Comments are now already recognized and
+ignored by the parser.
+
 =cut
 
 ###############################################################################

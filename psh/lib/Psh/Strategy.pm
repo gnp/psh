@@ -137,7 +137,6 @@ sub parser_return_objects {
 
 sub setup_defaults {
 	@order= (
-			 get('comment'),
 			 get('bang'),
 			 get('perl'),
 			 get('brace'),
