@@ -7,6 +7,10 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 
 1;
 
+sub get_hostname() {
+	return qx(hostname);
+}
+
 __END__
 
 =head1 NAME
