@@ -10,6 +10,9 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 # psh with sensible functionality is possible at all
 # -warp (Markus Peter)
 
+sub AUTOLOAD {
+	die "Sorry, no Mac support available.\n";
+}
 
 1;
 
