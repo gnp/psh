@@ -118,27 +118,40 @@ __END__
 
 =head1 NAME
 
-Psh::Joblist - Perl extension for blah blah blah
+Psh::Joblist - A data structure suitable for handling job lists like bash´s
 
 =head1 SYNOPSIS
 
   use Psh::Joblist;
-  blah blah blah
+
+  $joblist= new Psh::Joblist();
+
+  $job = $joblist->create_job($pid,$displayed_command);
+
+  $joblist->delete_job($pid);
+
+  $job = $joblist->get_job($pid);
+
+  $flag = $joblist->job_exists($pid);
+
+  $index = $joblist->get_job_number($pid);
+
+  $job = $joblist->find_job();
+  $job = $joblist->find_job($index);
+
+  $joblist->enumerate();
+  while( $job=$joblist->each()) { ... }  
 
 =head1 DESCRIPTION
 
-Stub documentation for Psh::Joblist was created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
+Read the source ;-)
 
 =head1 AUTHOR
 
-A. U. Thor, a.u.thor@a.galaxy.far.far.away
+Markus Peter (warp@spin.de)
 
 =head1 SEE ALSO
 
-perl(1).
+Psh::Job(3)
 
 =cut
