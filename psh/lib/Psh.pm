@@ -268,7 +268,7 @@ sub evl {
 		return;
 	}
 
-	if (!defined(@use_strats) or scalar(@use_strats) == 0) {
+	if (!@use_strats) {
 		@use_strats = @strategies;
 	}
 
