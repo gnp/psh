@@ -7,7 +7,7 @@ my %functions=();
 sub add_function {
 	my $name= shift;
 	my $text= shift;
-	$functions{$name}= [split /\n/, $text];
+	$functions{$name}= [map { $_."\n" } split /\n/, $text];
 }
 
 sub call_function {
