@@ -6,6 +6,7 @@ WriteMakefile (
 	AUTHOR       => 'Gregor N. Purdy (gregor@focusresearch.com)',
 	ABSTRACT     => 'Perl Shell',
 	EXE_FILES    => [ qw(psh) ],
+	MAN1PODS     => { 'psh.pod' => '$(INST_MAN1DIR)/psh.$(MAN1EXT)' },
 	PM           => {
 		'lib/Psh/Completion.pm' => '$(INST_LIBDIR)/Psh/Completion.pm',
 		'lib/Psh/Job.pm'        => '$(INST_LIBDIR)/Psh/Job.pm',
