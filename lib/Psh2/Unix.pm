@@ -116,6 +116,7 @@ sub fork {
 	}
 	remove_signal_handlers();
 	_setup_redirects($options->{redirects});
+        _setup_env($options->{env});
 	POSIX::setpgid( 0, $pgrp_leader || $$);
 	give_terminal_to( $self, $pgrp_leader || $$ ) if $fgflag and $giveterm;
 	my $status= execute($self, $tmp);
@@ -136,6 +137,13 @@ sub fork {
 
 	local $SIG{TTOU}= 'IGNORE';
 	POSIX::tcsetpgrp( fileno STDIN, $pid);
+    }
+}
+
+sub _setup_env {
+    my $env= shift;
+    while (my ($key,$value)= each %$env) {
+        $ENV{$key}=$value;
     }
 }
 

@@ -766,6 +766,7 @@ sub del_option {
 	    my $fork= 0;
 	    if ($i<$tmplen or !$fgflag or
                 @{$options->{redirects}} or
+                %{$options->{env}} or
 		$strategy eq 'execute') {
 		$fork= 1;
 	    }
