@@ -83,6 +83,13 @@ sub get_option {
 	return undef;
 }
 
+sub has_option {
+	my $option= lc(shift());
+	return 1 if exists $options{$option} or ($env_options{$option} and
+											 exists $ENV{uc($option)});
+	return 0;
+}
+
 sub del_option {
 	my $option= lc(shift());
 	if ($env_options{$option}) {

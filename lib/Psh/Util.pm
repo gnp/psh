@@ -91,10 +91,18 @@ sub print_list
     ## find width of widest entry
     my $maxwidth = 0;
 	my $screen_width=$ENV{COLUMNS};
-    grep(length > $maxwidth && ($maxwidth = length), @list);
-    $maxwidth++;
 
-    $columns = $maxwidth >= $screen_width?1:int($screen_width / $maxwidth);
+	if (ref $list[0] and ref $list[0] eq 'ARRAY') {
+		$maxwidth= $list[1];
+		@list= @{$list[0]};
+	}
+
+	unless ($maxwidth) {
+		grep(length > $maxwidth && ($maxwidth = length), @list);
+	}
+	$maxwidth++;
+
+	$columns = $maxwidth >= $screen_width?1:int($screen_width / $maxwidth);
 
     ## if there's enough margin to interspurse among the columns, do so.
     $maxwidth += int(($screen_width % $maxwidth) / $columns);
@@ -105,9 +113,19 @@ sub print_list
     $mark = $#list - $lines;
     for (my $l = 0; $l < $lines; $l++) {
         for ($index = $l; $index <= $mark; $index += $lines) {
-            print_out(sprintf("%-$ {maxwidth}s", $list[$index]));
+			my $tmp= my $item= $list[$index];
+			$tmp=~ s/\001(.*?)\002//g;
+			$item=~s/\001//g;
+			$item=~s/\002//g;
+			my $diff= length($item)-length($tmp);
+			my $dispsize= $maxwidth+$diff;
+            print_out(sprintf("%-${dispsize}s", $item));
         }
-        print_out($list[$index]) if $index <= $#list;
+		if ($index<=$#list) {
+			my $item= $list[$index];
+			$item=~s/\001//g; $item=~s/\002//g;
+			print_out($item);
+		}
         print_out("\n");
     }
 }
