@@ -17,7 +17,7 @@ sub execute {
 
 	my $i;
 	my $num= scalar(@{$psh->{history}});
-	my $grep= undef;
+	my $grep;
 
 	return 0 unless $num;
 
@@ -26,7 +26,7 @@ sub execute {
 			if ($arg=~/^\d+$/) {
 				$num=$arg if $arg<$num;
 			}
-			if ($arg=~/^\S+$/) {
+			elsif ($arg=~/^\S+$/) {
 				$grep=$arg;
 			}
 		}
@@ -40,7 +40,7 @@ sub execute {
 	}
 	for ($i=@{$psh->{history}}-$num; $i<$max; $i++) {
 		next if $grep and $psh->{history}[$i]!~/\Q$grep\E/;
-		$psh->println(' '.sprintf('%3d',$i+1).'  '.$psh->{history}[$i]);
+		$psh->printf(" %3d  %s\n", $i+1, $psh->{history}[$i]);
 		$success=1;
 	}
 	return $success;
