@@ -41,6 +41,11 @@ sub init {
 		$lang=ucfirst(lc($lang));
 		$lang=$alias_table{$lang} if( exists $alias_table{$lang});
 		eval "use Psh::Locale::$lang";
+		#
+		# We are reading the locale data simply as perl modules
+		# A better way would be to maybe use Locale::PGetText
+		# but that would again increase the requirements for
+		# psh unnecessarily
 	}
 }
 
