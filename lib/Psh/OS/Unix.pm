@@ -400,6 +400,16 @@ sub _setup_redirects {
 	return \@cache;
 }
 
+sub _has_redirects {
+	my $options= shift;
+	return 0 if ref $options ne 'ARRAY';
+
+	foreach my $option (@$options) {
+		return 1 if( $option->[0] == Psh::Parser::T_REDIRECT());
+	}
+	return 0;
+}
+
 sub _remove_redirects {
 	my $cache= shift;
 
@@ -430,14 +440,14 @@ sub _fork_process {
 		$pgrp_leader, $termflag, $forcefork) = @_;
 	my($pid);
 
-	# HACK - if it's foreground code AND perl code
+	# HACK - if it's foreground code AND perl code AND
+	# there are no redirects
 	# we do not fork, otherwise we'll never get
 	# the result value, changed variables etc.
-	if( $fgflag && !$forcefork && ref($code) eq 'CODE') {
-		local(*OLDIN,*OLDOUT,*OLDERR);
-		my $cache= _setup_redirects($options,1);
+	if( $fgflag and !$forcefork and ref($code) eq 'CODE'
+		and !_has_redirects($options)
+	  ) {
 		my @result= eval { &$code };
-		_remove_redirects($cache);
 		Psh::Util::print_error($@) if $@ && $@ !~/^SECRET/;
 		return (0,@result);
 	}
