@@ -11,12 +11,6 @@
 
 1999-12-13
 
-  * Get rid of calls to system() and mentions of it in the documentation,
-    since a shell should not be dependent upon an underlying shell. We
-    need to implement system()'s functionality in terms of fork and
-    exec on our own.
-    [GNP]
-
   * Make a new strategy: '? ...', that shows information about how psh
     is processing the line. For example, show it after alias expansion,
     etc. Perhaps ? ... could be short-form (just alias and var subst)
