@@ -38,7 +38,7 @@ C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
 
 The command-line arguments to B<psh> are:
 
- psh [-d] [-w] [-r RC_FILE] [-c STRING ] [FILE1 FILE2 ....]
+ psh [-d] [-w] [-f RC_FILE] [-c STRING ] [FILE1 FILE2 ....]
 
 They are processed in the following order, regardless of what order
 they are specified in:
@@ -61,9 +61,9 @@ debugging mode in a running B<psh> via the C<$Psh::debugging> variable.
 
 Only for compatibility reasons and ignored by Perl Shell.
 
-=item * B<-r> I<file>
+=item * B<-f> I<file>
 
-The B<-r> option specifies a file of commands to be read in and
+The B<-f> option specifies a file of commands to be read in and
 evaluated before processing begins. If it is not set, and
 C<$ENV{HOME}> is set, and the file F<$ENV{HOME}/.pshrc> is present, it
 will be used. If B<-r> is not specified and the current directory is
