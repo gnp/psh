@@ -3,9 +3,9 @@ package Psh::OS;
 use strict;
 use vars qw($VERSION $AUTOLOAD $ospackage);
 use Carp 'croak';
+use Cwd;
 use Config;
 use File::Spec;
-use POSIX;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -96,10 +96,10 @@ sub fb_glob {
 	} elsif( $pattern=~ m:/:) {
 		# Too difficult to simulate, so use slow variant
 		my $old=$ENV{PWD};
-		chdir $dir;
+		CORE::chdir $dir;
 		$pattern=_escape($pattern);
 		@result= eval { CORE::glob($pattern); };
-		chdir $old;
+		CORE::chdir $old;
 	} else {
 		# The fast variant for simple matches
 		$pattern=_escape($pattern);
@@ -160,6 +160,24 @@ sub fb_setup_sigsegv_handler {1}
 sub fb_setup_readline_handler {1}
 sub fb_reinstall_resize_handler {1}
 sub fb_reap_children {1}
+sub fb_abs_path { undef }
+
+#
+# Exit psh - you won't believe it, but exit needs special treatment on
+# MacOS
+#
+sub fb_exit_psh {
+	Psh::Util::print_debug_class('i',"[Psh::OS::exit() called]\n");
+	Psh::save_history();
+	$ENV{SHELL} = $Psh::old_shell if $Psh::old_shell;
+	CORE::exit($_[0]) if $_[0];
+	CORE::exit(0);
+}
+
+sub fb_getcwd {
+	return Cwd::getcwd();
+}
+
 1;
 
 __END__

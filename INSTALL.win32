@@ -1,22 +1,40 @@
-REQUIREMENTS
-------------
+INSTALLATION WITH ACTIVE PERL AND MS VC++
+-----------------------------------------
 
-You may have success with psh on a Win32 system. However, installation and
-usage is considerably more complicated, so for now it is recommended only
-for developers. You'll want the latest ActivePerl distribution
-(http://www.activestate.com/ActivePerl/) or at least perl 5.005 and the 
-latest libwin32 bundle from CPAN.
+The installation has been tested using Active Perl 5.6. First, correctly
+install ActivePerl. If you own MS VC++ you have everything you need,
+otherwise get nmake now from
+ftp://ftp.microsoft.com/Softlib/MSLFILES/nmake15.exe
+and install it in your path.
+
+Now the usual procedure
+
+perl Makefile.PL
+nmake
+nmake install
+
+should work
+
+We also suggest installing the Term::ReadLine::Perl (or if you have Cygwin -
+Term::ReadLine::Gnu) module, though it will have limited functionality as
+Term::ReadKey which ReadLine::Perl relies on does not compile on Windows with
+VC++. We can only urge you to get Cygwin, so ReadLine::Gnu runs.
+
+You can start the perl shell now using 'psh'
+
+INSTALLATION WITH NORMAL PERL
+-----------------------------
+
+You will need the libwin32 bundle from CPAN in case you do not have
+ActivePerl.
 
 
-INSTALLING psh
---------------
-
-These instructions are temporary; they allow you to run psh, but not make
-it run when you open a terminal window.
+INSTALLING WITHOUT MAKE/NMAKE
+-----------------------------
 
 Assuming perl is in your %PATH% and you are in the directory containing
 the psh script, try
 	perl -Ilib psh
 
-You can manually move the modules into your lib directory. You might also
-have success imitating the Unix instructions with nmake.
+You can manually move the modules into your lib directory and create a
+.BAT or .CMD file executing the perl shell with the above command

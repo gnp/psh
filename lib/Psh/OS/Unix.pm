@@ -2,7 +2,7 @@ package Psh::OS::Unix;
 
 use strict;
 use vars qw($VERSION);
-use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
+use POSIX qw(:sys_wait_h tcsetpgrp setpgid getcwd);
 use Config;
 use File::Spec;
 use Sys::Hostname;
@@ -81,18 +81,6 @@ sub display_pod {
 	print $text if $@;
 
 	unlink($tmp);
-}
-
-#
-# Exit psh - you won't believe it, but exit needs special treatment on
-# MacOS
-#
-sub exit {
-	Psh::Util::print_debug_class('i',"[Psh::OS::Unix::exit() called]\n");
-	Psh::save_history();
-	$ENV{SHELL} = $Psh::old_shell if $Psh::old_shell;
-	CORE::exit($_[0]) if $_[0];
-	CORE::exit(0);
 }
 
 sub get_home_dir {
@@ -456,7 +444,7 @@ sub _fork_process {
 
 		if( ref($code) eq 'CODE') {
 			&{$code};
-			&exit(0);
+			CORE::exit(0);
 		} else {
 			{
 				if( ! ref $options) {
@@ -467,7 +455,7 @@ sub _fork_process {
 				}
 			} # Avoid unreachable warning
 			Psh::Util::print_error_i18n('exec_failed',$code);
-			&exit(-1);
+			CORE::exit(-1);
 		}
 	}
 	setpgid($pid,$pgrp_leader||$pid);
@@ -544,7 +532,7 @@ sub backtick {
 		close(READ);
 		open(STDOUT,">&WRITE");
 		Psh::evl($com);
-		exit;
+		CORE::exit;
 	}
 	close(WRITE);
 	my $result='';
@@ -746,7 +734,9 @@ sub _resize_handler
 	$SIG{$sig} = \&_resize_handler;
 }
 
-
+sub getcwd {
+	return POSIX::getcwd();
+}
 
 1;
 

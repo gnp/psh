@@ -2,7 +2,6 @@ package Psh;
 
 use locale;
 use Config;
-use Cwd qw(:DEFAULT chdir);
 use FileHandle;
 use File::Spec;
 use File::Basename;
@@ -700,7 +699,7 @@ sub minimal_initialize
 
 	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
-	$ENV{PWD} = cwd;
+	$ENV{PWD} = Psh::OS::getcwd();
 	$ENV{PSH_TITLE} = $bin;
 
 	Psh::OS::inc_shlvl();

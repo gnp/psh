@@ -3,7 +3,6 @@ package Psh::Completion;
 use strict;
 use vars qw($VERSION @bookmarks @user_completions $ac $complete_first_word_dirs);
 
-use Cwd qw(:DEFAULT chdir);
 use Psh::Util qw(:all starts_with ends_with);
 use Psh::OS;
 use Psh::PCompletion;

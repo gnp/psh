@@ -155,7 +155,7 @@ $Psh::strategy_eval{perlscript} = sub {
 
 			do $script;
 
-			exit 0;
+			CORE::exit 0;
 		}, [], 1, undef);
 };
 

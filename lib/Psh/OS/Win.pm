@@ -12,6 +12,7 @@ eval {
 	use Win32::TieRegistry 0.20;
 	use Win32::Process;
 	use Win32::Console;
+	use Win32::NetAdmin;
 };
 
 if ($@) {
@@ -55,19 +56,11 @@ sub get_hostname {
 sub get_known_hosts {
 	my $hosts_file = "$ENV{windir}\\HOSTS";
 	my $hfh = new FileHandle($hosts_file, 'r');
-	return qw("localhost") unless defined($hfh);
+	return "localhost" unless defined($hfh);
 	my $hosts_text = join('', <$hfh>);
 	$hfh->close();
 	return Psh::Util::parse_hosts_file($hosts_text);  
 }
-
-sub exit {
-	Psh::save_history();
-	$ENV{SHELL} = $Psh::old_shell if $Psh::old_shell;
-	CORE::exit(@_[0]) if $_[0];
-	CORE::exit(0);
-}
-
 
 #
 # void display_pod(text)
@@ -201,17 +194,20 @@ sub fork_process {
 }
 
 sub get_all_users {
-	my @result = (".DEFAULT");
-	if (-d "$ENV{windir}\Profiles") {
-		my $Profiles = new DirHandle "$ENV{windir}\Profiles";
-		if (defined($Profiles)) {
-			while (defined(my ($Profile) = $Profiles->read())) {
-				if (-d $Profile) {
-					push (@result, $Profile);
-				}
-			}
-		}
-	}
+	my @result=();
+	Win32::NetAdmin::GetUsers("",FILTER_NORMAL_ACCOUNT,\@result);
+# does not work e.g. on Win2000
+#	my @result = (".DEFAULT");
+#  	if (-d "$ENV{windir}\Profiles") {
+#  		my $Profiles = new DirHandle "$ENV{windir}\Profiles";
+#  		if (defined($Profiles)) {
+#  			while (defined(my ($Profile) = $Profiles->read())) {
+#  				if (-d $Profile) {
+#  					push (@result, $Profile);
+#  				}
+#  			}
+#  		}
+#  	}
 	return @result;
 }
 
@@ -261,7 +257,11 @@ sub get_home_dir {
 	my $user= shift;
 	my $home;
 	if (!$user) {
-		$home=$ENV{HOME}||$ENV{HOMEDRIVE}.$ENV{HOMEPATH};
+		$home=$ENV{HOME}||$ENV{USERPROFILE}||$ENV{HOMEDRIVE}.$ENV{HOMEPATH};
+	} else {
+		# There is a UserGetAttributes function in Win32::NetAdmin but
+		# it will only work if you're admin
+		# I'v searched my registry but did not find something usable
 	}
 	return $home||"\\";
 } # we really should return something (profile?)
@@ -270,15 +270,14 @@ sub get_home_dir {
 sub get_rc_files {
 	my @rc=();
 
-	if (-r '/etc/pshrc') {
-		push @rc, '/etc/pshrc';
-	}
+	push @rc, "\\etc\\pshrc" if -r "\\etc\\pshrc";
+	push @rc, "$ENV{WINDIR}\\pshrc" if -r "$ENV{WINDIR}\\pshrc";
 	my $home= Psh::OS::get_home_dir();
 	if ($home) { push @rc, File::Spec->catfile($home,$Psh::rc_file) };
 	return @rc;
 }
 
-sub remove_readline_handler {1} #FIXME: better than not running at all
+sub remove_readline_handler {1}
 
 sub is_path_absolute {
 	my $path= shift;
@@ -289,7 +288,7 @@ sub is_path_absolute {
 
 sub get_path_extension {
 	my $extsep = $Psh::OS::PATH_SEPARATOR || ';';
-	my $pathext = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\Environment\\PATHEXT"} || $ENV{PATHEXT} || ".cmd;.bat;.exe;.com";
+	my $pathext = $ENV{PATHEXT} || $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\Environment\\PATHEXT"} || ".cmd;.bat;.exe;.com"; # Environment has precedence over LOCAL_MACHINE registry
 	return split("$extsep",$pathext);
 }
 
@@ -297,6 +296,25 @@ sub get_path_extension {
 # Simply doing backtick eval - mainly for Prompt evaluation
 sub backtick {
 	return `@_`;
+}
+
+sub abs_path {
+	my $dir= shift;
+	if (defined &Win32::GetFullPathName) {
+		my $tmp= Win32::GetFullPathName($dir);
+		$tmp=~tr:\\:/:; # otherwise prompt code etc messes up
+		return $tmp;
+	}
+	undef;
+}
+
+sub getcwd {
+	my $tmp;
+	if (defined &Win32::GetCwd) {
+		$tmp= Win32::GetCwd();
+		$tmp=~tr:\\:/:;
+	}
+	return $tmp||Psh::OS::fb_getcwd();
 }
 
 
