@@ -18,7 +18,7 @@ BEGIN {
 						   'ABRT' => 'interrompu',
 						   'ILL'  => 'illégale instruction',
 						   'TSTP' => 'arrêtez tapé au téléscripteur',
-						   'INT'  => 'le caractère d'interruption a tapé'
+						   'INT'  => "le caractère d'interruption a tapé"
 						   );
 
 	$Psh::text{sig_description}=\%sig_description;
