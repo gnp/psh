@@ -238,11 +238,69 @@ will search for foo in all *.pm files which are somewhere
 (recursivly) within the lib directory.
 
 
+=head2 REDIRECTS
+
+The standard output may be redirected to a file with
+
+    command > file
+
+and the standard input may be taken from a file with
+
+    command < file
+
+File descriptors other than 0 and 1 may be specified in an rc-like
+syntax.
+
+To redirect standard error to a file use:
+
+    command >[2] file
+
+(this is 'command 2> file' in sh-derivatives! sh-syntax is not
+supported)
+
+To redirect both, standard output and standard error use:
+
+   command >[all] file
+
+It's also possible to redirect to opened Perl filehandles. If you e.g.
+opened a handle "FOO" for writing you may use:
+
+   command >[=FOO]
+
+to write to that filehandle.
+
 =head2 PIPELINES
 
 Pipelines are used to construct processing chains.
 
     cat a.txt b.txt | wc -l
+
+This is the same as in other shells - standard output of the first
+command will be standard input of the second command.
+
+To redirect different file descriptors, use e.g.
+
+    command |[5] command2
+
+to redirect file descriptor 5 to standard input of command.
+
+It is also possible to redirect to a different filedescriptor than
+standard input for the right-hand command:
+
+    command |[1=5] command2
+
+will redirect standard output from the first command to a newly opened
+stream on file descriptor 5 for command. Thus, 'command | command' is
+only a short hand version of 'command |[1=0] command'.
+
+An alias is provided for piping standard error and standard output at
+the same time:
+
+    command |[all] command2
+
+will pipe both to command2 and is so an easier to remember version of
+
+    command >[2=1] | command2
 
 
 =head2 MANIFEST FILTERS

@@ -791,46 +791,6 @@ sub is_number
 		$test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
 }
 
-##############################################################################
-##############################################################################
-##
-## SUBROUTINES: Support
-##
-##############################################################################
-##############################################################################
-
-#
-# void my_system(string COMMAND_LINE)
-#
-# Executes COMMAND_LINE via system, noticing and stripping final '&'
-# to allow jobcontrol
-#
-
-sub my_system
-{
-	my($call) = @_;
-
-	#
-	# TODO: This is an absolute hack... we need
-	# a full parser for quoting and all special
-	# characters soon!!
-	#
-	# Well, Psh::Parser::decompose is pretty flexible now; perhaps
-	# this function ought to be modified to take the fgflag as a
-	# parameter, and the calls changed to have done the parsing
-	# already, passing only the actyal string to be exec'ed and
-	# the fgflag. Just one way maybe to skin the cat...
-
-	my $fgflag = 1;
-
-	if ($call =~ /^(.*)\&\s*$/) {
-		$call= $1;
-		$fgflag=0;
-	}
-
-	Psh::OS::fork_process( $call, $fgflag, $call);
-}
-
 #
 # End of file.
 #

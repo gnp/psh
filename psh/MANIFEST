@@ -65,6 +65,7 @@ lib/Psh/Builtins/Export.pm
 lib/Psh/Builtins/Fc.pm
 lib/Psh/Builtins/Fg.pm
 lib/Psh/Builtins/Firsttime.pm
+lib/Psh/Builtins/Forfile.pm
 lib/Psh/Builtins/Function.pm
 lib/Psh/Builtins/Hash.pm
 lib/Psh/Builtins/Help.pm
