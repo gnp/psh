@@ -483,7 +483,7 @@ sub _parse_simple {
     my $line= join ' ', @words;
 
     if (is_group($words[0])) {
-	return ['reparse', undef, \@options, \@words, $line, $opt];
+	return ['reparse', undef, \@options, \@words, $line, $opt, undef];
     }
 
     if (length($first)>1 and substr($first,-1) eq ':') {
@@ -494,7 +494,7 @@ sub _parse_simple {
 		print STDERR $@;
 		# TODO: Error handling
 	    }
-	    return [ 'call', 'Psh2::Language::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt];
+	    return [ 'call', 'Psh2::Language::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt, undef];
 	} else {
 	    die "parse: unsupported language $tmp";
 	}
@@ -510,13 +510,13 @@ sub _parse_simple {
 		print STDERR $@;
 		# TODO: Error handling
 	    }
-	    return [ 'call', 'Psh2::Builtins::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt];
+	    return [ 'call', 'Psh2::Builtins::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt, undef];
 	}
     }
     unless ($opt->{builtin}) {
 	my $tmp= $psh->which($first);
 	if ($tmp) {
-	    return [ 'execute', $tmp, \@options, \@words, $line, $opt];
+	    return [ 'execute', $tmp, \@options, \@words, $line, $opt, undef];
 	}
 	foreach my $strategy (@{$psh->{strategy}}) {
 	    my $tmp= eval {
@@ -525,9 +525,13 @@ sub _parse_simple {
 	    if ($@) {
 		# TODO: Error handling
 	    } elsif ($tmp) {
-		return [ $strategy, $tmp, \@options, \@words, $line, $opt];
+		return [ $strategy, $tmp, \@options, \@words, $line, $opt, undef];
 	    }
 	}
+    }
+    if (exists $psh->{function}{$first}) {
+	return [ 'call', $psh->{function}{$first}[0], \@options, \@words,
+	         $line, $opt, $psh->{function}{$first}[1]];
     }
     die "duh";
 }
