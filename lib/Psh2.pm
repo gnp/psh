@@ -373,7 +373,7 @@ sub printdebug {
             $last_path ne $ENV{PATH} or
             ($path_contains_relatives and
              $last_cwd ne $ENV{PWD})) {
-	    _recalc_absed_path($self);
+	    recalc_absed_path($self);
 	}
 	my $path_ext= get_path_extension();
 	my @all= ();
@@ -397,7 +397,7 @@ sub printdebug {
 	return undef;
     }
 
-    sub _recalc_absed_path {
+    sub recalc_absed_path {
 	my $self= shift;
 
         $last_path= $ENV{PATH};
@@ -420,6 +420,7 @@ sub printdebug {
 	};
 	print $@ if $@;
 	# TODO: Error handling
+        return \@absed_path;
     }
 }
 
