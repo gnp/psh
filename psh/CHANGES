@@ -1,0 +1,221 @@
+0.005 [1999-12-28]
+    A very functional release.
+
+  New Evaluation Strategies
+
+    *   brace
+
+    *   fallback_builtin
+
+        Builtins of this type (currently searched in package
+        `Psh::Builtins::Fallback') will be executed AFTER no program
+        of that name was found. This allows simulation of common
+        commands like ls and env on systems not having such
+        binaries.
+
+    *   auto_resume
+
+  New Bultins
+
+    *   builtin
+
+    *   env
+
+        On systems with an env binary installed it will use the
+        binary, on other systems (namely Win32) it will print a list
+        of environment variables.
+
+    *   help
+
+    *   unalias
+
+  Builtin Enhancements
+
+    *   alias
+
+        Changed builtin alias so that '`alias name'' displays the
+        alias definition for that name.
+
+    *   bg
+
+        It's now possible to do '`bg commandname'' (e.g. '`bg
+        emacs'') fg has the same behaviour for consistency.
+
+    *   cd
+
+        Respects `CDPATH' now and sets `OLDPWD'.
+
+  Portability Enhancements
+
+    *   Added portability infrastructure.
+
+    *   Working Win32 port (though it has limited features).
+
+  Completion Enhancements
+
+    *   Variables for bookmark completion are now
+        `@Psh::Completion::bookmarks' and
+        `@Psh::Completion::netprograms'.
+
+    *   New Perl Hashkey completion will TAB complete the name of keys
+        for Perl hashes (if they are not written in quotes).
+
+    *   Support for user defined completions by
+        `%Psh::Completion::custom_completions'.
+
+    *   Perl Symbol completion now supports package names and package
+        name completion.
+
+    *   Support for TAB completions for builtins.
+
+    *   A `custom_completions' entry may now also be code. If the value
+        of a `custom_completions' key/value pair is a `sub' that
+        `sub' will be called and the result used as rules.
+
+    *   A rule for `custom_completions' may now have an optional third
+        argument. If that argument is true, the `custom_completion'
+        will replace the standard completions instead of adding to
+        them.
+
+    *   Filename Completion respects the `FIGNORE' environment variable
+        now.
+
+  Other Changes
+
+    *   Documentation updates.
+
+    *   Locales defined for: Default (English), French, German, Italian,
+        Portuguese, and Spanish.
+
+    *   New fallback builtins: ls
+
+    *   Prompt evaluation is now more bash compatible and handles even
+        more complex prompts.
+
+    *   Replaced `Psh::OS::Unix::glob()' - now uses its own glob routine
+        instead of `CORE::glob()' - and is significantly faster
+        (important for executable completion).
+
+    *   New variables: `$Psh::Prompt_cont', `$Psh::result_array'.
+
+    *   Moved almost all code from `psh' into `Psh', `Psh::Builtins' and
+        `Psh::Util'.
+
+    *   Environment variable `CURRENT_SHELL' is set to the path to psh.
+
+  Bug Fixes
+
+    *   Generation of weekday names.
+
+    *   Small fixes for setenv, print_list and abs_path.
+
+    *   Fixed signal description generation.
+
+0.004 [1999-12-13]
+    This release fixes bugs, refactors the code, and adds the
+    following features:
+
+    *   Background process management much more like bash.
+
+    *   Perl code in addition to executables may be put in the
+        background.
+
+    *   Pipelines.
+
+    *   Initial internationalization.
+
+    *   New built-ins: `alias', `export', `setenv'.
+
+    *   A flexible set of evaluation strategies that can be selected or
+        reordered by setting a configuration variable.
+
+    *   Prompt strings can have escapes like `\07' (ASCII `BEL') or
+        `\10' (ASCII `LF').
+
+    *   avoided trying to save history if there wasn't even a `ReadLine'
+        module.
+
+    *   added `$psh::debugging' variable to hold the debugging state, so
+        it can be turned on and off in a running psh.
+
+    *   A `$psh::echo' variable to control whether perl results of
+        evaluation are printed.
+
+    *   The `which' builtin now shows which strategy will apply to a
+        given command line
+
+    *   Grab more input automatically if `<<BLOCK' appears anywhere on
+        the line, or if the line ends with an open brace.
+
+    *   results of `&psh::which()' searches are hashed.
+
+    *   Thorough documentation of every user-accessible variable and
+        function
+
+0.003 [1999-11-23]
+    Contributions from Markus Peter:
+
+    *   Rudimentary background jobs handling and job management.
+
+    *   Signal handling.
+
+    *   Filename completion.
+
+    *   Updates to history handling.
+
+    *   Flexible `%built_ins' mechanism for adding built-in functions.
+
+    *   Smart mode is on by default.
+
+0.00205 [1999-11-08]
+    *   Changed prompting to pass prompt string into `&iget()', which
+        passes it on to `&Term::ReadLine::readline()' or prints it
+        out if the `ReadLine' module is not available. Thanks to Sam
+        Tregar and tmb at lumo.com.
+
+    *   Changed history handling so that empty lines and those
+        consisting of entirely whitespace are not recorded.
+
+    *   Fixed a couple of typos.
+
+    *   Changed the regular expression for `smart mode' to allow `vi +3
+        psh' in addition to `ls -l'.
+
+    *   Now uses `Getopt::Std' for option processing.
+
+    *   Fixed the code that detects the presence of `Term::ReadLine'.
+
+    *   Made more use of debug mode to print out advisory information.
+
+    *   Use zero instead of `undef' to set `Term::ReadLine::MinLine' so
+        that we don't get `undef' usage trouble in the guts of
+        `Term::ReadLine::Gnu'.
+
+0.00204 [1999-11-01]
+    *   Added a bunch of stuff to the `TODO' file.
+
+    *   Added parens around each part of the `$interactive' detection
+        expression.
+
+    *   Prompt variables are now dealt with via `%prompt_vars', which
+        can be modified, so that custom prompt variables can be
+        created.
+
+    *   Added `%built_ins'.
+
+0.00203 [1999-08-28]
+    *   Fixed typo that caused a bug where prompt variable `$' didn't
+        work. Thanks to John Labovitz.
+
+0.00202 [1999-08-23]
+    Patch.
+
+0.00201 [1999-08-23]
+    Patch.
+
+0.002 [1999-07-23]
+    Second release.
+
+0.001 [1999-07-23]
+    Initial release
+
