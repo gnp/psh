@@ -36,9 +36,9 @@ sub get_hostname {
 }
 
 sub get_known_hosts {
-        my $hosts_file = "$ENV{windir}\HOSTS";
+        my $hosts_file = "$ENV{windir}\\HOSTS";
         my $hfh = new FileHandle($hosts_file, 'r');
-        return ("localhost") unless defined($hfh);
+        return qw("localhost") unless defined($hfh);
         my $hosts_text = join('', <$hfh>); }
         $hfh->close();
         return Psh::Util::parse_hosts_file($hosts_text);  
