@@ -1,0 +1,59 @@
+NAME
+    `psh' - Perl Shell
+
+SYNOPSIS
+    A fairly simple read-eval loop. The `-w' flag and '`use strict''
+    are not employed so that the user is not bound by their
+    stipulations. Setting `$^W = 1' will turn on warnings, and
+    calling '<use strict>' will do the usual thing if called by the
+    user.
+
+DESCRIPTION
+    Each line of input is read and immediately evaluated.
+
+    Multiline input may be entered by starting with a line like
+    `&lt&ltXXX', followed by lines of input not having `XXX' on a
+    line by itself, followed by such a line. If `XXX' is not
+    specified, then the first blank line terminates the input.
+
+    An input line beginning with `!' will be given as a parameter to
+    the `system()' Perl function.
+
+    An input line beginning with `.' followed by a space and a file
+    name will cause the contents of the specified file to be read in
+    and evaluated.
+
+    If `$ENV{HOME}' is set, and the file `$ENV{HOME}/.pshrc' is
+    present, it will be read in and evaluated before processing
+    begins. If not, but <.pshrc> is present in the current
+    directory, it will be read and executed.
+
+    Setting the variable `$psh::prompt' to a string will cause that
+    string to be used as the prompt-string. Setting it to a
+    subroutine reference causes the result of running that
+    subroutine to be used each time. For example,
+
+      $psh::prompt = sub { $i++; "psh [$i]\$ "; }
+
+    will cause the prompt to be `psh [1]$' followed by `psh [2]$',
+    and so on.
+
+LIMITATIONS
+    The loop inside `psh' will clobber `$1' and other variables
+    because it uses matches to implement some of its special
+    functions.
+
+    Very little error checking is done.
+
+FILES
+    `.pshrc' - The user's Perl Shell `profile'. May be in `$HOME' or
+    the current directory.
+
+AUTHOR
+    Gregor N. Purdy, `gregor@focusresearch.com'
+
+COPYRIGHT
+    Copyright (C) 1999 Gregor N. Purdy. All rights reserved. This
+    script is free software. It may be copied or modified according
+    to the same terms as Perl itself.
+

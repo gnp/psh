@@ -1,0 +1,204 @@
+#!/usr/bin/perl
+#
+# psh - Perl Shell
+#
+# A simple read-eval loop. The -w flag and 'use strict' are
+# not employed so that the user is not bound by their stipulations.
+# Setting $^W = 1 will turn on warnings, and calling 'use strict'
+# will do the usual thing if called by the user.
+#
+# Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
+# This script is free software. It may be copied or modified according
+# to the same terms as Perl itself.
+#
+
+package psh;
+
+use vars qw($prompt $input $result $VERSION);
+
+$|         = 1;        # Set ouput autoflush on
+$prompt    = 'psh$ ';  # Set default prompt
+$VERSION   = '0.001';
+$input;                # Declare 
+
+
+#
+# read_until()
+#
+
+sub read_until
+{
+	my ($terminator) = @_;
+	my $input;
+	my $temp;
+
+	$input = '';
+	while (1) {
+		$temp = <>;
+		last unless defined($temp);
+		last if $temp =~ m/^$terminator$/;
+		$input .= $temp;
+	}
+
+	return $input;
+}
+
+
+#
+# read_file()
+#
+
+sub read_file
+{
+	my ($path) = @_;
+	my $input;
+
+	if (!-r $path) {
+		print STDERR "$0: Cannot read script `$path'\n";
+		return;
+	}
+
+	if (!open(FILE, $path)) {
+		print STDERR "$0: Cannot open script `$path'\n";
+		return;
+	}
+
+	$input = join('', <FILE>);
+	close(FILE);
+
+	return $input;
+}
+
+
+#
+# prompt_string()
+#
+
+sub prompt_string
+{
+	if (ref($prompt) eq 'CODE') { # If it is a subroutine,
+		return &$prompt();    #   return the result.
+	} elsif (ref($prompt)) {      # If it isn't a scalar
+		$prompt = 'psh$ ';    #   set it to a default.
+	}
+
+	return $prompt;
+}
+
+
+
+#
+# MAIN:
+#
+
+if ($ENV{HOME} and -r "$ENV{HOME}/.pshrc") {
+	$input = read_file("$ENV{HOME}/.pshrc");
+	eval $input if defined($input);
+} elsif (-r ".pshrc") {
+	$input = read_file(".pshrc");
+	eval $input if defined($input);
+}
+
+while (1) {
+	print prompt_string();
+
+	$input = <>;
+	exit unless defined($input);
+
+	if ($input =~ m/^\s*<<([a-zA-Z_0-9\-]*)\s*$/) {
+		$input = read_until($1);
+	} elsif ($input =~ m/^\s*!(.+)\s*$/) {
+		system($1);
+		undef $input
+	} elsif ($input =~ m/^\s*\.\s+(.+)\s*$/) {
+		$input = read_file($1);
+	}
+
+	next unless defined($input);
+
+	package main;
+	$psh::result = eval $psh::input;
+
+#	package psh;
+#	print "$result\n" if defined($result);
+}
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<psh> - Perl Shell
+
+
+=head1 SYNOPSIS
+
+A fairly simple read-eval loop. The C<-w> flag and 'C<use strict>' are
+not employed so that the user is not bound by their stipulations.
+Setting C<$^W = 1> will turn on warnings, and calling '<use strict>'
+will do the usual thing if called by the user.
+
+
+=head1 DESCRIPTION
+
+Each line of input is read and immediately evaluated.
+
+Multiline input may be entered by starting with a line like C<&lt&ltXXX>,
+followed by lines of input not having C<XXX> on a line by itself,
+followed by such a line. If C<XXX> is not specified, then the first
+blank line terminates the input.
+
+An input line beginning with `!' will be given as a parameter to
+the C<system()> Perl function.
+
+An input line beginning with `.' followed by a space and a file name
+will cause the contents of the specified file to be read in and
+evaluated.
+
+If C<$ENV{HOME}> is set, and the file C<$ENV{HOME}/.pshrc> is present,
+it will be read in and evaluated before processing begins. If not,
+but <.pshrc> is present in the current directory, it will be
+read and executed.
+
+Setting the variable C<$psh::prompt> to a string will cause that string
+to be used as the prompt-string. Setting it to a subroutine reference
+causes the result of running that subroutine to be used each time.
+For example,
+
+  $psh::prompt = sub { $i++; "psh [$i]\$ "; }
+
+will cause the prompt to be C<psh [1]$> followed by C<psh [2]$>, and so on.
+
+
+=head1 LIMITATIONS
+
+The loop inside C<psh> will clobber C<$1> and other variables because
+it uses matches to implement some of its special functions.
+
+Very little error checking is done.
+
+
+=head1 FILES
+
+C<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
+current directory.
+
+
+=head1 AUTHOR
+
+Gregor N. Purdy, C<gregor@focusresearch.com>
+
+
+=head1 COPYRIGHT
+
+Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
+This script is free software. It may be copied or modified according
+to the same terms as Perl itself.
+
+=cut
+
+
+#
+# End of file.
+#
