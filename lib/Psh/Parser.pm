@@ -383,11 +383,15 @@ sub parse_line {
 
 	if (@$lvl1) {
 		foreach my $strategy (@$lvl1) {
-			my $how= $strategy->applies(\$line);
-			if ($how) {
+			my $how= eval {
+				$strategy->applies(\$line);
+			};
+			if ($@) {
+				print STDERR $@;
+			} elsif ($how) {
 				my $name= $strategy->name;
 				Psh::Util::print_debug_class('s',
-							  "[Using strategy $name: $how]\n");
+											 "[Using strategy $name: $how]\n");
 				return ([ 1, [$strategy, $how, [], [$line], $line ]]);
 			}
 		}
@@ -466,11 +470,16 @@ sub parse_simple_command {
 
 	my $line= join ' ', @words;
 	foreach my $strat (@$use_strats) {
-		my $how= $strat->applies(\$line,\@words,$$piped);
-		if ($how) {
+		my $how= eval {
+			$strat->applies(\$line,\@words,$$piped);
+		};
+		if ($@) {
+			print STDERR $@;
+		}
+		elsif ($how) {
 			my $name= $strat->name;
 			Psh::Util::print_debug_class('s',
-							  "[Using strategy $name: $how]\n");
+										 "[Using strategy $name: $how]\n");
 			return ([ $strat, $how, \@options, \@words, $line]);
 		}
 	}

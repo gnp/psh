@@ -19,6 +19,7 @@ if ($@) {
 }
 
 my $console= new Win32::Console();
+my @user_cache=();
 
 #
 # For documentation see Psh::OS::Unix
@@ -193,21 +194,10 @@ sub fork_process {
 }
 
 sub get_all_users {
-	my @result=();
-	Win32::NetAdmin::GetUsers("",FILTER_NORMAL_ACCOUNT,\@result);
-# does not work e.g. on Win2000
-#	my @result = (".DEFAULT");
-#  	if (-d "$ENV{windir}\Profiles") {
-#  		my $Profiles = new DirHandle "$ENV{windir}\Profiles";
-#  		if (defined($Profiles)) {
-#  			while (defined(my ($Profile) = $Profiles->read())) {
-#  				if (-d $Profile) {
-#  					push (@result, $Profile);
-#  				}
-#  			}
-#  		}
-#  	}
-	return @result;
+	unless (@user_cache) {
+		Win32::NetAdmin::GetUsers("",FILTER_NORMAL_ACCOUNT,\@user_cache);
+	}
+	return @user_cache;
 }
 
 

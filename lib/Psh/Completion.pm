@@ -1,11 +1,10 @@
 package Psh::Completion;
 
 use strict;
-use vars qw(@bookmarks @user_completions $ac $complete_first_word_dirs);
+use vars qw(@bookmarks $ac $complete_first_word_dirs);
 
 use Psh::Util qw(:all starts_with ends_with);
 require Psh::OS;
-require Psh::PCompletion;
 
 my $APPEND="not_implemented";
 my $GNU=0;
@@ -14,8 +13,6 @@ my $GNU=0;
 
 sub init
 {
-	@user_completions= Psh::OS::get_all_users();
-
 	my $attribs=$Psh::term->Attribs;
 
 	# The following is ridiculous, but....
@@ -140,7 +137,7 @@ sub cmpl_directories
 sub cmpl_usernames
 {
 	my $text= shift;
-	my @result= grep { starts_with($_,$text) } @user_completions;
+	my @result= grep { starts_with($_,$text) } Psh::OS::get_all_users();
 	return @result;
 }
 
@@ -157,8 +154,10 @@ sub cmpl_executable
 		$exclam=1;
 	}
 
-	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_alias_commands();
-	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_builtin_commands();
+	if (Psh::Strategy::active('built_in')) {
+		push @result, grep { starts_with($_,$cmd) } Psh::Support::Alias::get_alias_commands();
+		push @result, grep { starts_with($_,$cmd) } Psh::Support::Builtins::get_builtin_commands();
+	}
 	push @result, cmpl_directories($cmd) if $complete_first_word_dirs;
 	
 	local $^W= 0;
@@ -407,23 +406,25 @@ sub completion
 
 	$ac=' ';
 
-	# Check completion-spec is defined or not.
-	my $cmd;
-	$line =~ m|^\s*(\S*/)?(\S*)|;
-	my $dir=$1||'';
-	my $base=$2||'';
-	my $cs = $Psh::PCompletion::COMPSPEC{$cmd = $dir . $base}
-	    || $Psh::PCompletion::COMPSPEC{$cmd = $base};
-
-	# Do programmable completion if completion-spec is defined.
-	# This is done here to keep the compatibility with bash.
-	if (defined $cs) {
-		# remove prefix string if it is already prefixed.
-		$text =~ s/^\Q$cs->{prefix}//
-		    if (defined $cs->{prefix});
-		@tmp = Psh::PCompletion::pcomp_list($cs, $text, $line, $start, $cmd);
-		$attribs->{$APPEND}=$ac;
-		return @tmp;
+	if ($Psh::PCompletion::LOADED) {
+		# Check completion-spec is defined or not.
+		my $cmd;
+		$line =~ m|^\s*(\S*/)?(\S*)|;
+		my $dir=$1||'';
+		my $base=$2||'';
+		my $cs = $Psh::PCompletion::COMPSPEC{$cmd = $dir . $base}
+		  || $Psh::PCompletion::COMPSPEC{$cmd = $base};
+		
+		# Do programmable completion if completion-spec is defined.
+		# This is done here to keep the compatibility with bash.
+		if (defined $cs) {
+			# remove prefix string if it is already prefixed.
+			$text =~ s/^\Q$cs->{prefix}//
+			  if (defined $cs->{prefix});
+			@tmp = Psh::PCompletion::pcomp_list($cs, $text, $line, $start, $cmd);
+			$attribs->{$APPEND}=$ac;
+			return @tmp;
+		}
 	}
 
 	if ($startchar eq '~' && !($text=~/\//)) {
@@ -459,13 +460,11 @@ sub completion
 		@tmp = cmpl_filenames($pretext.$text);
 	}
 
-	if( grep { $_ eq $startword } Psh::Builtins::get_builtin_commands() ) {
-		my @tmp2= eval "Psh::Builtins::cmpl_$startword('$text','$pretext','$starttext','$line')";
-		if( !@tmp2 && $Psh::built_ins{$startword}) {
-			my $pkg= ucfirst($startword);
-			eval "use Psh::Builtins::$pkg";
-			@tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext','$line')";
-		}
+	if (Psh::Strategy::active('built_in') and
+		grep { $_ eq $startword } Psh::Support::Builtins::get_builtin_commands() ) {
+		my $pkg= ucfirst($startword);
+		eval "use Psh::Builtins::$pkg";
+		my @tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext','$line')";
 		if( @tmp2 && $tmp2[0]) {
 			shift(@tmp2);
 			@tmp= @tmp2;

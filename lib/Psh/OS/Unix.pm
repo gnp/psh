@@ -9,6 +9,8 @@ $Psh::OS::FILE_SEPARATOR='/';
 $Psh::rc_file = ".pshrc";
 $Psh::history_file = ".psh_history";
 
+my @user_cache=();
+
 sub T_REDIRECT() { 3; }
 
 # Sets the title of the current window
@@ -48,13 +50,14 @@ sub get_known_hosts {
 # Returns a list of all users on the system, prepended with ~
 #
 sub get_all_users {
-	my @result= ();
-	CORE::setpwent;
-	while (my ($name) = CORE::getpwent) {
-		push(@result,'~'.$name);
+	unless (@user_cache) {
+		CORE::setpwent;
+		while (my ($name) = CORE::getpwent) {
+			push(@user_cache,'~'.$name);
+		}
+		CORE::endpwent;
 	}
-	CORE::endpwent;
-	return @result;
+	return @user_cache;
 }
 
 #

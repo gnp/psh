@@ -209,6 +209,12 @@ Psh::Strategy - a Perl Shell Evaluation Strategy (base class)
 
 =head1 DESCRIPTION
 
+Psh::Strategy offers a procedural strategy list interface and a
+base class for developing strategies.
+
+=head1 PROCEDURAL STRATEGY LIST
+
+
   Psh::Strategy::list()
 
 Returns a list of active Psh::Strategy objects.
@@ -216,6 +222,26 @@ Returns a list of active Psh::Strategy objects.
   my $obj= Psh::Strategy::get('name')
 
 Loads and initializes a certain Psh::Strategy object
+
+  Psh::Strategy::add($obj [, $suggest_position])
+
+Adds a strategy object to the list of active strategies
+
+  Psh::Strategy::remove($name)
+
+Removes a strategy
+
+  @list= Psh::Strategy::available_list()
+
+Lists available strategies
+
+  my $pos= find($name)
+
+Finds the position of the named strategy
+
+  my $flag= active($name)
+
+Returns true if the named strategy is currently active
 
 
 =head1 DEVELOPING STRATEGIES

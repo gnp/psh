@@ -20,7 +20,7 @@ my @tmp= glob('*.pod');
 foreach (@tmp) {
 	my $source= 'doc/'.$_;
 	s/\.pod$//;
-	my $dest= '$(INST_MAN1DIR)/'.$_.'$(MAN1EXT)';
+	my $dest= '$(INST_MAN1DIR)/'.$_.'.$(MAN1EXT)';
 	$pods->{$source}=$dest;
 }
 chdir '..';

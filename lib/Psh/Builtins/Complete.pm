@@ -96,3 +96,5 @@ sub cmpl_complete {
     }
 }
 
+1;
+
