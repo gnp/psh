@@ -114,6 +114,11 @@ sub decompose {
 	    push @realpieces, $tmp;
 	    $pos+= length($tmp);
 	    @tmp= ();
+	    if ($firstword and $piece eq '}') {
+		push @realpieces, "\n";
+		$firstword= 1;
+		next;
+	    }
 	} else {
 	    if (!$trackloc and $piece=~/^\s+$/ and $piece ne "\n") {
 		next;
@@ -180,6 +185,15 @@ sub ungroup {
 	return substr($text,1,-1);
     }
     return $text;
+}
+
+sub is_group {
+    my $text= shift;
+    if (substr($text,0,1) eq '(' or
+        substr($text,0,1) eq '{') {
+	return 1;
+    }
+    return 0;
 }
 
 ############################################################################
@@ -265,13 +279,13 @@ sub make_tokens {
 		$redirects= [];
 		$pipes= [$words, $redirects];
 		next;
-	    } elsif ($tmp eq ';' or $tmp eq "\n") {
+	    } elsif ($tmp eq ';' or $tmp eq "\n" ) {
 		push @tokens, [1, 1, $pipes];
 		$words= [];
 		$redirects= [];
 		$pipes= [$words, $redirects];
 		next;
-	    }  elsif ($tmp eq '&') {
+	    } elsif ($tmp eq '&') {
 		push @tokens, [1, 0, $pipes];
 		$words= [];
 		$redirects= [];
@@ -338,7 +352,7 @@ sub make_tokens {
 		$tmp= substr($tmp,1,-1);
 		$tmp=~ s/\'\'/\'/g;
 	    } elsif (substr($tmp,0,1) eq '"') {
-		$tmp= substr($tmp,-1,1);
+		$tmp= substr($tmp,1,-1);
 		_remove_backslash(\$tmp);
 	    } elsif (substr($tmp,0,2) eq 'q[') {
 		$tmp= substr($tmp,2,-1);
@@ -403,7 +417,10 @@ sub _parse_simple {
     }
 
     my $line= join ' ', @words;
-    $psh->{tmp}{options}= $opt;
+
+    if (is_group($words[0])) {
+	return ['reparse', undef, \@options, \@words, $line, $opt];
+    }
 
     if (length($first)>1 and substr($first,-1) eq ':') {
 	my $tmp= lc(substr($first,0,-1));
@@ -413,7 +430,7 @@ sub _parse_simple {
 		print STDERR $@;
 		# TODO: Error handling
 	    }
-	    return [ 'language', 'Psh2::Language::'.ucfirst($tmp), \@options, \@words, $line, $opt];
+	    return [ 'call', 'Psh2::Language::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt];
 	} else {
 	    die "parse: unsupported language $tmp";
 	}
@@ -429,7 +446,7 @@ sub _parse_simple {
 		print STDERR $@;
 		# TODO: Error handling
 	    }
-	    return [ 'builtin', 'Psh2::Builtins::'.ucfirst($tmp), \@options, \@words, $line, $opt];
+	    return [ 'call', 'Psh2::Builtins::'.ucfirst($tmp).'::execute', \@options, \@words, $line, $opt];
 	}
     }
     unless ($opt->{builtin}) {

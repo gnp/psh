@@ -183,7 +183,7 @@ B<pshdevel> manpage.
 =head1 SPEED AND LIMITATIONS
 
 Depending on the exact commands, B<psh2> is between 2-5 times as fast as
-B<psh1> and between 2-10 times slower than B<bash>. Startup time of B<psh2>
+B<psh1> and between 3-10 times slower than B<bash>. Startup time of B<psh2>
 is largely determined by the time B<perl> needs to read in the
 files belonging to B<psh2>.
 

@@ -11,7 +11,7 @@ sub execute {
     my ($psh, $words)= @_;
     shift @$words;
     my $newline= 1;
-    if ($words->[0] eq '-n') {
+    if (@$words and $words->[0] eq '-n') {
 	$newline= 0;
 	shift @$words;
     }

@@ -28,6 +28,24 @@ sub get_pod_from_file {
 
 sub display_pod {
     my ($psh,$text)= @_;
+    my $parser;
+
+    eval {
+	require Pod::Text::Color;
+	$parser= Pod::Text::Color->new( sentence => 0,
+					indent => 2);
+    };
+    if ($@) {
+	eval {
+	    require Pod::Text;
+	    $parser= Pod::Text->new( sentence => 0,
+				     indent => 2);
+	};
+	if ($@) {
+	    $psh->printerr($@);
+	    $psh->print($text);
+	}
+    }
     my $tmp= POSIX::tmpnam();
 
     local *TMP;
@@ -35,14 +53,7 @@ sub display_pod {
     print TMP $text;
     close(TMP);
 
-    eval {
-	require Pod::Text;
-	Pod::Text::pod2text($tmp,*STDOUT);
-    };
-    if ($@) {
-	$psh->printerr($@);
-	$psh->print($text);
-    }
+    $parser->parse_from_file($tmp, '-');
     unlink($tmp);
 }
 
@@ -62,11 +73,13 @@ sub execute {
 	my $filename= $psh->{builtin}{lc($arg)};
 	if ($filename) {
 	    $tmp= get_pod_from_file($filename,$arg);
-	}
-	if( $tmp ) {
-	    display_pod($psh, "=over 4\n".$tmp."\n=back\n");
+	    if( $tmp ) {
+		display_pod($psh, "=over 4\n".$tmp."\n=back\n");
+	    } else {
+		$psh->printferrln($psh->gt('help: no help for builtin %s available.'), $arg);
+	    }
 	} else {
-	    $psh->printferrln($psh->gt('Sorry, no help for builtin $arg available.'), $tmp);
+	    $psh->printferrln($psh->gt('help: %s seems to be no builtin.'), $arg);
 	}
     } else {
 	$psh->println($psh->gt('psh2 supports following built-in commands:'));

@@ -21,6 +21,7 @@ lib/Psh2/Builtins/False.pm
 lib/Psh2/Builtins/Fg.pm
 lib/Psh2/Builtins/Hash.pm
 lib/Psh2/Builtins/Help.pm
+lib/Psh2/Builtins/If.pm
 lib/Psh2/Builtins/Jobs.pm
 lib/Psh2/Builtins/Kill.pm
 lib/Psh2/Builtins/Modules.pm
