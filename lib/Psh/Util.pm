@@ -153,7 +153,10 @@ sub abs_path {
 				if (-d $tmp and -x _) {
 					if ( CORE::chdir($tmp)) {
 						$result = Psh::OS::getcwd_psh();
-						CORE::chdir($old) || die "Cannot chdir back to $old: $!";
+						if (!CORE::chdir($old)) {
+						    print STDERR "Could not change directory back to $old!\n";
+						    CORE::chdir(Psh::OS::get_home_dir())
+						}
 					}
 				} else {
 					$result= $tmp;
