@@ -1,6 +1,104 @@
+1999-11-01
+
+  * Create @psh::lang variable, which can be set thusly:
+
+        @psh::lang = qw(ESP, ENG);
+
+    for a user that wants Spanish localization where available, falling
+    back to English if necessary.
+
+  * Create localized versions of things like the list of days of the week,
+    and months of the year. use @psh::lang to decide which ones to use.
+
+  * There is something called the XML Shell that is like an xterm, but
+    uses XML for its display. Find out if there is anything that can
+    be done in psh to make interaction via XML Shell especially nice.
+
+  * Along those same lines, create a mode whereby the shell intercepts
+    all command output (rather than letting it stream to its own STDOUT)
+    and produces an output stream that uses a period on a separate line
+    to indicate the end of a multiline region (with appropriate escaping).
+    A GUI could then use this information to to put up a nice display with
+    a divider line between commands, the ability to collapse the output of
+    a command, etc. Think of the Mathematica notebook interface. Here's an
+    example of what it would look like:
+
+        .in psh$ 
+        echo 'foo'
+        .
+        .out
+        foo
+        .
+
+    Of course, there are some problems with this. (i) Standard input and
+    standard output would be merged into the "out" section probably. But,
+    it would be nicer to actually keep them separate so that, for example,
+    the error output could be formatted red. But, of course, we'd want to
+    have the streams synchronized, since error and regular output might
+    be interspersed. (ii) Programs like 'vi' and those that use the 'curses'
+    library treat the screen as an array of cells. We might have to detect
+    this and go into a different mode, where the output would be just an
+    indicator that it was "visual" interaction. (iii) Interactive input to
+    a program while it is running would have to flow through the shell, too.
+    This way, it could be captured just like STDOUT and STDERR. This, too
+    would need synchronization. Perhaps an internal representation following
+    the W3C recommendations for synchronized media would be in order here?
+    (iv) Handling the "visual" case mentioned above might cause some trouble
+    in dealing with ReadLine-style command-line editing by the user.
+
+  * Implement an underlying module that can be used to construct shells.
+    This module (named "Mantle" after the part of a mollusk that creates
+    the shell) would have support for creating subprocesses, managing
+    pipelines and so on. Here are some ideas:
+
+    The code:
+
+        $cat  = command(qw(cat foo));
+        $sort = command('sort');
+        $uniq = command('uniq');
+
+        pipeline($cat, $sort, $uniq);
+
+    Would cause the following to happen:
+
+        @read  = (new FileHandle, new FileHandle);
+        @write = (new FileHandle, new FileHandle);
+
+        push @job, task($cat,                      STDOUT => $write[0]);
+        push @job, task($sort, STDIN  => $read[0], STDOUT => $write[1]);
+        push @job, task($uniq, STDIN  => $read[1])
+
+        await @job;
+
+    And now, the @job array has handles for all the processes involved in
+    the pipeline.
+
+    A generalization of pipeline(), called flow() could provide an easy way
+    to specify connectivity other than simple pipelines. For example, the
+    STDERR of a task in the flow could be sent down its own pipeline that
+    did some parsing and processing before landing it in a file somewhere.
+
+        $foo   = command('foo');
+        $bar   = command('bar');
+        $quux  = command('quux');
+        $splee = command('splee');
+
+        flow({foo => $foo, bar => $bar, quux => $quux, splee => $splee}, 
+            'bar.stdin'   => 'foo.stdout',
+            'quux.stdin'  => 'foo.stderr',
+            'splee.stdin' => 'quux.stdout'
+        );
+
+  * Use this underlying support module to provide background jobs and pipelines
+    from within this shell. Also, create simple shells similar to other shells
+    using it (for testing and demonstration purposes).
+
+  * Intercept Control-C
+
+
 1999-08-16
 
-* Implement background jobs. Matthew D. Allen suggests something like this:
+  * Implement background jobs. Matthew D. Allen suggests something like this:
 
 	if ($input =~ m/&$/) {
 		if (fork) {

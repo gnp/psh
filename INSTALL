@@ -4,3 +4,12 @@ Follow the standard procedure:
 	make
 	make install
 
+If you want to install it somplace special, then try this:
+
+    perl Makefile.PL PREFIX=~
+	...
+
+to get it to install in your home directory.
+
+Copy pshrc to ~/.pshrc.
+

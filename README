@@ -55,6 +55,26 @@ DESCRIPTION
     W The basename of the current working directory
     # The command number of the current command
     $ `#' if the effective UID is zero, else `$'
+    Custom prompting variables may be added by adding entries to the
+    array `%psh::prompt_vars' keyed by the single character code.
+    The entries should be subroutine references that return the
+    replacment string.
+
+  BUILT-IN FUNCTIONS
+
+    The following functions are built into `psh':
+
+    * `cd'
+        Change the working directory.
+
+    * `exit'
+        Exit out of the shell.
+
+    * `which'
+        Search the directories in the `PATH' environment variable
+        for an executable of the name given. Return the path of the
+        first such executable found.
+
 LIMITATIONS
     The loop inside `psh' will clobber `$1' and other variables
     because it uses matches to implement some of its special
@@ -69,8 +89,8 @@ LIMITATIONS
     be general, and would therefore be fragile.
 
 OTHER PERL SHELLS
-    Larry Wall exhibits the simple Perl shell `while (<') { eval;
-    print $@; }> on page 161 of the Camel Book (2nd Edition).
+    Larry Wall exhibits the simple Perl shell `while (<>) { eval;
+    print $@; }' on page 161 of the Camel Book (2nd Edition).
 
     Rich Graves <rcgraves@brandeis.edu> posted a comment to the
     original psh-0.001 announcement on `http://freshmeat.net', which

@@ -1,10 +1,11 @@
+.pshrc
+CHANGES
 COPYRIGHT
 INSTALL
 MANIFEST
 Makefile.PL
 README
+TODO
 psh
 psh.NEWS
 test.pl
-TODO
-.pshrc
