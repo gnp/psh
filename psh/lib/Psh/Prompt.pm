@@ -154,6 +154,19 @@ sub continue_prompt {
 }
 
 sub pre_prompt_hook {
+	my $tmp= Psh::Options::get_option('prompt_command');
+	if ($tmp) {
+		if (ref $tmp and ref $tmp eq 'CODE') {
+			eval {
+				&$tmp;
+			};
+			if ($@) {
+				Psh::handle_message($@,'promp_command');
+			}
+		} else {
+			Psh::evl($tmp);
+		}
+	}
 	change_title();
 }
 
