@@ -139,7 +139,8 @@ input line exactly as entered.
 =item * C<perlfunc>
 
 If the first word of the input line matches either a built-in Perl
-function, or a defined subroutine in the main:: package, pass the line
+function (as determined by the %Psh::perl_builtins hash), or the name
+of defined Perl subroutine, pass the line
 to eval. If C<$Psh::perlfunc_expand_arguments> is true and the line
 contains no parens, or braces or commas (except for {a,b,c} as in
 shell brace-expansion), then this strategy tries to
@@ -163,7 +164,9 @@ same as the Perl under which B<psh> is running, B<psh> will fork and run
 the script using the already-loaded Perl interpreter. The idea is to
 save the exec half of the fork-exec that the executable strategy would 
 do; typically the exec is more expensive. Right now this strategy can
-only handle the B<-w> command-line switch on the C<#!> line.
+only handle the B<-w> command-line switch on the C<#!> line. Note this 
+strategy only makes sense before the "executable" strategy; if it came 
+after, it could never trigger.
 
 =item * C<executable>
 
@@ -190,8 +193,10 @@ strategy; strategies placed after it will never be triggered.
 
 The list of evaluation strategies to try is kept in the configuration
 variable C<@Psh::strategies>, which defaults to
-C<qw(comment bang built_in executable fallback_builtin eval)>. 
-
+C<qw(comment bang brace built_in executable fallback_builtin eval)>. 
+If you want to ensure that "print" (for example) refers to the Perl
+function "print" and not "/usr/bin/print", try adding the "perlfunc"
+strategy before "executable".
 
 =head2 BUILT-IN FUNCTIONS
 
@@ -288,6 +293,11 @@ in a way similar to shells such as bash. For example, if
  'ls @files' will expand to 'ls file1 file2 file3', whereas
  'echo "@files"' will expand to 'echo "file1 file2 file3"'.
 
+=item C<$Psh::handle_segfaults> (0)
+
+If set to true, B<psh> will ignore all segfaults and attempt to
+continue.
+
 =item C<$Psh::history_file> ("F<$ENV{HOME}/.${bin}_history>") [late]
 
 The filename B<psh> will use to save the command history in from one
@@ -340,10 +350,11 @@ array.
 If this is true, the command history is saved in C<$Psh::history_file>
 from one invocation of B<psh> to the next.
 
-=item C<$Psh::handle_segfaults> (0)
+=item C<$Psh::which_regexp> ('^[-a-zA-Z0-9_~+]*$')
 
-If set to true, B<psh> will ignore all segfaults and attempt to
-continue.
+When C<Psh::Util::which> is asked to locate a filename in the current
+PATH, it will only look for filenames which match this regexp. Names
+that do not match this regexp will automatically come back "not found".
 
 =back
 
@@ -390,10 +401,40 @@ prompt strings.
 
 =over 4
 
+=item C<%Psh::array_exports>
+
+Contains a list of environment variables which should be tied
+to arrays. The key of the hash is the name of the variable, the
+value is the delimiter of the list (e.g. ':' in PATH). The
+default value for array_exports currently contains PATH, CLASSPATH,
+LD_LIBRARY_PATH, FIGNORE and CDPATH.
+
 =item C<%Psh::built_ins>
 
 The keys are command names, the values are subroutine references which
 are called with the remainder of the line exactly as input.
+
+=item C<%Psh::perl_builtins> (by default, all Perl builtins and keywords)
+
+The perlfunc evaluation strategy uses this hash on the first word of a 
+command line to determine whether it should handle that command
+line. If the first word is present as a key
+in this hash, then the corresponding value determines the treatment: 0 
+means don't handle this line; any positive
+value means do handle the line as long as it has at least that many
+words. (Since the first word counts, a value of '1' will guarantee
+that the perlfunc strategy handles the line.) Useful for example to
+set C<$Psh::perl_builtins{grep} = 0> if you don't want "grep" to be
+treated as a perl function.
+
+Note that the perlfunc strategy will also handle the line if the first
+word is not present as a key in this hash but a
+Perl subroutine of that name is defined.
+
+=item C<%Psh::perl_builtins_noexpand> (by default, Perl flow-control keywords)
+
+The keys of this hash never have their arguments expanded in a
+shell-like fashion, even if $Psh::perlfunc_expand_arguments is true.
 
 =item C<%Psh::prompt_vars>
 
@@ -407,14 +448,6 @@ prompt strings. (See L<PROMPT STRINGS> below.)
 
 These hashes implement the named strategies used in B<psh>'s
 evaluation of input lines. It is possible to add new strategies, see below.
-
-=item C<%Psh::array_exports>
-
-Contains a list of environment variables which should be tied
-to arrays. The key of the hash is the name of the variable, the
-value is the delimiter of the list (e.g. ':' in PATH). The
-default value for array_exports currently contains PATH, CLASSPATH,
-LD_LIBRARY_PATH, FIGNORE and CDPATH.
 
 =item C<%Psh::Completion::custom_completions>
 
@@ -663,6 +696,34 @@ Tom Christiansen and Nathan Torkington's book B<Perl Cookbook>, published by
 O'Reilly in 1998 (ISBN 1-56592-243-3) has "Example 15-4. vbsh" on page 531 for
 section 15.11 (Editing Input). It stands for Very Bad SHell.
 
+=head2 Comparison of perl shells
+
+As an aid to comparing/contrasting these different shells, here is a
+brief table indicating whether or not each has certain features.
+
+  Key to features:
+    PE : Perl evaluation of Perl expressions
+    SHE: shell-like evaluation of shell-like expressions, including 
+         'exec'ing executables searched for in PATH
+    CLE: command-line editing
+    JC : job control
+
+  Key to symbols:
+    * : feature present
+    - : feature absent
+    ? : don't know 
+
+  The shells:
+
+    Shell Name         PE    SHE   CLE   JC
+ psh (this one)         *     *     *     *            
+ Larry Wall shell       *     -     -     -
+ Perl debugger shell    *     -     *     -
+ perlsh                 *     -     *     -
+ Krynicky PSH.pm        *     *     ?     -
+ SoftList               *     ?     *     ?
+ timtosh                -     *     ?     *
+ vbsh                   ?     ?     ?     ?
 
 =head1 FILES
 

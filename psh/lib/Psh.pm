@@ -152,7 +152,7 @@ use vars qw($bin $news_file $cmd $prompt $prompt_cont $echo $host $debugging
 		$VERSION $term @absed_path $readline_saves_history
 	    $history_file $save_history $history_length $joblist
 	    $eval_preamble $currently_active $handle_segfaults
-            $result_array
+            $result_array $which_regexp
 	    @val @wday @mon @strategies @bookmarks @netprograms
 		%text %perl_builtins %perl_builtins_noexpand
 	    %prompt_vars %strategy_which %built_ins %strategy_eval);
@@ -217,20 +217,20 @@ my $input;
 #
 
 %perl_builtins = qw( -X 1 abs 1 accept 1 alarm 1 atan2 1 bind 1
-binmode 1 bless 1 caller 1 chdir 1 chmod 2 chomp 1 chop 1 chown 2 chr
-1 chroot 1 close 1 closedir 1 connect 2 continue 1 cos 1 crypt 1
+binmode 1 bless 1 caller 1 chdir 1 chmod 3 chomp 1 chop 1 chown 3 chr
+1 chroot 1 close 1 closedir 1 connect 3 continue 1 cos 1 crypt 1
 dbmclose 1 dbmopen 1 defined 1 delete 1 die 1 do 1 dump 1 each 1
 endgrent 1 endhostent 1 endnetent 1 endprotoent 1 endpwent 1
-endservent 1 eof 1 eval 1 exec 2 exists 1 exit 1 exp 1 fcntl 1 fileno
+endservent 1 eof 1 eval 1 exec 3 exists 1 exit 1 exp 1 fcntl 1 fileno
 1 flock 1 for 1 foreach 1 fork 1 format 1 formline 1 getc 1 getgrent 1
 getgrgid 1 getgrnam 1 gethostbyaddr 1 gethostbyname 1 gethostent 1
 getlogin 1 getnetbyaddr 1 getnetbyname 1 getnetent 1 getpeername 1
 getpgrp 1 getppid 1 getpriority 1 getprotobyname 1 getprotobynumber 1
 getprotoent 1 getpwent 1 getpwnam 1 getpwuid 1 getservbyname 1
 getservbyport 1 getservent 1 getsockname 1 getsockopt 1 glob 1 gmtime
-1 goto 1 grep 2 hex 1 import 1 if 1 int 1 ioctl 1 join 1 keys 1 kill 1
+1 goto 1 grep 3 hex 1 import 1 if 1 int 1 ioctl 1 join 1 keys 1 kill 1
 last 1 lc 1 lcfirst 1 length 1 link 1 listen 1 local 1 localtime 1 log
-1 lstat 1 m// 1 map 1 mkdir 2 msgctl 1 msgget 1 msgrcv 1 msgsnd 1 my 1
+1 lstat 1 m// 1 map 1 mkdir 3 msgctl 1 msgget 1 msgrcv 1 msgsnd 1 my 1
 next 1 no 1 oct 1 open 1 opendir 1 ord 1 pack 1 package 1 pipe 1 pop 1
 pos 1 print 1 printf 1 prototype 1 push 1 q/STRING/ 1 qq/STRING/ 1
 quotemeta 1 qw/STRING/ 1 qx/STRING/ 1 rand 1 read 1 readdir 1 readlink
@@ -373,19 +373,26 @@ sub signal_description {
 	},
 
 	'perlfunc' => sub {
-		my $fnname = ${$_[1]}[0];
-		# TODO: The following check will catch input lines
-		# like "print 'Hello';"; should we also look at
-		# everything up to the first '(' to grab input lines
-		# like "print('hello');" at this stage instead of
-		# having to let them trickle all the way down to the
-		# "eval" strategy? We could simply re-"decompose" the
-		# first word with "(" as a delimiter, and check the
-		# first word of that as well.
-		if ( (exists($perl_builtins{$fnname}) &&
-	          ($perl_builtins{$fnname} < 2 ||
-	           @{$_[1]} > $perl_builtins{$fnname})) ||
-			   defined(&{"main::$fnname"})) {
+		my $firstword = ${$_[1]}[0];
+		my $fnname = $firstword;
+		my $parenthesized = 0;
+		# catch "join(':',@foo)" here as well:
+		if ($firstword =~ m/\(/) {
+		        $parenthesized = 1;
+		        $fnname = (split('\(', $firstword))[0];
+		}
+		my $qPerlFunc = 0;
+		if ( exists($perl_builtins{$fnname})) {
+		        my $needArgs = $perl_builtins{$fnname};
+    		        if ($needArgs > 0 
+			    and ($parenthesized 
+				 or scalar(@{$_[1]}) >= $needArgs)) {
+			        $qPerlFunc = 1;
+			}
+		} else {
+		        $qPerlFunc = (protected_eval("defined(&{'$fnname'})"))[0];
+		}
+		if ( $qPerlFunc ) {
 			my $copy = ${$_[0]};
 
 			#
@@ -398,6 +405,7 @@ sub signal_description {
 
 			if (!$perlfunc_expand_arguments
 				or exists($perl_builtins_noexpand{$fnname})
+			        or $fnname ne $firstword
 				or $copy =~ m/[(){},]/) {
 				return ${$_[0]};
 			} else {                     # no parens, braces, or commas, so  do expansion
@@ -1200,6 +1208,7 @@ sub minimal_initialize
 	$result_array                = '';
 	$perlfunc_expand_arguments   = 0;
 	$executable_expand_arguments = 0;
+	$which_regexp                = '^[-a-zA-Z0-9_.~+]*$';
 	$cmd                         = 1;
 
 	# I think that the "SHELL" environment variable is supposed to

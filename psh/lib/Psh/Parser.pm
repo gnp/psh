@@ -268,7 +268,15 @@ sub glob_expansion
 			or ($word !~ m/{.*}|\[.*\]|[*?]/)) { # or no globbing characters
 			push @retval, $word;  # don't try to glob it
 		} else { 
-			push @retval, Psh::OS::glob($word); 
+		        # Glob it. If anything happens, quote the
+		        # results so they won't be clobbbered later.
+		        my @results = Psh::OS::glob($word);
+			if (scalar(@results) == 0) {
+			         @results = ($word);
+			} elsif (scalar(@results)>1 or $results[0] ne $word) {
+			         foreach (@results) { $_ = "'$_'"; }
+			}
+			push @retval, @results;
 		}
 	}
 
