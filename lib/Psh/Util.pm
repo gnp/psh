@@ -13,6 +13,7 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 @ISA= qw(Exporter);
 
 @EXPORT= qw( );
+@EXPORT_OK= qw( starts_with ends_with);
 %EXPORT_TAGS = ( all => [qw(print_warning print_debug print_error
 							print_out print_error_i18n print_out_i18n
 							which abs_path)] );
@@ -166,6 +167,29 @@ if (!$@) {
 	}
 }
 
+#
+# starts_with( text, prefix)
+# Returns true if text starts with prefix
+#
+
+sub starts_with {
+	my ($text, $prefix) = @_;
+
+	return length($text)>=length($prefix) &&
+		substr($text,0,length($prefix)) eq $prefix;
+}
+
+#
+# ends_with( text, suffix)
+# Returns true if text ends with suffix
+#
+
+sub ends_with {
+	my ( $text, $suffix) = @_;
+
+	return length($text)>=length($suffix) &&
+		substr($text,-length($suffix)) eq $suffix;
+}
 
 1;
 

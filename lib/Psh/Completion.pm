@@ -1,10 +1,12 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($VERSION);
+use vars qw($VERSION %custom_completions);
 
 use Cwd;
 use Cwd 'chdir';
+use Psh::Util ':all';
+use Psh::Util qw(starts_with ends_with);
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -13,6 +15,12 @@ my $APPEND="not_implemented";
 my $EMPTY_AC='';
 my $GNU=0;
 my $ac; # character to append
+
+%custom_completions= ();
+
+@Psh::bookmarks=('http://','ftp://');
+@Psh::netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute',
+			  'netscape','lynx','mozilla','wget');
 
 sub init
 {
@@ -25,11 +33,11 @@ sub init
 	}
 	endpwent;
 
+	my $attribs=$Psh::term->Attribs;
+
 	# The following is ridiculous, but....
 	if( $Psh::term->ReadLine eq "Term::ReadLine::Perl") {
 		$APPEND='completer_terminator_character';
-		$Psh::term->Attribs->{completer_word_break_characters}=
-			$Psh::term->Attribs->{completer_word_break_characters}.="\$\%\@\~/";
 	} elsif( $Psh::term->ReadLine eq "Term::ReadLine::Gnu") {
 		$GNU=1;
 		$APPEND='completion_append_character';
@@ -37,8 +45,10 @@ sub init
 	}
 
 	# Wow, both ::Perl and ::Gnu understand it
-	$Psh::term->Attribs->{special_prefixes}= "\$\%\@\~";
-
+	my $word_break=" \\\n\t\"&{('`\$\%\@~<>=;|/";
+	$attribs->{special_prefixes}= "\$\%\@\~";
+	$attribs->{word_break_characters}= $word_break;
+	$attribs->{completer_word_break_characters}= $word_break ;
 }
 
 sub cmpl_bookmarks
@@ -55,9 +65,19 @@ sub cmpl_filenames
 {
 	my $text= shift;
 	my @result= glob "$text*";
+	if( $ENV{FIGNORE}) {
+		my @ignore= split(':',$ENV{FIGNORE});
+		@result= grep {
+			my $item= $_;
+			my $result= ! grep { ends_with($item,$_) } @ignore;
+			$result;
+		} @result;
+	}
+
 	$ac='/' if(@result==1 && -d $result[0]);
+
 	foreach (@result) {
-		if( /\/([^\/]+$)/ ) {
+		if( m|/([^/]+$)| ) {
 			$_=$1;
 		}
 	}
@@ -84,59 +104,67 @@ sub cmpl_usernames
 sub cmpl_executable
 {
 	my $cmd= shift;
-	my $old_cwd        = cwd;
+	my $old_cwd= $ENV{PWD};
 	my @result = ();
 
 	local $^W= 0;
 
-	my $tmp = which($cmd);
-	push( @result, $tmp) if defined($tmp);
+	which($cmd);
 	# set up absed_path if not already set and check
-	# wether we found an executable with exactly that name
 	
 	foreach my $dir (@Psh::absed_path) {
-		chdir abs_path($dir);
+		CORE::chdir $dir;
 		push( @result, grep { -x && ! -d } glob "$cmd*" );
-	}
-	
-	chdir $old_cwd;
+	}	
+	CORE::chdir $old_cwd;
 	return @result;
 }
 
 
 #
-# Completes perl variables
+# Completes perl symbols
 #
 # TODO: Also complete package variables and package names
 #
-sub cmpl_perl
+sub cmpl_symbol
 {
 	my $text= shift;
 	my @result=();
 
 	local $^W= 0;
 
-	return () if ! $text=~ /^[$%&@][a-zA-Z0-9_]*$/go;
+	return () if ! $text=~ /^[\$\%\&\@][a-zA-Z0-9_\:]*$/go;
+
+	my $package= "main::";
+	my $strip_package= 1;
+
+	if( $text=~ /^([\$\%\&\@])([a-zA-Z0-9_\:]+\:\:)([a-zA-Z0-9_]*)$/) {
+		$package= $2;
+		$strip_package= 0;
+		$text= $1.$3;
+	}
 
 	my (@tmp, @sym);
 	{
 		no strict qw(refs);
-		@sym = keys %{*{"main::"}};
+		@sym = keys %{*{$package}};
 	}
 	
 	for my $sym (sort @sym) {
 		next unless $sym =~ m/^[a-zA-Z]/; # Skip some special variables
-		next if     $sym =~ m/::$/;       # Skip all package hashes
+		next if     $sym =~ m/::$/ && length($text)==1;
+            # Skip all package hashes if only $, %, @ etc. was
+		    # specified because we do not want to display all package names
 		{
 			no strict qw(refs);
 			push @tmp, "\$$sym" if
-				ref *{"main::$sym"}{SCALAR} eq 'SCALAR';
+				ref *{"$package::$sym"}{SCALAR} eq 'SCALAR';
 			push @tmp,  "\@$sym" if
-				ref *{"main::$sym"}{ARRAY}  eq 'ARRAY';
+				ref *{"$package::$sym"}{ARRAY}  eq 'ARRAY';
 			push @tmp,   "\%$sym" if
-				ref *{"main::$sym"}{HASH}   eq 'HASH';
+				ref *{"$package::$sym"}{HASH}   eq 'HASH';
 			push @tmp,   "\&$sym" if
-				ref *{"main::$sym"}{CODE}   eq 'CODE';
+				ref *{"$package::$sym"}{CODE}   eq 'CODE';
 		}
 	}
 	foreach my $tmp (@tmp) {
@@ -144,11 +172,17 @@ sub cmpl_perl
 		my $rest=substr($tmp,1);
 
 		# Hack Alert ;-)
-		next if(! eval "defined(${firstchar}main::$rest)" &&
-				! eval "tied(${firstchar}main::$rest)" &&
+		next if(! eval "defined($firstchar$package$rest)" &&
+				! eval "tied($firstchar$package$rest)" &&
 				$rest ne "ENV" && $rest ne "INC" && $rest ne "SIG" &&
-				$rest ne "ARGV" );
-		push @result, $tmp if starts_with($tmp,$text);
+				$rest ne "ARGV" && !($rest=~ /::$/) );
+		if( starts_with($tmp,$text)) {
+			if( $strip_package) {
+				push @result, $firstchar.$rest;
+			} else {
+				push @result, $firstchar.$package.$rest;
+			}
+		}
 	}
 	$ac=$EMPTY_AC if @result;
 	return @result;
@@ -160,7 +194,7 @@ sub cmpl_perl
 # Main Completion function
 #
 
-sub custom_completion
+sub completion
 {
 	my ($text, $line, $start) = @_;
 	my $attribs               = $Psh::term->Attribs;
@@ -179,7 +213,7 @@ sub custom_completion
 	} elsif( $startchar eq "\$" || $startchar eq "\@" || $startchar eq "\&" ||
 			 $startchar eq "\%" ) {
 		# probably a perl variable ?
-		@tmp= cmpl_perl($text);
+		@tmp= cmpl_symbol($text);
 	} elsif( ($starttext =~ /^\s*$/ ||
 			  $starttext =~ /[\|\`]\s*$/ ) &&
 			 !( $text =~ /\/|\.\.@/)) {
@@ -193,37 +227,17 @@ sub custom_completion
 		$starttext =~ /\s(\S*)$/;
 		@tmp= cmpl_bookmarks($text,$1);
 	} else {
-		if( $GNU) { # faster....
-			@tmp= $Psh::term->completion_matches($text,
-						   $attribs->{filename_completion_function});
-			shift @tmp if @tmp>1;
+		my $file=$text;
+		if( $starttext =~ /\s(\S*)$/) {
+			$file= $1.$text;
+		} elsif( $starttext =~ /^(\S*)$/) {
+			$file= $1.$text;
 		}
-		else
-		{
-			my $file=$text;
-			if( $starttext =~ /\s(\S*)$/) {
-				$file= $1.$text;
-			} elsif( $starttext =~ /^(\S*)$/) {
-				$file= $1.$text;
-			}
-			@tmp= cmpl_filenames($1.$text);
-		}
+		@tmp= cmpl_filenames($file);
 	}
 
 	$attribs->{$APPEND}=$ac;
-	return @tmp;
-}
-
-#
-# starts_with( completion, text)
-# Called with the possible completion and the text to complete
-# will return true if match
-
-sub starts_with {
-	my ($completion, $text) = @_;
-
-	return length($completion)>=length($text) &&
-		substr($completion,0,length($text)) eq $text;
+	return sort @tmp;
 }
 
 1;

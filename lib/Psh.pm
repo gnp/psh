@@ -149,10 +149,10 @@ sub variable_expansion
 use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
 	    $perlfunc_expand_arguments $executable_expand_arguments
 		$VERSION $term @absed_path $readline_saves_history
-	    $history_file $save_history $history_length
+	    $history_file $save_history $history_length $joblist
 	    $eval_preamble $currently_active $handle_segfaults
 	    @val @wday @mon @strategies @bookmarks @netprograms
-		%array_exports %text %perl_builtins %perl_builtins_noexpand
+		%text %perl_builtins %perl_builtins_noexpand
 	    %prompt_vars %strategy_which %built_ins %strategy_eval);
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
@@ -997,7 +997,7 @@ sub process_file
 			return getlogin || (getpwuid($>))[0] || "uid$>";
 		},
 	'w' => sub { return cwd; },
-	'W' => sub { my $dir = cwd; $dir =~ s/^.*\///; return $dir },
+	'W' => sub { my $dir = cwd; $dir =~ s/^.*\///; return $dir||'/' },
 	'#' => sub { return $cmd; },
 	'$' => sub { return ($> ? '$' : '#'); }
 );
@@ -1112,8 +1112,12 @@ sub iget
 		}
 		# Trap ^C in an eval.  The sighandler will die which will be
 		# trapped.  Then we reprompt
-		if ($Psh::term) {
-			eval { $line = $Psh::term->readline($prompt); } # trap ^C which will die;
+		if ($term) {
+			eval { $line = $term->readline($prompt); };
+			handle_message( $@, 'main_loop') if( $@);
+			# Either the user pressed ^C or the Completion module
+			# had an error - we have to call handle_message for
+			# the second case
 		} else {
 			eval {
 				print $prompt;
@@ -1132,11 +1136,11 @@ sub iget
 #	$line =~ s/^\s+//;
 #	$line =~ s/\s+$//;
 
-	if ($Psh::term and $line !~ m/^\s*$/) {
-               $Psh::term->addhistory($line); 
+	if ($term and $line !~ m/^\s*$/) {
+               $term->addhistory($line); 
 
 		if ($save_history && !$readline_saves_history) {
-		  my $fhist = new FileHandle($Psh::history_file, 'a');
+		  my $fhist = new FileHandle($history_file, 'a');
 		  $fhist->print("$line\n");
 		  $fhist->close();
 		}
@@ -1188,15 +1192,6 @@ sub minimal_initialize
 
 	$news_file                   = "$bin.NEWS";
 
-	# We define these variables here so the user can easily add
-	# to them with a push in her .pshrc file or delete them or
-	# whatever
-	@bookmarks=('http://','ftp://');
-	@netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute',
-					  'netscape','lynx','mozilla','wget');
-	%array_exports=('PATH'=>':','CLASSPATH'=>':','LD_LIBRARY_PATH'=>':');
-
-
 	# The following accessible variables are undef during the
 	# .pshrc file:
 	undef $prompt;
@@ -1206,7 +1201,7 @@ sub minimal_initialize
 	undef $host;
 	undef $history_file;
 
-	$Psh::joblist= new Psh::Joblist();
+	$joblist= new Psh::Joblist();
 
 	@val = ();
 
@@ -1226,7 +1221,8 @@ sub finish_initialize
 
 	$prompt          = $default_prompt if !defined($prompt);
 	$save_history    = 1               if !defined($save_history);
-	$history_length  = 50              if !defined($history_length);
+	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);
+
 	if (!defined($longhost)) {
 		$longhost                    = qx(hostname);
 		chomp $longhost;
@@ -1246,22 +1242,21 @@ sub finish_initialize
 	eval "use Term::ReadLine;";
 
 	if ($@) {
-		$Psh::term = undef;
+		$term = undef;
 		print_error_i18n(no_readline);
 	} else {
-		$Psh::term = Term::ReadLine->new('psh');
-		$Psh::term->MinLine(10000);   # We will handle history adding
+		$term = Term::ReadLine->new('psh');
+		$term->MinLine(10000);   # We will handle history adding
 		# ourselves (undef causes trouble). 
-		$Psh::term->ornaments(0);
-		print_debug("Using ReadLine: ", $Psh::term->ReadLine(), "\n");
-		if ($Psh::term->ReadLine() eq "Term::ReadLine::Gnu") {
+		$term->ornaments(0);
+		print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
+		if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
 			$readline_saves_history = 1;
-			$Psh::term->StifleHistory($history_length); # Limit history
+			$term->StifleHistory($history_length); # Limit history
 		}
 		&Psh::Completion::init();
-		$Psh::term->Attribs->{completion_function} =
-			\&Psh::Completion::custom_completion;
-
+		$term->Attribs->{completion_function} =
+			\&Psh::Completion::completion;
 	}
 
     #
@@ -1279,15 +1274,15 @@ sub finish_initialize
 	else    { print_debug("Using &Term::Size::chars().\n"); }
 
 
-	if (defined($Psh::term) and $save_history) {
+	if (defined($term) and $save_history) {
 		if ($readline_saves_history) {
-			$Psh::term->ReadHistory($Psh::history_file);
+			$term->ReadHistory($history_file);
 		} else {
-			my $fhist = new FileHandle($Psh::history_file);
+			my $fhist = new FileHandle($history_file);
 			if ($fhist) {
 				while (<$fhist>) {
 					chomp;
-					$Psh::term->addhistory($_);
+					$term->addhistory($_);
 				}
 				$fhist->close();
 			}
@@ -1560,9 +1555,9 @@ sub fork_process {
 		&{$Psh::code};
 	}
 	setpgid($Psh::pid,$Psh::pid);
-	local $Psh::job= $Psh::joblist->create_job($Psh::pid,$Psh::string);
+	local $Psh::job= $joblist->create_job($Psh::pid,$Psh::string);
 	if( !$Psh::fgflag) {
-		my $visindex= $Psh::joblist->get_job_number($Psh::job->{pid});
+		my $visindex= $joblist->get_job_number($Psh::job->{pid});
 		print_out("[$visindex] Background $Psh::pid $Psh::string\n");
 	}
 	wait_for_system($Psh::pid, 1) if $Psh::fgflag;
@@ -1621,7 +1616,7 @@ sub wait_for_system
 
 	my $pid_status = -1;
 
-	my $job= $Psh::joblist->get_job($pid);
+	my $job= $joblist->get_job($pid);
 
 	while (1) {
 	  print_debug("[[About to give the terminal to $pid.]]\n");
@@ -1655,18 +1650,18 @@ sub wait_for_system
 sub handle_wait_status {
 	my ($pid, $pid_status, $quiet) = @_;
 	# Have to obtain these before we potentially delete the job
-	my $job= $Psh::joblist->get_job($pid);
+	my $job= $joblist->get_job($pid);
 	my $command = $job->{call};
-	my $visindex= $Psh::joblist->get_job_number($pid);
+	my $visindex= $joblist->get_job_number($pid);
 	my $verb='';
   
 	if (&WIFEXITED($pid_status)) {
 		$verb= "\u$text{done}" if (!$quiet);
-		$Psh::joblist->delete_job($pid);
+		$joblist->delete_job($pid);
 	} elsif (&WIFSIGNALED($pid_status)) {
 		$verb = "\u$text{terminated} (" .
 			signal_description(WTERMSIG($pid_status)) . ')';
-		$Psh::joblist->delete_job($pid);
+		$joblist->delete_job($pid);
 	} elsif (&WIFSTOPPED($pid_status)) {
 		$verb = "\u$text{stopped} (" .
 			signal_description(WSTOPSIG($pid_status)) . ')';
@@ -1699,7 +1694,7 @@ sub restart_job
 {
 	my ($fg_flag, $job_to_start) = @_;
 
-	my $job= $Psh::joblist->find_job($job_to_start);
+	my $job= $joblist->find_job($job_to_start);
 
 	if(defined($job)) {
 		my $pid = $job->{pid};
@@ -1714,7 +1709,7 @@ sub restart_job
 			  # bg request, and it's already running:
 			  return;
 			}
-			my $visindex = $Psh::joblist->get_job_number($pid);
+			my $visindex = $joblist->get_job_number($pid);
 			print_out("[$visindex] $verb $pid $command\n");
 
 			if($fg_flag) {

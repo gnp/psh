@@ -37,9 +37,6 @@
     that pushd and popd are just aliases for cd variants...
     [GNP]
 
-  * Support bash's $OLDPWD environment variable. Also, $CDPATH?
-    [GNP]
-
   * What is the effect of bash's ':', and should we do the same thing?
     The manpage makes it sound uninteresting, and unnecessary, and
     trying it doesn't make it appear to do anything useful. Have I
