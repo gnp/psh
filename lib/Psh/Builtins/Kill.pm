@@ -1,8 +1,5 @@
 package Psh::Builtins::Kill;
 
-use Config ();
-
-
 =item * C<kill [-SIGNAL] [%JOB | PID | JOBNAME] | -l>
 
 Send SIGNAL (which defaults to TERM) to the given process, specified
@@ -23,6 +20,7 @@ sub bi_kill
 
 	if (scalar(@args) == 1 &&
 		$args[0] eq '-l') {
+		require Config;
 		Psh::Util::print_out($Config::Config{sig_name}."\n");
 		return (0,undef);
 	} elsif( substr($args[0],0,1) eq '-') {
@@ -90,6 +88,7 @@ sub cmpl_kill {
 	}
 
 	if( split(' ',$starttext)<2) {
+		require Config;
 		push @tmp, map { '-'.$_} split(' ', $Config::Config{sig_name});
 	}
 

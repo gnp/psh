@@ -582,11 +582,7 @@ my %special_handlers= (
 					   'ZERO' => 0,
 					   );
 
-# Fetching the signal names from Config instead of from %SIG
-# has the advantage of avoiding Perl internal signals
-
-my @signals= split(' ', $Config::Config{sig_name});
-
+my @signals= grep { substr($_,0,1) ne '_' } keys %SIG;
 
 #
 # void remove_signal_handlers()

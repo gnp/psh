@@ -1,7 +1,6 @@
 package Psh::OS;
 
 use strict;
-require Config;
 require File::Spec;
 
 my $ospackage='Psh::OS::Unix';
@@ -124,6 +123,7 @@ sub fb_glob {
 
 sub fb_signal_name {
 	my $signalnum = shift;
+	require Config;
 	my @numbers= split ',',$Config::Config{sig_num};
 	@numbers= split ' ',$Config::Config{sig_num} if( @numbers==1);
 	# Strange incompatibility between perl versions
