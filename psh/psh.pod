@@ -130,10 +130,7 @@ strategy; strategies placed after it will never be triggered.
 
 The list of evaluation strategies to try is kept in the configuration
 variable $psh::strategies, which defaults to
-C<qw(comment bang built_in executable eval)>. 
-If you want
-"print" to mean the perl print function instead of, say, 
-F</usr/bin/print>, you can add in 'perlfunc' before 'executable'.
+C<qw(comment bang built_in perlfunc executable eval)>. 
 
 =head2 BUILT-IN FUNCTIONS
 
@@ -157,7 +154,7 @@ defined.
 Read and process the contents of the given file as a sequence of psh
 commands.
 
-=item * C<alias NAME REPLACEMENT> [or C<alias NAME=REPLACEMENT>]
+=item * C<alias [NAME [=] REPLACEMENT]> 
 
 Add NAME as a built-in so that NAME <REST_OF_LINE> will execute
 exactly as if REPLACEMENT <REST_OF_LINE> had been entered. For
@@ -166,6 +163,8 @@ option to "ls". Note the built-in is defined to avoid recursion
 here. Note also that any previous definition of NAME as a built-in is
 destroyed by alias, so that "alias source source /home/scripts/" won't
 work to prepend "/home/scripts/" to every source command.
+
+With no arguments, prints out a list of the current aliases.
 
 =item * C<bg [JOB]>
 
@@ -334,7 +333,7 @@ The fully qualified host name of the machine psh is running on.
 
 A file giving news for the shell.
 
-=item $psh::perlfunc_expand_arguments (1)
+=item $psh::perlfunc_expand_arguments (0)
 
 If this variable is true, then command lines interpreted by the
 perlfunc strategy which contain no parens, or  braces or commas except 

@@ -1,7 +1,9 @@
+#! /usr/local/bin/perl -w
 package Psh::Parser;
 
 use strict;
 use vars qw($VERSION);
+use Carp;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -21,7 +23,13 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 # (outside quotes) are their own words, regardless of being delimited.
 # Backslashes escape the meanings of characters that might match
 # delimiters, quotes, or metacharacters.  Initial unquoted empty
-# pieces are suppressed.
+# pieces are suppressed. 
+
+# The regexp DELIMITER may contain a single back-reference parenthesis
+# construct, in which case the matches to the parenthesized
+# subexpression are also placed among the pieces, as with the
+# built-in split. METACHARACTERS may not contain any parenthesized
+# subexpression.
 
 # decompose returns the array of pieces. If UNMATCHED_QUOTE is
 # specified, 1 will be placed in the scalar referred to if LINE
@@ -55,6 +63,30 @@ sub decompose
     if (!defined($quotehash)) { $quotehash = { "'" => "'", "\"" => "\"" }; }
     if (!defined($metaexp)) { $metaexp = $nevermatches; }
 
+    # See if metacharacters has any parenthesized subexpressions:
+    my @matches = ('x' =~ m/$metaexp|(.)/);
+    if (scalar(@matches) > 1) { 
+      carp "Metacharacter regexp '$metaexp' in decompose may not contain ().";
+      return undef;
+    }
+
+    # Remember if delimexp came with any parenthesized subexpr, and
+    # arrange for it to have exactly one so we know what each piece in
+    # the match below means:
+
+    my $saveDelimiters = 0;
+    @matches = ('x' =~ m/$delimexp|(.)/);
+    if (scalar(@matches) > 2) {
+      carp "Delimiter regexp '$delimexp' in decompose may " .
+	   "contain at most 1 ().";
+      return undef;
+    }
+    if (scalar(@matches) == 2) {
+      $saveDelimiters = 1;
+    } else {
+      $delimexp = "($delimexp)";
+    }
+
     my @pieces = ('');
     my $startNewPiece = 0;
     my $freshPiece = 1;
@@ -75,15 +107,24 @@ sub decompose
 		    $freshPiece = 1;
 	    }
 	    if (scalar(@pieces) == $num) { last; }
+	    # $delimexp is unparenthesized below because we have
+	    # already arranged for it to contain exactly one backref ()
             my ($prefix,$delimiter,$quote,$meta,$rest) =
-	      ($line =~ m/^((?:[^\\]|\\.)*?)(?:($delimexp)|($quoteexp)|($metaexp))(.*)$/s);
+	      ($line =~ m/^((?:[^\\]|\\.)*?)(?:$delimexp|($quoteexp)|($metaexp))(.*)$/s);
 	    if (!$keep and defined($prefix)) {
 	    	    # remove backslashes in unquoted part:
 	            $prefix =~ s/\\(.)/$1/g;
 	    }
 	    if (defined($delimiter)) {
 		    $pieces[scalar(@pieces)-1] .= $prefix;
-		    if (scalar(@pieces) > 1 or $pieces[0]) {
+		    if ($saveDelimiters) {
+		            if ($pieces[scalar(@pieces)-1] or !$freshPiece) {
+			            push @pieces, $delimiter;
+		            } else {
+			            $pieces[scalar(@pieces)-1] = $delimiter;
+		            }
+			    $startNewPiece = 1;
+		    } elsif (scalar(@pieces) > 1 or $pieces[0]) {
 		  	    $startNewPiece = 1;
 		    }
 		    $line = $rest;
