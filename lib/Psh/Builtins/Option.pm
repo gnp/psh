@@ -77,12 +77,15 @@ sub bi_option {
 				if (!$val or $val eq 'sub') {
 					$val||='';
 					$val.= shift @words;
+					if ($val eq 'sub') {
+						$val.= shift @words;
+					}
 				}
 				my $char= substr($val,0,1);
 				if ($char eq '(') {
 					$val=qq:[$val]:;
 				} elsif ($char ne "'" and $char ne '"' and $char ne '['
-						and $char ne '{') {
+						and $char ne '{' and $val !~ /^sub\s*\{/) {
 					$val=qq['$val'];
 				}
 				my @tmp= Psh::PerlEval::protected_eval($val,'eval');

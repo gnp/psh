@@ -10,40 +10,50 @@ sequences (B<>, C<>, I<>, etc.).
 
 How to configure the Perl Shell
 
+=head1 DESCRIPTION
 
-=head1 ENVIRONMENT VARIABLES
+Perl Shell uses a built-in, unified configuration system. All essential
+configuration is done by choosing a set of evaluation strategies, using
+the C<strategy> builtin, or by setting options, using the C<option> builtin.
 
-B<CDPATH> - A list of paths of directories in which the C<cd> builtin
+=head2 CONFIGURATION OPTIONS
+
+All options marked as (ENV) inherit their settings from the current
+environment.
+
+=over 4
+
+=item * B<cdpath> (ENV)
+
+A list of paths of directories in which the C<cd> builtin
 should search for its argument. Defaults to ".".
 
-B<FIGNORE> - A list (separated by the path separator) of file endings to
+=item * B<fignore> (ENV)
+
+A list (separated by the path separator) of file endings to
 ignore when performing TAB completion. No default.
 
-B<HISTSIZE> - The maximum number of lines to save in the history file.
+=item * B<histsize> (ENV)
+
+The maximum number of lines to save in the history file.
 Defaults to 50.
 
-B<IGNOREEOF> - Controls the action of the shell on receipt of an EOF character as the
-sole input.  If set, the value is the number of consecutive EOF  characters typed 
-as the first characters on an input line before bash exits.  If the variable exists
-but does not have a numeric value, the default value is 10.
-If it does not exist, EOF signifies the end of input to the shell.
+=item * B<ignoreeof> (ENV)
 
-B<LANG> - Sets the language of the shell.
+Controls the action of the shell on receipt of an EOF character as the
+sole input.  If set, the value is the number of consecutive EOF characters
+typed as the first characters on an input line before bash exits.
+If the variable exists but does not have a numeric value, the default value
+is 10. If it does not exist, EOF signifies the end of input to the shell.
 
-B<SHLVL> - The number of shells deep that B<psh> is nested. Initially set
-to 1. Many other shells do not increment this variable, so it is not
-authoritative.
+=item * B<ps1> (ENV)
 
-B<PS1> - If $Psh::prompt is unset, psh will try to use this
-environment variable as prompt.
+This is the standard prompt. It may contain a string or a code reference.
+Please see below for more information.
 
-B<PS2> - If $Psh::prompt_cont is unset, psh will try to use
-this variable as continuation prompt.
+=item * B<ps2> (ENV)
 
-B<PSH_TITLE> - If $Psh::window_title is unset, psh will try to use
-this variable as window title.
-
-B<USER> - The name of the current user
+This is the continuation prompt.
 
 =head1 PROMPT STRINGS
 
