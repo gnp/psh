@@ -143,7 +143,8 @@ sub cmpl_perl
 
 		# Hack Alert ;-)
 		next if(! eval "defined(${firstchar}main::$rest)" &&
-				$rest ne "ENV" && $rest ne "INC" && $rest ne "$SIG" &&
+				! eval "tied(${firstchar}main::$rest)" &&
+				$rest ne "ENV" && $rest ne "INC" && $rest ne "SIG" &&
 				$rest ne "ARGV" );
 		push @result, $tmp if starts_with($tmp,$text);
 	}
