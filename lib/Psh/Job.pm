@@ -38,27 +38,32 @@ __END__
 
 =head1 NAME
 
-Psh::Job - Perl extension for blah blah blah
+Psh::Job - Data structure reprenting a shell job
 
 =head1 SYNOPSIS
 
   use Psh::Job;
-  blah blah blah
+
+  $joblist= new Psh::Joblist();
+
+  $job= $joblist->create_job($pid, $command);
+
+  $job->continue; # send SIGCONT to the job
+
+  $job->{pid}; # to access the PID of the job
+  $job->{call}; # to access the (command) name of the job
+  $job->{running}; # to check wether the job is running
 
 =head1 DESCRIPTION
 
-Stub documentation for Psh::Job was created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
+This class is to be used in conjunction with Psh::Joblist
 
 =head1 AUTHOR
 
-A. U. Thor, a.u.thor@a.galaxy.far.far.away
+Markus Peter, warp@spin.de
 
 =head1 SEE ALSO
 
-perl(1).
+Psh::Joblist(3).
 
 =cut
