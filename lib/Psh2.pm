@@ -9,7 +9,6 @@ if ($^O eq 'MSWin32') {
 }
 
 *gt= *gt_dummy;
-$Psh2::Language::Perl::current_package='main';
 
 require POSIX;
 require Psh2::Parser;
@@ -53,10 +52,12 @@ sub new {
 	       language => { 'perl' => 1, 'c' => 1},
 	       aliases  => {},
 	       function => {},
+               variable => {},
 	       dirstack => [],
 	       dirstack_pos => 0,
 	       tmp => {},
 	       status => 0,
+               current_package => 'main',
 	   };
     bless $self, $class;
     return $self;
@@ -928,17 +929,36 @@ sub del_option {
 
 sub add_function {
     my ($self, $name, $coderef, $data)= @_;
-    $self->{function}{$Psh2::Language::Perl::current_package.'::'.$name}= [ $coderef, $data];
+    if ($name!~ /::/) {
+        $name= $self->{current_package}.'::'.$name;
+    }
+    $self->{function}{$name}= [ $coderef, $data];
 }
 
 sub delete_function {
     my ($self, $name)= @_;
-    my $fullname= $Psh2::Language::Perl::current_package.'::'.$name;
-    if (exists $self->{function}{$fullname}) {
-        no strict 'refs';
-        undef *{$Psh2::Language::Perl::current_package.'::'.$name};
-        delete $self->{function}{$fullname};
+    if ($name!~/::/) {
+        $name= $self->{current_package}.'::'.$name;
     }
+    if (exists $self->{function}{$name}) {
+        no strict 'refs';
+        undef *{$name};
+        delete $self->{function}{$name};
+    }
+}
+
+############################################################################
+##
+## Shell variables
+##
+############################################################################
+
+sub set_variable {
+    my ($self, $name, @vals)= @_;
+    if ($name!~ /::/) {
+        $name= $self->{current_package}.'::'.$name;
+    }
+    $self->{variable}{$name}= \@vals;
 }
 
 ############################################################################

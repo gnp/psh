@@ -17,7 +17,7 @@ sub execute {
     my (@ref, @scalar, @array, @hash, @code, @glob, @handle);
     my @sym;
 
-    $pack ||= $Psh2::Language::Perl::current_package || 'main';
+    $pack ||= $psh->{current_package};
 
     {
 	no strict qw(refs);

@@ -4,7 +4,8 @@ require Psh2::Language::Perl;
 
 =item * C<package packagename>
 
-Switches to another perl package.
+Switches to another namespace. Psh namespaces are equivalent to
+Perl namespaces.
 
 =cut
 
@@ -13,7 +14,7 @@ sub execute {
     shift @$words;
     my $pkg= $words->[0];
     if ($pkg) {
-	$Psh2::Language::Perl::current_package= $pkg;
+	$psh->{current_package}= $pkg;
 	return 1;
     } else {
 	return 0;

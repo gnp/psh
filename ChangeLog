@@ -1,5 +1,7 @@
 2004-01-28  Markus Peter  <warp@spin.de>
 
+	* lib/Psh2.pm, lib/Psh2/Parser.pm, lib/Psh2/Language/Perl.pm, lib/Psh2/Builtins/Symbols.pm, lib/Psh2/Builtins/Sub.pm, lib/Psh2/Builtins/Package.pm: current_package is now a class member of Psh2
+
 	* lib/Psh2/Parser.pm, lib/Psh2.pm, lib/Psh2/Unix.pm: It is now possible to setup the env for a call, e.g. "envvar=value ls"
 	* lib/Psh2/Parser.pm (make_tokens): Changed order of adding redirections so >[2=1] | actually works
 	

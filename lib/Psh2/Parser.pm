@@ -564,7 +564,7 @@ sub _parse_simple {
 	}
     }
     unless ($opt->{builtin}) {
-        my $full_fun_name= $Psh2::Language::Perl::current_package.'::'.$first;
+        my $full_fun_name= $psh->{current_package}.'::'.$first;
         if (exists $psh->{function}{$full_fun_name}) {
             return [ 'call', $psh->{function}{$full_fun_name}[0], $options, \@words,
                      $line, $psh->{function}{$full_fun_name}[1]];

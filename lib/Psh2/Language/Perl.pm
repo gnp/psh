@@ -38,7 +38,7 @@ sub protected_eval
             $_= $Psh2::Language::Perl::lastscalar;
             @_= @Psh2::Language::Perl::lastarray;
         }
-	local @Psh2::Language::Perl::result= eval "package $Psh2::Language::Perl::current_package; ".$Psh2::Language::Perl::str;
+	local @Psh2::Language::Perl::result= eval "package $psh->{current_package}; ".$Psh2::Language::Perl::str;
         if ($Psh2::Language::Perl::preserve) {
             $Psh2::Language::Perl::lastscalar= $_;
             @Psh2::Language::Perl::lastarray= @_;
