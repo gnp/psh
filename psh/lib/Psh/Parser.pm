@@ -5,6 +5,8 @@ use strict;
 use vars qw($VERSION);
 use Carp;
 
+use Psh::OS;
+
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 #
@@ -264,7 +266,7 @@ sub glob_expansion
 			or ($word !~ m/{.*}|\[.*\]|[*?]/)) { # or no globbing characters
 			push @retval, $word;  # don't try to glob it
 		} else { 
-			push @retval, glob($word); 
+			push @retval, Psh::OS::glob($word); 
 		}
 	}
 

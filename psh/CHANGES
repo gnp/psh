@@ -16,6 +16,7 @@ CVS HEAD
   * Moved almost all code from psh into Psh, Psh::Builtins
     and Psh::Util
   * Added portability infrastructure
+  * First attempt of a Win32 port (not tested yet)
 
  Features:
   * Changed builtin alias so that 'alias name' displays the
