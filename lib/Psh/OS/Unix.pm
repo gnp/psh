@@ -1,7 +1,7 @@
 package Psh::OS::Unix;
 
 use strict;
-use POSIX qw(:sys_wait_h tcsetpgrp setpgid);
+require POSIX;
 require Psh::Locale;
 
 $Psh::OS::PATH_SEPARATOR=':';
@@ -89,7 +89,7 @@ sub display_pod {
 sub get_home_dir {
 	my $user = shift || $ENV{USER};
 	return $ENV{HOME} if ((! $user) && (-d $ENV{HOME}));
-	return (getpwnam($user))[7]||'';
+	return (CORE::getpwnam($user))[7]||'';
 }
 
 sub get_rc_files {
@@ -115,7 +115,7 @@ sub get_path_extension { return (''); }
 # appropriate OS-specific tasks depending on it.
 #
 sub inc_shlvl {
-	my $ruid_pwent = getpwuid($<);
+	my $ruid_pwent = CORE::getpwuid($<);
 	if ((! $ENV{SHLVL}) && ($ruid_pwent->shell eq $0)) { # would use $Psh::bin, but login shells are guaranteed full paths
 		$Psh::login_shell = 1;
 		$ENV{SHLVL} = 1;
@@ -159,7 +159,7 @@ sub inc_shlvl {
 		local $SIG{CHLD}  = 'IGNORE';
 
 		my ($pkg,$file,$line,$sub)= caller(1);
-		my $status= tcsetpgrp(fileno STDIN,$_[0]);
+		my $status= POSIX::tcsetpgrp(fileno STDIN,$_[0]);
 	}
 
 	sub _get_terminal_owner
@@ -185,7 +185,7 @@ sub _wait_for_system
 	my($pid, $quiet) = @_;
 	if (!defined($quiet)) { $quiet = 0; }
 
-	my $psh_pgrp = getpgrp;
+	my $psh_pgrp = CORE::getpgrp();
 
 	my $pid_status = -1;
 
@@ -204,7 +204,7 @@ sub _wait_for_system
 		if (!$job->{running}) { $job->continue; }
 		{
 			local $Psh::currently_active = $pid;
-			$returnpid = waitpid($pid,&WUNTRACED);
+			$returnpid = CORE::waitpid($pid,POSIX::WUNTRACED());
 			$pid_status = $?;
 		}
 		last if $returnpid<1;
@@ -214,8 +214,8 @@ sub _wait_for_system
 		# We can do this here because we know the process has
 		# to run and could not have been stopped by TTOU
 		if ($returnpid== $pid &&
-			&WIFSTOPPED($pid_status) &&
-			Psh::OS::signal_name(WSTOPSIG($pid_status)) eq 'TTOU') {
+			POSIX::WIFSTOPPED($pid_status) &&
+			Psh::OS::signal_name(POSIX::WSTOPSIG($pid_status)) eq 'TTOU') {
 			$job->continue;
 			next;
 		}
@@ -223,7 +223,7 @@ sub _wait_for_system
 		# process might possibly be in the foreground;
 		$output.=_handle_wait_status($returnpid, $pid_status, $quiet, 1);
 		if ($returnpid == $pid) {
-			$status=&WEXITSTATUS($pid_status);
+			$status=POSIX::WEXITSTATUS($pid_status);
 			last;
 		}
 	}
@@ -247,23 +247,23 @@ sub _handle_wait_status {
 	my $visindex= Psh::Joblist::get_job_number($pid);
 	my $verb='';
 
-	if (&WIFEXITED($pid_status)) {
-		my $status=&WEXITSTATUS($pid_status);
+	if (POSIX::WIFEXITED($pid_status)) {
+		my $status= POSIX::WEXITSTATUS($pid_status);
 		if ($status==0) {
 			$verb= ucfirst(Psh::Locale::get_text('done')) unless $quiet;
 		} else {
 			$verb= ucfirst(Psh::Locale::get_text('error'));
 		}
 		Psh::Joblist::delete_job($pid);
-	} elsif (&WIFSIGNALED($pid_status)) {
+	} elsif (POSIX::WIFSIGNALED($pid_status)) {
 		my $tmp= Psh::Locale::get_text('terminated');
 		$verb = "\u$tmp (" .
-			Psh::OS::signal_description(WTERMSIG($pid_status)) . ')';
+			Psh::OS::signal_description(POSIX::WTERMSIG($pid_status)) . ')';
 		Psh::Joblist::delete_job($pid);
-	} elsif (&WIFSTOPPED($pid_status)) {
+	} elsif (POSIX::WIFSTOPPED($pid_status)) {
 		my $tmp= Psh::Locale::get_text('stopped');
 		$verb = "\u$tmp (" .
-			Psh::OS::signal_description(WSTOPSIG($pid_status)) . ')';
+			Psh::OS::signal_description(POSIX::WSTOPSIG($pid_status)) . ')';
 		$job->{running}= 0;
 	}
 	if ($verb && $visindex>0) {
@@ -285,7 +285,8 @@ sub _handle_wait_status {
 sub reap_children
 {
 	my $returnpid=0;
-	while (($returnpid = waitpid(-1, &WNOHANG | &WUNTRACED)) > 0) {
+	while (($returnpid = CORE::waitpid(-1, POSIX::WNOHANG() |
+									   POSIX::WUNTRACED())) > 0) {
 		_handle_wait_status($returnpid, $?);
 	}
 }
@@ -453,7 +454,7 @@ sub _fork_process {
 		$Psh::OS::Unix::forked_already=1;
 		close(READ) if( $pgrp_leader);
 		_setup_redirects($options,0);
-		setpgid(0,$pgrp_leader||$$);
+		POSIX::setpgid(0,$pgrp_leader||$$);
 		_give_terminal_to($pgrp_leader||$$) if $fgflag && !$termflag;
 		remove_signal_handlers();
 
@@ -476,7 +477,7 @@ sub _fork_process {
 			CORE::exit(-1);
 		}
 	}
-	setpgid($pid,$pgrp_leader||$pid);
+	POSIX::setpgid($pid,$pgrp_leader||$pid);
 	_give_terminal_to($pgrp_leader||$pid) if $fgflag && !$termflag;
 	return ($pid,0,undef);
 }
