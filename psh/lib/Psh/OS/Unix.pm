@@ -181,7 +181,7 @@ sub _handle_wait_status {
 		$job->{running}= 0;
 	}
 	if ($verb && $visindex>0) {
-		print_out( "[$visindex] $verb $pid $command\n");
+		Psh::Util::print_out( "[$visindex] $verb $pid $command\n");
 	}
 }
 
@@ -247,7 +247,7 @@ sub execute_complex_command {
 		my $job= $Psh::joblist->create_job($pid,$string);
 		if( !$fgflag) {
 			my $visindex= $Psh::joblist->get_job_number($job->{pid});
-			print_out("[$visindex] Background $pgrp_leader $string\n");
+			Psh::Util::print_out("[$visindex] Background $pgrp_leader $string\n");
 		}
 		_wait_for_system($pid, 1) if $fgflag;
 	}
@@ -343,7 +343,7 @@ sub _fork_process {
 					exec { $words[0] } @words;
 				}
 			} # Avoid unreachable warning
-			print_error_i18n(`exec_failed`,$code);
+			Psh::Util::print_error_i18n(`exec_failed`,$code);
 			&exit(-1);
 		}
 	}
@@ -358,7 +358,7 @@ sub fork_process {
 	my $job= $Psh::joblist->create_job($pid,$string);
 	if( !$fgflag) {
 		my $visindex= $Psh::joblist->get_job_number($job->{pid});
-		print_out("[$visindex] Background $pid $string\n");
+		Psh::Util::print_out("[$visindex] Background $pid $string\n");
 	}
 	_wait_for_system($pid, 1) if $fgflag;
 	return undef;
@@ -392,7 +392,7 @@ sub restart_job
 			  return;
 			}
 			my $visindex = $Psh::joblist->get_job_number($pid);
-			print_out("[$visindex] $verb $pid $command\n");
+			Psh::Util::print_out("[$visindex] $verb $pid $command\n");
 
 			if($fg_flag) {
 				eval { _wait_for_system($pid, 0); };
@@ -524,14 +524,14 @@ sub _signal_handler
 	my ($sig) = @_;
 	
 	if ($Psh::currently_active > 0) {
-		print_debug("Received signal SIG$sig, sending to $Psh::currently_active\n");
+		Psh::Util::print_debug("Received signal SIG$sig, sending to $Psh::currently_active\n");
 
-		kill $sig, $Psh::currently_active;
+		kill $sig, -$Psh::currently_active;
 	} elsif ($Psh::currently_active < 0) {
-		print_debug("Received signal SIG$sig, sending to Perl code\n");
+		Psh::Util::print_debug("Received signal SIG$sig, sending to Perl code\n");
 		die "SECRET ${Psh::bin}: Signal $sig\n";
 	} else {
-		print_debug("Received signal SIG$sig, die-ing\n");
+		Psh::Util::print_debug("Received signal SIG$sig, die-ing\n");
 		die "SECRET ${Psh::bin}: Signal $sig\n" if $sig eq 'INT';
 	}
 
@@ -556,7 +556,7 @@ sub _ignore_handler
 sub _error_handler
 {
 	my ($sig) = @_;
-	print_error_18n('unix_received_strange_sig',$sig);
+	Psh::Util::print_error_18n('unix_received_strange_sig',$sig);
 	$SIG{$sig} = \&_error_handler;
 	kill 'INT', $$; # HACK to stop a possible endless loop!
 }
