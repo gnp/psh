@@ -1,0 +1,33 @@
+1999-12-28
+
+Make sure you have SSH 1.x installed (even if you already have 2.x installed).
+
+Run ssh-keygen to generate SSH1 key.
+
+Add:
+
+    foo$ export CVS_RSH=ssh1
+    foo$ export CVSROOT=sfuser@cvs.psh.sourceforge.net:/cvsroot/psh
+
+to .bashrc (if using bash, or the equivalent if using another shell).
+Substitute your Source Forge user id for sfuser.
+
+    foo$ cvs checkout 
+    Host key not found from the list of known hosts.
+    Are you sure you want to continue connecting (yes/no)? yes
+    Host 'cvs.psh.sourceforge.net' added to the list of known hosts.
+    sfuser@cvs.psh.sourceforge.net's password: 
+    cvs server: Updating psh
+    U psh/.cvsignore
+    ...
+    foo$
+
+When prompted, agree to connect, and use your Source Forge password.
+
+Go into the psh directory and do cvs upd -dP to prune the directories that
+we are not currently using.
+
+    foo$ cd psh
+    foo$ cvs upd -dP
+    sfuser@cvs.psh.sourceforge.net's password: 
+
