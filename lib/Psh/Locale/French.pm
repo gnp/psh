@@ -8,17 +8,17 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 
 BEGIN {
 	my %sig_description = (
-						   'TTOU' => 'téléscripteur sorti',
-						   'TTIN' => 'téléscripteur entrent',
-						   'KILL' => 'détruit',
-						   'FPE'  => 'exception flottante de virgule',
+						   'TTOU' => 'terminal (sortie)',
+						   'TTIN' => 'terminal (entrée)',
+						   'KILL' => 'arrêt (KILL)',
+						   'FPE'  => 'exception (virgule flottante)',
 						   'SEGV' => 'défaut de segmentation',
-						   'PIPE' => 'cassée pipe',
+						   'PIPE' => 'tuyau (pipe) cassé',
 						   'BUS'  => 'erreur de bus',
-						   'ABRT' => 'interrompu',
-						   'ILL'  => 'illégale instruction',
-						   'TSTP' => 'arrêtez tapé au téléscripteur',
-						   'INT'  => "le caractère d'interruption a tapé"
+						   'ABRT' => 'avorté',
+						   'ILL'  => 'instruction illégale',
+						   'TSTP' => 'arrêt des entrées',
+						   'INT'  => "interruption"
 						   );
 
 	$Psh::text{sig_description}=\%sig_description;
@@ -29,28 +29,28 @@ BEGIN {
 	$Psh::text{restart}='relancement';
 	$Psh::text{foreground}='premier plan';
 	$Psh::text{exec_failed}="Erreur (exec %1) échoué.\n";
-    $Psh::text{simulate_perl_w}="En simulant -w commutez et strict\n";
-	$Psh::text{perm_denied}="%2: %1: La permission a nié.\n";
-	$Psh::text{no_such_dir}="%2: %1: Aucun un tel répertoire.\n";
-	$Psh::text{no_such_builtin}="%2: %1: Aucun un tel builtin.\n";
-	$Psh::text{readline_interrupted}="\nInterrompu!\n";
-	$Psh::text{readline_error}="Readline n'a pas initialisé correctement:\n%1\n";
-	$Psh::text{no_readline}="Aucun module de Readline disponible. Veuillez installer Term::Readline::Perl\n";
-	$Psh::text{old_gnu_readline}="Votre module Term::ReadLine::Gnu %1 devrait être au moins 1.06 pour le bien fonctionnement du système.  Veuillez le mettre à jour.\n";
-	$Psh::text{unalias_noalias}="unalias: `%1' n'est pas dit\n";
-	$Psh::text{builtin_readline_header}="En utilisant Readline: %1, avec les dispositifs:\n";
+  $Psh::text{simulate_perl_w}="En simulant -w et 'strict'\n";
+	$Psh::text{perm_denied}="%2 : %1 : Permission refusée.\n";
+	$Psh::text{no_such_dir}="%2 : %1 : Répertoire introuvable.\n";
+	$Psh::text{no_such_builtin}="%2 : %1 : commande interne (builtin) introuvable.\n";
+	$Psh::text{readline_interrupted}="\nInterrompu !\n";
+	$Psh::text{readline_error}="Readline n'a pas initialisé correctement :\n%1\n";
+	$Psh::text{no_readline}="Readline non disponible. Veuillez installer Term::Readline::Perl\n";
+	$Psh::text{old_gnu_readline}="La version de votre module Term::ReadLine::Gnu %1 devrait être au moins égale à 1.06. Veuillez le mettre à jour.\n";
+	$Psh::text{unalias_noalias}="unalias : `%1' n'est pas exprimé\n";
+	$Psh::text{builtin_readline_header}="Problème Readline %1 avec les dispositifs :\n";
 	$Psh::text{no_jobcontrol}="Votre système ne supporte pas la gestion de tâche\n";
-	$Psh::text{help_header}="psh supporte les commandes suivantes de builtin\n";
-	$Psh::text{no_help}="Désolée, l'aide pour le builtin %1 n'est pas disponible\n";
+	$Psh::text{help_header}="psh supporte les commandes internes (builtin) suivantes :\n";
+	$Psh::text{no_help}="Désolé, l'aide pour la commande interne (builtin) %1 n'est pas disponible\n";
 
 	$Psh::text{prompt_expansion_error}=<<EOT;
-%3: Avertissement: L'expansion d' '\\%1' dans le texte
-prompt a rapporté le texte contenant '\\%2'. Retirant
-l'ordre d'évasion de la substitution.
+%3: Avertissement : L'expansion d' '\\%1' (dans le 
+prompt) a produit le texte '\\%2'. Je retire
+cet échappement.
 EOT
 
-	$Psh::text{prompt_unknown_escape}="%2: Avertissement: \$Psh::prompt contient l'ordre d'évasion inconnu `\\%1'.\n";
-	$Psh::text{no_libwin32}="libwin32 requis (disponible en tant que paquet d'CPAN ou avec la distribution d' ActivePerl).\n";
+	$Psh::text{prompt_unknown_escape}="%2: Avertissement : \$Psh::prompt contient l'échappement inconnu `\\%1'.\n";
+	$Psh::text{no_libwin32}="libwin32 requis (disponible sur CPAN en tant que paquet ou avec la distribution d'ActivePerl).\n";
 }
 
 
