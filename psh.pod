@@ -841,7 +841,7 @@ brief table indicating whether or not each has certain features.
  psh (this one)         *     *     *     *     *            
  Larry Wall shell       *     -     -     -     -
  Perl debugger shell    *     -     *     -     -
- perlsh                 *     -     *     -     ?
+ perlsh                 *     -     *     -     -
  Krynicky PSH.pm        *     *     ?     -     ?
  SoftList               *     ?     *     ?     ?
  timtosh                -     *     *     *     *
