@@ -1,3 +1,7 @@
+2004-01-29  Markus Peter  <warp@spin.de>
+
+	* lib/Psh2/Builtins/Printf.pm: New printf builtin 
+
 2004-01-28  Markus Peter  <warp@spin.de>
 
 	* lib/Psh2/Builtins/Unshift.pm: New builtin for array handling

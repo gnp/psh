@@ -33,6 +33,7 @@ lib/Psh2/Builtins/Modules.pm
 lib/Psh2/Builtins/Package.pm
 lib/Psh2/Builtins/Push.pm
 lib/Psh2/Builtins/Printenv.pm
+lib/Psh2/Builtins/Printf.pm
 lib/Psh2/Builtins/Rehash.pm
 lib/Psh2/Builtins/Rename.pm
 lib/Psh2/Builtins/Option.pm
