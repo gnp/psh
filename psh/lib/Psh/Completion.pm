@@ -1,16 +1,5 @@
 package Psh::Completion;
 
-#
-# The completion package is under heavy work right now so
-# please do not complain... especially ReadLine::Perl
-# support wasn't even started yet...
-# I looked at the ReadLine::Perl code today and plainly said,
-# it sucks.. well.. we'll have to see
-#
-# We on the other hand need to support ReadLine::Perl as
-# ReadLine::Gnu causes lots of crashes on Linux...
-#
-
 use strict;
 use vars qw($VERSION);
 
@@ -44,7 +33,7 @@ sub init
 	if( $term->ReadLine eq "Term::ReadLine::Perl") {
 		$APPEND='completer_terminator_character';
 		$term->Attribs->{completer_word_break_characters}=
-			$term->Attribs->{completer_word_break_characters}.="\$\%\@\~";
+			$term->Attribs->{completer_word_break_characters}.="\$\%\@\~/";
 	} elsif( $term->ReadLine eq "Term::ReadLine::Gnu") {
 		$GNU=1;
 		$APPEND='completion_append_character';
@@ -63,6 +52,10 @@ sub cmpl_filenames
 	my $text= shift;
 	my @result= glob "$text*";
 	$ac='/' if(@result==1 && -d $result[0]);
+	foreach (@result) {
+		/\/([^\/]*$)/;
+		$_=$1;
+	}
 	return @result;
 }
 
@@ -191,7 +184,8 @@ sub custom_completion
 		}
 		else
 		{
-			@tmp= cmpl_filenames($text);
+			$starttext =~ /\s(\S*)$/;
+			@tmp= cmpl_filenames($1.$text);
 		}
 	}
 

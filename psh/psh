@@ -2000,7 +2000,7 @@ sub error_handler
 	my ($sig) = @_;
 	print_error("Received SIG$sig - ignoring\n");
 	$SIG{$sig} = \&error_handler;
-	kill 'INT',getpid();
+	kill 'INT',getpid(); # HACK to stop a possible endless loop!
 }
 
 #
