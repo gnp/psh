@@ -1,6 +1,9 @@
 package Psh::Support::Builtins;
 
 my %builtins=();
+my %builtin_aliases= (
+					  '.' => 'source',
+					 );
 
 # Returns a list of builtins
 sub get_builtin_commands {
@@ -25,7 +28,9 @@ sub build_autoload_list {
 }
 
 sub is_builtin {
-	return 1 if $builtins{$_[0]};
+	my $name= shift;
+	$name= $builtin_aliases{$name} if $builtin_aliases{$name};
+	return $name if $builtins{$name};
 	return 0;
 }
 

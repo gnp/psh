@@ -23,12 +23,12 @@ sub runs_before {
 sub applies {
 	my $fnname= ${$_[2]}[0];
 
-	if( Psh::Support::Builtins::is_builtin($fnname)) {
+	if( $fnname= Psh::Support::Builtins::is_builtin($fnname)) {
 		eval 'use Psh::Builtins::'.ucfirst($fnname);
 		if ($@) {
 			Psh::Util::print_error_i18n('builtin_failed',$@);
 		}
-		return "builtin $fnname";
+		return $fnname;
 	}
 	return '';
 }
@@ -36,7 +36,8 @@ sub applies {
 sub execute {
 	my $line= ${$_[1]};
 	my @words= @{$_[2]};
-	my $command= shift @words;
+	my $command= $_[3];
+	shift @words;
 	my $rest= join(' ',@words);
 	my $coderef;
 
