@@ -98,7 +98,17 @@ sub print_list {
     }
 }
 
-sub display_pod {
+sub prompt {
+    my ($self, $valid, $promptstring)= @_;
+    $valid= "^[$valid]\$";
+    my $line='';
+
+    do {
+	print $promptstring.' ';
+	$line=<STDIN>;
+    } while (!$line || lc($line) !~ $valid);
+    chomp $line;
+    return lc($line);
 }
 
 1;

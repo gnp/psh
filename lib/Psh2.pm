@@ -896,10 +896,11 @@ sub del_option {
     sub find_last_with_name {
 	my ($self, $name, $runningflag) = @_;
 	my $i= $#order;
-	while (--$i) {
+	while (--$i and $i>-1) {
 	    my $job= $order[$i];
 	    next if $runningflag and $job->{running};
 	    my $desc= $job->{desc};
+	    next unless $desc;
 	    if ($desc=~ m:([^/\s]+)\s*: ) {
 		$desc= $1;
 	    } elsif ( $desc=~ m:/([^/\s]+)\s+.*$: ) {

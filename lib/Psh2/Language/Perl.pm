@@ -11,7 +11,7 @@ package Psh2::Language::Perl;
 # handle_message to indicate where errors came from.
 #
 
-$Psh::PerlEval::current_package='main';
+$Psh2::Language::Perl::current_package='main';
 
 sub protected_eval
 {
@@ -20,8 +20,8 @@ sub protected_eval
     # variables of the same name in main!!
     #
 
-    local ($Psh::PerlEval::str, $Psh::PerlEval::from) = @_;
-    local $Psh::PerlEval::redo_sentinel        = 0;
+    local ($Psh2::Language::Perl::str, $Psh2::Language::Perl::from) = @_;
+    local $Psh2::Language::Perl::redo_sentinel        = 0;
 
     # It's not possible to use fork_process for foreground perl
     # as we would lose all variables etc.
@@ -30,24 +30,24 @@ sub protected_eval
 	#level in EXPR 
 	# First, protect against infinite loop
 	# caused by redo:
-	if ($Psh::PerlEval::redo_sentinel) {
+	if ($Psh2::Language::Perl::redo_sentinel) {
 	    last;
 	}
-	$Psh::PerlEval::redo_sentinel = 1;
-	local $Psh::currently_active= -1;
-	$_= $Psh::PerlEval::lastscalar;
-	@_= @Psh::PerlEval::lastarray;
-	local @Psh::PerlEval::result= eval 'package main; '.$Psh::PerlEval::str;
-	$Psh::PerlEval::lastscalar= $_;
-	@Psh::PerlEval::lastarray= @_;
+	$Psh2::Language::Perl::redo_sentinel = 1;
+	#local $Psh::currently_active= -1;
+	$_= $Psh2::Language::Perl::lastscalar;
+	@_= @Psh2::Language::Perl::lastarray;
+	local @Psh2::Language::Perl::result= eval "package $Psh2::Language::Perl::current_package; ".$Psh2::Language::Perl::str;
+	$Psh2::Language::Perl::lastscalar= $_;
+	@Psh2::Language::Perl::lastarray= @_;
 
-	if ( !$@ && @Psh::PerlEval::result &&
-	     $#Psh::PerlEval::result==0 && $Psh::PerlEval::str &&
-	     $Psh::PerlEval::result[0] &&
-	     $Psh::PerlEval::result[0] eq $Psh::PerlEval::str &&
-	     !Psh::is_number($Psh::PerlEval::str) &&
-	     $Psh::PerlEval::str=~ /^\s*\S+\s*$/ &&
-	     $Psh::PerlEval::str!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {
+	if ( !$@ && @Psh2::Language::Perl::result &&
+	     $#Psh2::Language::Perl::result==0 && $Psh2::Language::Perl::str &&
+	     $Psh2::Language::Perl::result[0] &&
+	     $Psh2::Language::Perl::result[0] eq $Psh2::Language::Perl::str &&
+	     !Psh::is_number($Psh2::Language::Perl::str) &&
+	     $Psh2::Language::Perl::str=~ /^\s*\S+\s*$/ &&
+	     $Psh2::Language::Perl::str!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {
 	    #
 	    # Very whacky error handling
 	    # If you pass one word to perl and it's no function etc
@@ -56,18 +56,18 @@ sub protected_eval
 	    # so we try to detect these cases
 	    #
 
-#	    Psh::Util::print_error_i18n('no_command',$Psh::PerlEval::str);
+#	    Psh::Util::print_error_i18n('no_command',$Psh2::Language::Perl::str);
 	    return undef;
 	} else {
 	    if ($@) {
 		print STDERR $@;
-#		Psh::handle_message($@, $Psh::PerlEval::from);
+#		Psh::handle_message($@, $Psh2::Language::Perl::from);
 	    }
 	}
-	return @Psh::PerlEval::result;
+	return @Psh2::Language::Perl::result;
     }
 #    Psh::handle_message("Can't use loop control outside a block",
-#			$Psh::PerlEval::from);
+#			$Psh2::Language::Perl::from);
     return undef;
 }
 
@@ -77,7 +77,7 @@ sub execute {
     my ($psh, $words)= @_;
     unshift @$words;
 
-    protected_eval(Psh2::Parser::ungroup(join(' ',@$words)));
+    return defined protected_eval(Psh2::Parser::ungroup(join(' ',@$words)));
 }
 
 sub internal {
