@@ -3,7 +3,7 @@ package Psh::Strategy::Bang;
 require Psh::Strategy;
 
 use strict;
-use vars(@ISA);
+use vars qw(@ISA);
 
 
 @ISA=('Psh::Strategy');
@@ -17,19 +17,19 @@ sub runs_before {
 }
 
 sub applies {
-	return 'pass to sh' if substr($$_[1],0,1) eq '!';
+	return 'pass to sh' if substr(${$_[1]},0,1) eq '!';
 }
 
 sub execute {
-	my $command= substr($$_[1],1);
+	my $command= substr(${$_[1]},1);
 
 	my $fgflag = 1;
-	if ($call =~ /^(.*)\&\s*$/) {
-		$call= $1;
+	if ($command =~ /^(.*)\&\s*$/) {
+		$command= $1;
 		$fgflag=0;
 	}
 
-	Psh::OS::fork_process( $call, $fgflag, $call, 1);
+	Psh::OS::fork_process( $command, $fgflag, $command, 1);
 	return undef;
 }
 

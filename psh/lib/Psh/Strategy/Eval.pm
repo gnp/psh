@@ -3,9 +3,11 @@ package Psh::Strategy::Eval;
 require Psh::Strategy;
 
 use strict;
-use vars(@ISA);
+use vars qw(@ISA);
 
 @ISA=('Psh::Strategy');
+
+sub new { Psh::Strategy::new(@_) }
 
 sub consumes {
 	return Psh::Strategy::CONSUME_TOKENS;
@@ -16,7 +18,7 @@ sub applies {
 }
 
 sub execute {
-	my $todo= $$_[1];
+	my $todo= ${$_[1]};
 
 	if( $_[4]) { # we are second or later in a pipe
 		my $code;

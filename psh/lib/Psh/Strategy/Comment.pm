@@ -3,7 +3,7 @@ package Psh::Strategy::Comment;
 require Psh::Strategy;
 
 use strict;
-use vars(@ISA);
+use vars qw(@ISA);
 
 @ISA=('Psh::Strategy');
 
@@ -16,7 +16,7 @@ sub runs_before {
 }
 
 sub applies {
-	return 'comment' if substr($$_[1],0,1) eq '#';
+	return 'comment' if substr(${$_[1]},0,1) eq '#';
 }
 
 sub execute {

@@ -4,6 +4,15 @@ Upgrading from version 0.009 or earlier:
 - The variables @Psh::mon and @Psh::wday were removed - please use
   Psh::Locale::months() and Psh::Locale::weekdays() instead.
 
+- The config variable @Psh::executable_no_expand is now
+  @Psh::Strategy::Executable::noexpand. The config variable
+  $Psh::executable_expand_arguments is now
+  $Psh::Strategy::Executable::expand_arguments.
+
+- %Psh::strategy_which, %Psh::strategy_eval, @Psh::strategies,
+  @Psh::unparsed_strategies do not exist anymore.
+  Please use the strategy built in.
+
 Upgrading from version 0.007 or earlier:
 
 - The @netprograms variable in Psh::Completion is no longer supported.

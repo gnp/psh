@@ -6,6 +6,7 @@ require Psh::Util;
 require Psh::OS;
 
 my %loaded=();
+my %active=();
 my @order=();
 
 my @lvl1order=();
@@ -26,12 +27,16 @@ sub get {
 	my $obj;
 	unless (exists $loaded{$name}) {
 		my $tmp='Psh::Strategy::'.$name;
-		eval "require $tmp;";
-		return undef if $@;
+		eval "use $tmp;";
+		if ($@) {
+			print STDERR "$@";
+			return undef;
+		}
 		eval {
 			$obj= "Psh::Strategy::$name"->new();
 		};
 		if ($@ or !$obj) {
+			print STDERR "$@";
 			return undef;
 		}
 		$loaded{$name}= $obj;
@@ -43,6 +48,7 @@ sub get {
 sub remove {
 	my $name= shift;
 	@order= grep { $name ne $_->name } @order;
+	delete $active{$name} if $active{$name};
 	regenerate_cache();
 }
 
@@ -107,19 +113,46 @@ sub add {
 		}
 	}
 	splice(@order,$pos,0,$str_obj);
+	$active{$str_obj->name}=1;
 	regenerate_cache();
 }
 
 sub regenerate_cache {
-	@lvl1order= grep { $_->consumes() == CONSUME_LINE } @order;
-	@lvl2order= grep { $_->consumes() == CONSUME_WORDS } @order;
-	@lvl3order= grep { $_->consumes() == CONSUME_TOKENS } @order;
+	@lvl1order= grep { $_ && $_->consumes() == CONSUME_LINE } @order;
+	@lvl2order= grep { $_ && $_->consumes() == CONSUME_WORDS } @order;
+	@lvl3order= grep { $_ && $_->consumes() == CONSUME_TOKENS } @order;
 }
 
 sub parser_strategy_list {
 	return (\@lvl1order,\@lvl2order,\@lvl3order);
 }
 
+sub parser_return_objects {
+	my @objs= map { get($_) } @_;
+	my @lvl1= grep { $_->consumes() == CONSUME_LINE } @objs;
+	my @lvl2= grep { $_->consumes() == CONSUME_WORDS } @objs;
+	my @lvl3= grep { $_->consumes() == CONSUME_TOKENS } @objs;
+	return (\@lvl1,\@lvl2,\@lvl3);
+}
+
+sub setup_defaults {
+	@order= (
+			 get('comment'),
+			 get('bang'),
+			 get('brace'),
+			 get('built_in'),
+			 get('executable'),
+			 get('eval'),
+			);
+	$active{comment}= $active{bang}= $active{brace}= $active{built_in}=
+	  $active{executable}= $active{eval}= 1;
+	regenerate_cache();
+}
+
+sub active {
+	my $name= shift;
+	return $active{$name};
+}
 
 #####################################################################
 #  Base class for strategies
@@ -215,10 +248,11 @@ If you specified CONSUME_TOKENS, this method will be called as
 
 =item * execute
 
-If you specified CONSUME_LINE, this method will be called as
+Will be called as
   $obj->execute(\$inputline,\@tokens,$how,$piped_flag)
 
-C<$how> is what the call to applies returned;
+C<$how> is what the call to applies returned. If C<@tokens> is
+not applicable an empty array will be supplied.
 
 Your execute function should return an array of the form:
 

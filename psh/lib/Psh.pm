@@ -4,6 +4,7 @@ use locale;
 use Psh::Util ':all';
 require File::Spec;
 require Psh::Locale;
+require Psh::Strategy;
 require Psh::OS;
 require Psh::Joblist;
 require Psh::Completion;
@@ -34,25 +35,20 @@ require Psh::Prompt;
 #
 
 use vars qw($bin $cmd $echo $host $debugging
-		    $executable_expand_arguments
 			$term @absed_path $readline_saves_history
 			$history_file $save_history $history_length
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $window_title
             $interactive
-			@val @strategies @unparsed_strategies @history
-            @executable_noexpand
-			%text %perl_builtins %perl_builtins_noexpand
-			%strategy_which %built_ins %strategy_eval %fallback_builtin);
+			@val @history
+			%text %perl_builtins %perl_builtins_noexpand);
 
 #
 # Private, Lexical Variables:
 #
 
 
-my @default_strategies = qw(brace built_in executable eval);
-my @default_unparsed_strategies = qw(comment bang);
 my $input;
 
 ##############################################################################
@@ -62,151 +58,6 @@ my $input;
 ##
 ##############################################################################
 ##############################################################################
-
-
-#
-# variable_expansion is defined above for technical reasons; see
-# comments there
-#
-
-# EVALUATION STRATEGIES: We have two hashes, %strategy_which and
-#  %strategy_eval; an evaluation strategy called "foo" is implemented
-#  by putting a subroutine object in each of these hashes keyed by
-#  "foo". The first subroutine should accept a reference to a string
-#  (the exact input line) and a reference to an array of strings (the
-#  'Psh::decompose'd line, provided as a convenience). It should
-#  return a string, which should be null if the strategy does not
-#  apply to that input line, and otherwise should be an arbitrary
-#  non-null string describing how that strategy applies to that
-#  line. It is guaranteed that the string passed in will contain some
-#  non-whitespace, and that the first string in the array is
-#  non-empty.
-#
-# The $strategy_eval{foo} routine accepts the same first two arguments
-#  and a third argument, which is the string returned by
-#  $strategy_which{foo}. It should do the evaluation, and return the
-#  result. Note that the $strategy_eval function will be evaluated in
-#  an array context. Note also that if $Psh::echo is true, the
-#  process() function below will print and store away any
-#  result that is not undef.
-#
-# @Psh::strategies contains the evaluation strategies in order that
-# will be called by evl().
-#
-
-#
-# Contains names of fallback builtins we support
-#
-
-%fallback_builtin = ('ls'=>1, 'env'=>1 );
-
-#
-# EVALUATION STRATEGIES:
-#
-
-%strategy_which = (
-	'bang'     => sub { if ( substr(${$_[1]}[0],0,1) eq '!')  { return 'system';  } return ''; },
-
-	'comment'  => sub { if ( substr(${$_[1]}[0],0,1) eq '#') { return 'comment'; } return ''; },
-	'brace'    => sub { if ( substr(${$_[1]}[0],0,1) eq '{') { return 'perl evaluation'; } return ''; },
-	'built_in' => sub {
-	     my $fnname = ${$_[1]}[0];
-         if( $built_ins{$fnname}) {
-			 eval 'use Psh::Builtins::'.ucfirst($fnname);
-			 if ($@) {
-				 Psh::Util::print_error_i18n('builtin_failed',$@);
-			 }
-             return "(Psh::Builtins::".ucfirst($fnname)."::bi_$fnname)";
-		 }
-         no strict 'refs';
-         if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
- 	         return "(Psh::Builtins::bi_$fnname)";
-         }
-		 return '';
-	},
-
-	'executable' => sub {
-		my $executable = Psh::Util::which(${$_[1]}[0]);
-
-		return "$executable" if defined($executable);
-		return '';
-	},
-
-   'eval' => sub { return 'perl evaluation'; }
-);
-
-%strategy_eval = (
-	'comment' => sub { return undef; },
-
-	'bang' => sub {
-		my ($call) = (${$_[0]} =~ m/!(.*)$/);
-
-		my $fgflag = 1;
-		if ($call =~ /^(.*)\&\s*$/) {
-			$call= $1;
-			$fgflag=0;
-		}
-
-		Psh::OS::fork_process( $call, $fgflag, $call, 1);
-	    return undef;
-	},
-
-	'built_in' => sub {
-		my $line= ${shift()};
-        my @words= @{shift()};
-        my $command= shift @words;
-        my $rest= join(' ',@words);
-        no strict 'refs';
-        if( ref *{"Psh::Builtins::bi_$command"}{CODE} eq 'CODE') {
-			$coderef= *{"Psh::Builtins::bi_$command"};
-        } elsif( $built_ins{$command}) {
-			$coderef= *{'Psh::Builtins::'.ucfirst($command)."::bi_$command"};
-		}
-        return (sub { &{$coderef}($rest,\@words); }, [], 0, undef );
-	},
-
-	'executable' => sub {
-		my @args=@_;
-		my @newargs= @{$args[1]};
-		if ($executable_expand_arguments) {
-			my $flag=0;
-
-			foreach my $re (@executable_noexpand) {
-				if ($args[2]=~ m{$re}) {
-					$flag=1;
-					last;
-				}
-			}
-			@newargs= Psh::PerlEval::variable_expansion(\@newargs) unless $flag;
-		}
-		@newargs = Psh::Parser::glob_expansion(\@newargs);
-		@newargs = map { Psh::Parser::unquote($_)} @newargs;
-
-		return ("$args[2] @newargs", ["$args[2]",@newargs], 0, undef, );
-	},
-);
-
-$strategy_eval{brace}= $strategy_eval{eval}= sub {
-	my $todo= ${$_[0]};
-
-	if( $_[3]) { # we are second or later in a pipe
-		my $code;
-		$todo=~ s/\} ?([qg])\s*$/\}/;
-		my $mods= $1 || '';
-		if( $mods eq 'q' ) { # non-print mode
-			$code='while(<STDIN>) { @_= split /\s+/; '.$todo.' ; }';
-		} elsif( $mods eq 'g') { # grep mode
-			$code='while(<STDIN>) { @_= split /\s+/; print $_ if eval { '.$todo.' }; } ';
-		} else {
-			$code='while(<STDIN>) { @_= split /\s+/; '.$todo.' ; print $_ if $_; }';
-		}
-		return (sub {return Psh::PerlEval::protected_eval($code,'eval'); }, [], 0, undef);
-    } else {
-		return (sub {
-			return Psh::PerlEval::protected_eval($todo,'eval');
-		}, [], 0, undef);
-	}
-};
 
 #
 # void handle_message (string MESSAGE, string FROM = 'eval')
@@ -252,10 +103,6 @@ sub evl {
 			evl($_,@use_strats);
 		}
 		return;
-	}
-
-	if (!@use_strats) {
-		@use_strats = @strategies;
 	}
 
 	my @elements= Psh::Parser::parse_line($line, @use_strats);
@@ -669,12 +516,9 @@ sub minimal_initialize
 	# Set up accessible psh:: package variables:
 	#
 
-	@strategies                  = @default_strategies;
-	@unparsed_strategies         = @default_unparsed_strategies;
 	$eval_preamble               = 'package main;';
 	$currently_active            = 0;
 	$result_array                = '';
-	$executable_expand_arguments = 1;
 	$which_regexp                = '^[-a-zA-Z0-9_.~+]+$'; #'
 
 	if ($]>=5.005) {
@@ -711,9 +555,7 @@ sub minimal_initialize
 	@val = ();
 	@history= ();
 
-	# I don't know wether this should really be pre-initialized
-	@executable_noexpand= ('whois','/ezmlm-','/mail$','/mailx$',
-						   '/pine$');
+	Psh::Strategy::setup_defaults();
 
 	Psh::Locale::init();
 }

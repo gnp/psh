@@ -106,9 +106,10 @@ sub execute_complex_command {
 
 	my $obj;
 	for( my $i=0; $i<@array; $i++) {
-		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
+		my ($strategy, $how, $options, $words, $text)= @{$array[$i]};
 		my $line= join(' ',@$words);
-		my ($eval_thingie,$words,$bgflag,@return_val)= &$coderef( \$line, $words,$how);
+		my ($eval_thingie,$words,$bgflag,@return_val)= $strategy->execute( \$line, $words, $how, 0);
+
 		my @tmp;
 
 		if( defined($eval_thingie)) {

@@ -4,7 +4,7 @@ require Psh::Strategy;
 require Psh::Strategy::Eval;
 
 use strict;
-use vars(@ISA);
+use vars qw(@ISA);
 
 @ISA=('Psh::Strategy');
 

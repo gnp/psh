@@ -5,7 +5,7 @@ use strict;
 
 require Psh::OS;
 require Psh::Util;
-require Exporter;
+require Psh::Strategy;
 
 sub T_END() { 0; }
 sub T_WORD() { 1; }
@@ -371,47 +371,52 @@ sub make_tokens {
 }
 
 sub parse_line {
-	my ($line, @use_strats) = @_;
+	my $line= shift;
+	my (@use_strats) = @_;
 
-	my @words= std_tokenize($line);
-	foreach my $strat (@Psh::unparsed_strategies) {
-		if (!exists($Psh::strategy_which{$strat})) {
-			Psh::Util::print_warning_i18n('no_such_strategy',
-										  $strat,$Psh::bin);
-			next;
-		}
-
-		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words);
-
-		if ($how) {
-			Psh::Util::print_debug_class('s',
-										 "[Using strategy $strat by $how]\n");
-			return [ 1, [$Psh::strategy_eval{$strat},
-						 $how, [], \@words, $strat ]];
-		}
+	my ($lvl1,$lvl2,$lvl3);
+	if (@use_strats) {
+		($lvl1,$lvl2,$lvl3)= Psh::Strategy::parser_return_objects(@use_strats);
+	} else {
+		($lvl1,$lvl2,$lvl3)= Psh::Strategy::parser_strategy_list();
 	}
 
-	my @tokens= make_tokens( $line);
-	my @elements=();
-	my $element;
-	while( @tokens > 0) {
-		$element=parse_complex_command(\@tokens,\@use_strats);
-		return undef if ! defined( $element); # TODO: Error handling
-
-		if (@tokens > 0 && $tokens[0][0] == T_END) {
-			shift @tokens;
+	if (@$lvl1) {
+		foreach my $strategy (@$lvl1) {
+			my $how= $strategy->applies(\$line);
+			if ($how) {
+				my $name= $strategy->name;
+				Psh::Util::print_debug_class('s',
+							  "[Using strategy $name: $how]\n");
+				return ([ 1, [$strategy, $how, [], [$line], $line ]]);
+			}
 		}
-		push @elements, $element;
 	}
-	return @elements;
+	if (@$lvl2) {
+		die "Level 2 Strategies currently not supported!";
+	}
+	if (@$lvl3) {
+		my @tokens= make_tokens( $line);
+		my @elements=();
+		my $element;
+		while( @tokens > 0) {
+			$element=parse_complex_command(\@tokens,$lvl3);
+			return undef if ! defined( $element); # TODO: Error handling
+			if (@tokens > 0 && $tokens[0][0] == T_END) {
+				shift @tokens;
+			}
+			push @elements, $element;
+		}
+		return @elements;
+	}
 }
 
 sub parse_complex_command {
 	my $tokens= shift;
-	my $use_strats= shift;
+	my $strategies= shift;
 	my $piped= 0;
 	my $foreground = 1;
-	return [ $foreground, _subparse_complex_command($tokens,$use_strats,\$piped,\$foreground,{})];
+	return [ $foreground, _subparse_complex_command($tokens,$strategies,\$piped,\$foreground,{})];
 }
 
 sub _subparse_complex_command {
@@ -449,9 +454,10 @@ sub parse_simple_command {
 		}
 	}
 
-	if ($Psh::Builtins::aliases{$words[0]} and
+	if (%Psh::Support::Alias::aliases and
+	    $Psh::Support::Alias::aliases{$words[0]} and
 	    !$alias_disabled->{$words[0]}) {
-		my $alias= $Psh::Builtins::aliases{$words[0]};
+		my $alias= $Psh::Support::Alias::aliases{$words[0]};
 		$alias =~ s/\'/\\\'/g;
 		$alias_disabled->{$words[0]}=1;
 		unshift @savetokens, make_tokens($alias);
@@ -460,18 +466,12 @@ sub parse_simple_command {
 
 	my $line= join ' ', @words;
 	foreach my $strat (@$use_strats) {
-		if (!exists($Psh::strategy_which{$strat})) {
-			Psh::Util::print_warning_i18n('no_such_strategy',
-										 $strat,$Psh::bin);
-			next;
-		}
-
-		my $how = &{$Psh::strategy_which{$strat}}(\$line,\@words,$$piped);
-
+		my $how= $strat->applies(\$line,\@words,$$piped);
 		if ($how) {
-			Psh::Util::print_debug_class('s',"[Using strategy $strat by $how]\n");
-			return ([ $Psh::strategy_eval{$strat},
-					 $how, \@options, \@words, $strat, $line ]);
+			my $name= $strat->name;
+			Psh::Util::print_debug_class('s',
+							  "[Using strategy $name: $how]\n");
+			return ([ $strat, $how, \@options, \@words, $line]);
 		}
 	}
 	Psh::Util::print_error_i18n('clueless',$line,$Psh::bin);

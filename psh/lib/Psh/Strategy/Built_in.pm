@@ -3,11 +3,13 @@ package Psh::Strategy::Built_in;
 require Psh::Strategy;
 
 use strict;
-use vars(@ISA);
+use vars qw(@ISA);
 
 @ISA=('Psh::Strategy');
 
 my %built_ins=();
+
+sub new { Psh::Strategy::new(@_) }
 
 sub consumes {
 	return Psh::Strategy::CONSUME_TOKENS;
@@ -18,7 +20,7 @@ sub runs_before {
 }
 
 sub applies {
-	my $fnname= $$_[1][0];
+	my $fnname= ${$_[2]}[0];
 
 	if( $built_ins{$fnname}) {
 		eval 'use Psh::Builtins::'.ucfirst($fnname);
@@ -35,8 +37,8 @@ sub applies {
 }
 
 sub execute {
-	my $line= $$_[1];
-	my @words= @$_[2];
+	my $line= ${$_[1]};
+	my @words= @{$_[2]};
 	my $command= shift @words;
 	my $rest= join(' ',@words);
 	my $coderef;
