@@ -4,6 +4,12 @@ use strict;
 use vars qw($VERSION);
 use Psh::Util ':all';
 
+eval { use Win32; }
+if ($@) {
+	print_error_i18n('no_libwin32');
+	die "\n";
+}
+
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 #
@@ -11,7 +17,7 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 #
 
 $Psh::OS::PATH_SEPARATOR=';';
-$Psh::OS::FILE_SEPARATOR="\\";
+$Psh::OS::FILE_SEPARATOR='\\';
 
 # dummy currently
 sub get_hostname { return 'localhost'; }
@@ -20,7 +26,10 @@ sub get_hostname { return 'localhost'; }
 # (it can be anywhere in PATH I think)
 sub get_known_hosts { return (); }
 
-sub exit { CORE::exit( shift); }
+sub exit {
+	CORE::exit(@_[0]) if $_[0];
+	CORE::exit(0);
+}
 
 
 #
@@ -45,9 +54,7 @@ sub display_pod {
 	1 while unlink($tmp); #Possibly pointless VMSism
 }
 
-
-# not necessary I think on Win32
-sub reap_children {};
+sub reap_children {1};
 
 sub fork_process {
 	local( $Psh::code, $Psh::fgflag, $Psh::string) = @_;
@@ -84,15 +91,15 @@ sub glob {
 	return @result;
 }
 
-sub get_all_users { return (); }
-sub restart_job { }
-sub remove_signal_handlers {}
-sub setup_signal_handlers {}
-sub setup_sigsegv_handler {}
-sub setup_readline_handler {}
-sub reinstall_resize_handler {}
+sub get_all_users { return (); } # this should have a value on NT and Win9x with multiple profiles
+sub restart_job {1}
+sub remove_signal_handlers {1}
+sub setup_signal_handlers {1}
+sub setup_sigsegv_handler {1}
+sub setup_readline_handler {1}
+sub reinstall_resize_handler {1}
 
-sub get_home_dir {}
+sub get_home_dir {1} # we really should return something (profile?)
 
 sub is_path_absolute {
 	my $path= shift;
@@ -102,8 +109,9 @@ sub is_path_absolute {
 }
 
 sub get_path_extension {
-	my $pathext=$ENV{PATHEXT}||".cmd;.bat;.com;.exe";
-	return split (';',$pathext);
+	my $extsep = $Psh::OS::PATH_SEPARATOR || ';';
+	my $pathext = $ENV{PATHEXT} || ".cmd${extsep}.bat${extsep}.com${extsep}.exe";
+	return split("$extsep",$pathext);
 }
 
 1;
@@ -126,6 +134,7 @@ TBD
 =head1 AUTHOR
 
 blaaa
+Omer Shenker, oshenker@iname.com
 
 =head1 SEE ALSO
 
@@ -140,5 +149,3 @@ blaaa
 # c-basic-offset:4
 # perl-indent-level:4
 # End:
-
-
