@@ -11,9 +11,11 @@ sequences (B<>, C<>, I<>, etc.).
 The Perl Shell documentation has been split into a number of different
 manpages:
 
-   L<psh>         This overview
-   L<pshdevel>    Developing for the Perl Shell
-   L<pshconfig>   Configuring the Perl Shell
+L<psh|psh>         This overview
+
+L<pshdevel|pshdevel>    Developing for the Perl Shell
+
+L<pshconfig|pshconfig>   Configuring the Perl Shell
 
 =head1 DESCRIPTION
 
