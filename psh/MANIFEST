@@ -60,6 +60,8 @@ lib/Psh/Builtins/Complete.pm
 lib/Psh/Builtins/Delenv.pm
 lib/Psh/Builtins/Dirs.pm
 lib/Psh/Builtins/Drives.pm
+lib/Psh/Builtins/Else.pm
+lib/Psh/Builtins/Elsif.pm
 lib/Psh/Builtins/Exit.pm
 lib/Psh/Builtins/Export.pm
 lib/Psh/Builtins/Fc.pm

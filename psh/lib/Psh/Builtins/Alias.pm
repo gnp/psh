@@ -21,6 +21,7 @@ alias with that name.
 sub bi_alias
 {
 	my $line = shift;
+	my @words= @{shift()};
 	my ($command, $firstDelim, @rest) = Psh::Parser::decompose('([ \t\n=]+)', $line, undef, 0);
 	my $text = join('',@rest); # reconstruct everything after the
 	# first delimiter, sans quotes
@@ -43,7 +44,7 @@ sub bi_alias
 		Psh::Util::print_error_i18n('bi_alias_cant_a');
 		return (0,undef);
 	} else {
-		$Psh::Support::Alias::aliases{$command} = $text;
+		$Psh::Support::Alias::aliases{$command} = Psh::Parser::unquote($text);
 	}
 	return (1,undef);
 }
