@@ -359,9 +359,9 @@ sub make_tokens {
 	my $previous_token= '';
 	my $tmp;
 	while( defined($tmp= shift @parts)) {
-		if ($tmp eq '||') {
+		if ($tmp eq '||' or $tmp eq '&&') {
 			push @t, @tokens;
-			push @t, [T_END],[T_OR];
+			push @t, [T_END],[$tmp eq '||'?T_OR:T_AND];
 			@tokens=();
 			$previous_token= '';
 		}
