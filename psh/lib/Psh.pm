@@ -1144,7 +1144,7 @@ sub minimal_initialize
 	$executable_expand_arguments = 0;
 	$cmd                         = 1;
 
-	$ENV{SHELL}                  = $0;
+	$ENV{SHELL}                  = $0; # Avoids problems with ReadLine::Gnu :-)
 	$bin                         = $0;
 	$bin                         =~ s/.*\///;
 
