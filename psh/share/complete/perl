@@ -1,0 +1,24 @@
+#!pshcomplete
+# perldoc
+
+sub _perldoc {
+    my ($cur, $line, $start, $cmd) = @_;
+ 
+    # if prev argument is -f, return possible filename completions.
+    # we could be a little smarter here and return matches against
+    # 'makefile Makefile *.mk', whatever exists ##''
+    my ($prev) = substr($line, 0, $start) =~ /(\S+)\s+$/;
+
+    if ($prev =~ /^-.*f$/) {
+        return @Psh::Completion::keyword;
+    }
+ 
+    if ($cur eq '-') {
+        return ('-f ','-r ','-i ','-h ','-t ','-u ',
+		'-m ','-n ','-l ','-F ','-v ','-X ','-q ','-U ');
+    }
+	return ();
+}
+
+complete -F _perldoc perldoc
+
