@@ -52,6 +52,7 @@ sub protected_eval
  
 	local ($psh::string, $psh::from) = @_;
 	local $psh::currently_active     = 0;
+        local $psh::redo_sentinel        = 0;
 	local $psh::fgflag               = 1;
 
 	if ($psh::string =~ m/^(.*)\&\s*$/) {
@@ -59,26 +60,46 @@ sub protected_eval
 		$psh::fgflag      = 0;
 	}
 
-	local @psh::result = ();
-
 	# It's not possible to use fork_process for foreground perl
 	# as we would lose all variables etc.
 
 	if( $psh::fgflag) {
-		$currently_active = -1;
-		@psh::result= eval "$psh::eval_preamble $psh::string";
-		handle_message($@, $psh::from);
-		$currently_active = 0;
+		{ #Dummy block to catch loop-control statements at outermost
+                  #level in EXPR 
+		      # First, protect against infinite loop
+		      # caused by redo:
+		      if ($redo_sentinel) { last; } 
+		      $redo_sentinel = 1;
+                      $currently_active = -1;
+		      local @psh::result= eval "$psh::eval_preamble $psh::string";
+		      handle_message($@, $psh::from);
+                      $currently_active = 0;
+                      return @psh::result;
+                }
+                handle_message("Can't use loop control outside a block",
+			       $psh::from);
+		return undef;
 	} else {
-		fork_process( sub {
-			@psh::result= eval "$psh::eval_preamble $psh::string";
-			if ($@) { exit -1; }
-			exit 0;
-		}, $psh::fgflag, $psh::string);
-
+	      { #Another such dummy block
+		      if ($redo_sentinel) { last; }
+		      $redo_sentinel = 1;
+		      fork_process( sub {
+			      #No need to save the result, we're not using it:
+			      eval "$psh::eval_preamble $psh::string";
+			      if ($@) { exit -1; }
+			      exit 0;
+		      }, $psh::fgflag, $psh::string);
+		      return undef; # child never gets here, parent always does
+		                    # but has no value to return.
+	      }
+	      exit -2; # child could get here, if it uses loop control
+                       # statements at outermost level. I used a different
+                       # exit status just in case we can ever look at
+                       # that.
 	}
-
-	return @psh::result;
+	#I believe it's now impossible to get here:
+	print_error("psh internal error code name MANGLED FORK");
+	return undef;
 }
 
 
