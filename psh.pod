@@ -759,9 +759,9 @@ The following people have contributed to the development of C<psh>:
 
 =item Prodigious Contributors
 
-Markus Peter E<lt>F<warp@spin.de>E<gt> added job and signal handling and
-filename completion, initial internationalization code and some more minor
-updates.
+Markus Peter E<lt>F<warp@spin.de>E<gt> added job and signal handling,
+completion code, Win32 port, i18n code, bash compatibility builtins and
+environment variables and some more minor updates.
 
 Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
 strategies, improved interrupt/job handling, C<&Psh::evl>, C<$Psh::echo>,
