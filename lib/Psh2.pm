@@ -48,7 +48,7 @@ sub new {
 	       cache => {
 			 path => {},
 			 command => {},
-		     },
+                        },
 	       strategy => [],
 	       language => { 'perl' => 1, 'c' => 1},
 	       aliases  => {},

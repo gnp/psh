@@ -63,18 +63,15 @@ sub tab_completion {
     my $attribs= $self->{term}->Attribs;
     my $buffer= $attribs->{line_buffer};
     my $caret= $attribs->{point};
-    my ($from, $to, $pre, $app, $list)= $self->{psh}->completor->complete($buffer,$caret);
+    my ($line, $newcaret, $list)= $self->{psh}->completor->complete($buffer,$caret);
+    if ($line) {
+        $attribs->{line_buffer}= $line;
+        $attribs->{point}= $newcaret;
+    }
     if ($list and @$list) {
-        if (@$list>1) {
-            print "\n";
-            $self->print_list(@$list);
-            $self->{term}->on_new_line();
-        } else {
-            my $tmp= $pre.$list->[0].$app;
-            substr($buffer,$from,$to)= $tmp;
-            $attribs->{line_buffer}= $buffer;
-            $attribs->{point}= $from+length($tmp);
-        }
+        print "\n";
+        $self->print_list(@$list);
+        $self->{term}->on_new_line();
     }
     $self->{term}->redisplay();
     '';

@@ -122,12 +122,8 @@ sub decompose {
 	        $piece eq '${'or $piece eq '$(') {
                 push @open, $piece;
             } elsif ($piece eq '}' or $piece eq ')' or $piece eq ']') {
-                my $tmp= pop @open;
-                if (!defined $tmp) {
-                    die "parse: needmore: nest: closed $piece";
-                }
-                if ($nesthash{$tmp} ne $piece) {
-                    die "parse: needmore: nest: wrong $tmp $piece";
+                if (@open and $piece eq $nesthash{$open[0]}) {
+                    pop @open;
                 }
             }
         }

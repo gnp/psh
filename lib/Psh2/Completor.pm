@@ -9,27 +9,40 @@ sub new {
     return $self;
 }
 
+
+sub filenames {
+    my ($self, $tocomplete)= @_;
+    my $returnline='';
+    my $newcaret= 0;
+    my @tmp= $self->{psh}->glob("$tocomplete*");
+
+    if (@tmp==1) { # interface will be simplified for most cases later on
+        my $append='';
+        $append='/' if -d $tmp[0];
+        $returnline= $self->{line}.$tmp[0].$append;
+        $newcaret= length($returnline);
+        $returnline.=$self->{rest_of_line};
+    }
+    if ($tocomplete=~ m:/:) {
+        @tmp= map { s:^.*/::; $_ } @tmp;
+    }
+
+    return ($returnline,$newcaret, \@tmp);
+    # line, newcaret, list
+}
+
 sub complete {
     my ($self, $line, $caret)= @_;
+    $self->{rest_of_line}= substr($line, $caret);
     $line= substr($line, 0, $caret);
     my $tocomplete;
-    my ($prepend,$append)= ('',' ');
     if ($line=~/((?:\S|\\\s)+)$/) {
         $tocomplete= $1;
     }
 
-    $line= substr($line, 0, length($line)-length($tocomplete));
+    $self->{line}= substr($line, 0, length($line)-length($tocomplete));
 
-#        print STDERR "word is $word\n";
-    my @tmp= $self->{psh}->glob("$tocomplete*");
-    $append='/' if @tmp==1 and -d $tmp[0];
-    return ($caret-length($tocomplete),$caret,
-            $prepend, $append,
-            \@tmp);
-    # return: $from $to (what's replaced by completion)
-    # return: $prepend_characters
-    # return: $append_characters
-    # return: [listofcompletions]
+    return $self->filenames($tocomplete);
 }
 
 1;
