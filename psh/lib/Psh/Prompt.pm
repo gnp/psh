@@ -56,6 +56,7 @@ my %sign_table=
 			$mon  = (Psh::Locale::months())[$mon];
 			return "$wday $mon $mday";
 		},
+	'e' => sub { return "\e"} ,
 	'E' => sub { return "\e"} ,
 	'h' => sub { return $Psh::host; },
 	'H' => sub { return $Psh::longhost || $Psh::host; },
@@ -74,7 +75,7 @@ my %sign_table=
 			# Camel, 2e, p. 172: 'getlogin'.
 			return getlogin || (getpwuid($>))[0] || "uid$>";
 		},
-	'w' => sub { 
+	'w' => sub {
 			my $dir = $ENV{PWD};
 			my $home = Psh::OS::get_home_dir();
 			return $dir unless (length($home) > length($Psh::OS::FILE_SEPARATOR));	# in case the home dir is the root dir
@@ -89,6 +90,7 @@ my %sign_table=
 			return $newdir||$dir||'/';
 		},
 	'#' => sub { return $Psh::cmd; },
+	'!' => sub { return scalar(@Psh::history); },
 	'$' => sub { return ($> ? '$' : '#'); },
 	'[' => sub { return $Psh::term->ReadLine() eq 'Term::ReadLine::Gnu'?"\001":''},
 	']' => sub { return $Psh::term->ReadLine() eq 'Term::ReadLine::Gnu'?"\002":''},
