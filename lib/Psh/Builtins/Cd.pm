@@ -74,7 +74,7 @@ sub bi_cd
 			$dir = Psh::Util::abs_path(File::Spec->catdir($cdbase,$dir));
 		}
 
-		if ((-e $dir) and (-d _)) {
+		if ($dir and (-e $dir) and (-d _)) {
 			if (-x _) {
 				$ENV{OLDPWD}= $ENV{PWD};
 				unshift @Psh::Support::Dirs::stack, $dir if $explicit;
@@ -92,7 +92,7 @@ sub bi_cd
 }
 
 sub cmpl_cd {
-	my( $text, $pre) = @_;
+	my( $text, $pre, $start, $line, $startchar) = @_;
 	return 1,Psh::Completion::cmpl_directories($pre.$text);
 }
 

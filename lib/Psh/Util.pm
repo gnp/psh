@@ -2,7 +2,6 @@ package Psh::Util;
 
 use strict;
 
-require Cwd;
 require Psh::OS;
 require File::Spec;
 
@@ -134,7 +133,7 @@ sub abs_path {
 			my $tmp= File::Spec->rel2abs($dir,$ENV{PWD});
 
 			my $old= $ENV{PWD};
-			if (-r $tmp) {
+			if ($tmp and -r $tmp) {
 				if (-d $tmp and -x _) {
 					if ( CORE::chdir($tmp)) {
 						$result = Psh::OS::getcwd_psh();
@@ -144,14 +143,14 @@ sub abs_path {
 					$result= $tmp;
 				}
 			}
-			unless ($result) {
-				local $^W=0;
-				local $SIG{__WARN__}= {};
-				eval {
-					$result= Cwd::abs_path($tmp);
-				};
-				print_debug_class('e',"(abs_path) Error: $@") if $@;
-			}
+#  			if ($tmp and !$result) {
+#  				local $^W=0;
+#  				local $SIG{__WARN__}= {};
+#  				eval {
+#  					$result= Cwd::abs_path($tmp);
+#  				};
+#  				print_debug_class('e',"(abs_path) Error: $@") if $@;
+#  			}
 			return undef unless $result;
 		}
 		if ($result) {
