@@ -85,6 +85,7 @@ lib/Psh/Support/Alias.pm
 lib/Psh/Support/Builtins.pm
 lib/Psh/Support/Dirs.pm
 lib/Psh/Support/Env.pm
+lib/Psh/Support/Functions.pm
 t/locale.t
 t/parser.t
 t/unix.psh
