@@ -839,11 +839,11 @@ sub finish_initialize
 
 sub process_rc
 {
-	my $opt_r= shift;
+	my $opt_f= shift;
 	my @rc;
 
-	if ($opt_r) {
-		push @rc, $opt_r;
+	if ($opt_f) {
+		push @rc, $opt_f;
 	} else {
 		push @rc, Psh::OS::get_rc_files();
 	}

@@ -21,6 +21,11 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 							print_out print_error_i18n print_out_i18n
 							which abs_path)] );
 
+use vars qw(%command_hash %path_hash);
+
+%command_hash=();
+%path_hash=();
+
 Exporter::export_ok_tags('all'); # Add EXPORT_TAGS to EXPORT_OK
 
 sub print_warning
@@ -161,6 +166,7 @@ sub print_list
 
 	sub abs_path {
 		my $dir= shift;
+		return $path_hash{$dir} if $path_hash{$dir};
 		my $dir2= Psh::OS::abs_path($dir);
 		unless ($dir2) {
 			eval {
@@ -169,6 +175,7 @@ sub print_list
 			$dir2= basic_abs_path($dir) if $@;
 			$dir2.='/' unless $dir2=~m:[/\\]:; # abs_path strips / from letter: on Win
 		}
+		$path_hash{$dir}= $dir2;
 		return $dir2;
 	}
 }
@@ -186,7 +193,6 @@ sub print_list
 	#
 
 	my $last_path_cwd = '';
-	my %hashed_cmd    = ();
 	my $FS=$Psh::OS::FILE_SEPARATOR;
 
 	my $re1="\Q$FS\E";
@@ -218,7 +224,7 @@ sub print_list
 		if ($last_path_cwd ne ($ENV{PATH} . $ENV{PWD})) {
 			$last_path_cwd = $ENV{PATH} . $ENV{PWD};
 			@Psh::absed_path    = ();
-			%hashed_cmd    = ();
+			%command_hash    = ();
 
 			my @path = split($Psh::OS::PATH_SEPARATOR, $ENV{PATH});
 
@@ -231,7 +237,7 @@ sub print_list
 			# does not exist
 		}
 
-		if (exists($hashed_cmd{$cmd})) { return $hashed_cmd{$cmd}; }
+		if (exists($command_hash{$cmd})) { return $command_hash{$cmd}; }
 
 		my @path_extension=Psh::OS::get_path_extension();
 
@@ -239,12 +245,12 @@ sub print_list
 			my $try = File::Spec->catfile($dir,$cmd);
 			foreach my $ext (@path_extension) {
 				if ((-x $try.$ext) and (!-d _)) { 
-					$hashed_cmd{$cmd} = $try.$ext;
+					$command_hash{$cmd} = $try.$ext;
 					return $try.$ext;
 				}
 			}
 		}
-		$hashed_cmd{$cmd} = undef;
+		$command_hash{$cmd} = undef;
 
 		return undef;
 	}
