@@ -379,6 +379,7 @@ sub process_file
 		return;
 	}
 
+	local(*FILE);
 	unless (open(FILE, "< $path")) {
 		Psh::Util::print_error_i18n('cannot_open_script',$path,$Psh::bin);
 		return;
@@ -525,6 +526,7 @@ sub save_history
 			$Psh::term->StifleHistory(Psh::Options::get_option('histsize'));
 			$Psh::term->WriteHistory($file);
 		} else {
+			local(*F_HISTORY);
 			if (open(F_HISTORY,">> $file")) {
 				Psh::OS::lock(*F_HISTORY, Psh::OS::LOCK_EX());
 				foreach (@Psh::history) {
@@ -667,6 +669,7 @@ sub initialize_interactive_mode {
 			$Psh::term->StifleHistory(Psh::Options::get_option('histsize'));
 			$Psh::term->ReadHistory($file);
 		} else {
+			local(*F_HISTORY);
 			if (open(F_HISTORY,"< $file")) {
 				Psh::OS::lock(*F_HISTORY);
 				while (<F_HISTORY>) {

@@ -40,6 +40,7 @@ sub getcwd_psh {
 sub get_known_hosts {
 	my $hosts_file = "/etc/hosts"; # TODO: shouldn't be hard-coded?
 	my @result=();
+	local *F_KNOWNHOST;
 	if (open(F_KNOWNHOST,"< $hosts_file")) {
 		my $hosts_text = join ('', <F_KNOWNHOST>);
 		close(F_KNOWNHOST);
@@ -88,6 +89,7 @@ sub display_pod {
 	my $tmp= Psh::OS::tmpnam();
 	my $text= shift;
 
+	local *TMP;
 	open( TMP,">$tmp");
 	print TMP $text;
 	close(TMP);
@@ -398,8 +400,6 @@ sub _setup_redirects {
 			} elsif ($option->[1] eq '>') {
 				my $tmpfd= POSIX::open( $option->[3], &POSIX::O_WRONLY |
 										&POSIX::O_TRUNC | &POSIX::O_CREAT );
-				print STDERR "tmpfd=$tmpfd\n";
-				print STDERR "errno=".POSIX::errno()."\n";
 				POSIX::dup2($tmpfd, $type);
 				POSIX::close($tmpfd);
 			} elsif ($option->[1] eq '>>') {
@@ -407,6 +407,9 @@ sub _setup_redirects {
 									   &POSIX::O_CREAT);
 				POSIX::dup2($tmpfd, $type);
 				POSIX::close($tmpfd);
+			}
+			if ($^F<$type) { # preserve filedescriptors higher than 2
+				$^F=$type;
 			}
 		}
 	}
@@ -550,19 +553,23 @@ sub resume_job {
 sub backtick {
 	my $com=join ' ',@_;
 	local $^F=50;
-	pipe(READ,WRITE);
-	$|=1;
+	my ($read,$write)= POSIX::pipe();
+
 	unless(my $pid=fork) {
-		close(READ);
-		open(STDOUT,">&WRITE");
+		POSIX::close($read);
+		POSIX::dup2($write,fileno(*STDOUT));
+		$^F=$write if ($write>$^F);
 		my ($success)= Psh::evl($com);
 		CORE::exit(!$success);
 	}
-	close(WRITE);
+	POSIX::close($write);
 	my $result='';
+	local(*READ);
+	open(READ,"<&=$read");
 	while(<READ>) {
 		$result.=$_;
 	}
+	close(READ);
 	return $result;
 }
 
