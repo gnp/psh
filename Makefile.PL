@@ -10,7 +10,6 @@ while( <FILE>)
 	my $dest= $_;
 	$dest=~ s/^lib/\$(INST_LIBDIR)/;
 	$pms->{$_}=$dest;
-	print "$_ => $dest\n";
 }
 close(FILE);
 
