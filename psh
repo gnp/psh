@@ -77,6 +77,7 @@ my $term;                         # Term::ReadLine object.
 my @completion_buffer      = ();
 my %perl_builtins;
 my %perl_builtins_noexpand;
+my @absed_path    = ();
 
 
 
@@ -317,28 +318,27 @@ if (!$@) {
   print_debug("Using &Cwd::fast_abs_path()\n");
   sub abs_path { return fast_abs_path(@_); }
 } else {
-    sub abs_path
-      {
-	my $dir = shift;
-	
-	$dir = '~' unless defined $dir and $dir ne '';
-	
-	if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
-	  my $user = $2; 
-	  my $rest = $3;
-	  
-	  my $home;
-	  
-	  if ($user eq '') { $home = $ENV{HOME}; }
-	  else             { $home = (getpwnam($user))[7]; }
-	  
-	  if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
+    sub abs_path {
+		my $dir = shift;
+		
+		$dir = '~' unless defined $dir and $dir ne '';
+		
+		if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
+			my $user = $2; 
+			my $rest = $3;
+			
+			my $home;
+			
+			if ($user eq '') { $home = $ENV{HOME}; }
+			else             { $home = (getpwnam($user))[7]; }
+			
+			if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
+		}
+		
+		if (!$dir =~ m|^/|) { $dir = cwd . '/', $dir }
+		
+		return $dir;
 	}
-	
-	if (!$dir =~ m|^/|) { $dir = cwd . '/', $dir }
-	
-	return $dir;
-      }
 }
 
 
@@ -355,7 +355,6 @@ if (!$@) {
 	#
 
 	my $last_path_cwd = '';
-	my @absed_path    = ();
 	my %hashed_cmd    = ();
 
 	sub which
@@ -577,7 +576,7 @@ sub builtin_fg
 {
 	my $arg = shift;
 
-	$arg = -1 if (!defined($arg) or ($arg eq ''));
+	$arg = -0 if (!defined($arg) or ($arg eq ''));
 	$arg =~ s/\%//;
 
 	restart_job(1, $arg - 1);
@@ -592,7 +591,7 @@ sub builtin_bg
 {
 	my $arg = shift;
 
-	$arg = -1 if (!defined($arg) or ($arg eq ''));
+	$arg = 0 if (!defined($arg) or ($arg eq ''));
 	$arg =~ s/\%//;
 
 	restart_job(0, $arg - 1);
@@ -660,7 +659,7 @@ sub builtin_source
 {
 	local $echo = 0;
 
-	for my $file (split(' ',$_[0])) { process_file($file); }
+	for my $file (split(' ',$_[0])) { process_file(abs_path($file)); }
 
 	return undef;
 }
@@ -689,7 +688,28 @@ sub builtin_readline
 	return undef;
 }
 
+#
+# void builtin_setenv(string command)
+#
+# Allows to set environment variables without needing to use
+# $ENV{..}
 
+sub builtin_setenv
+{
+	my $arg= shift;
+	if( $arg=~ /^\s*(\w+)(\s+|\s*=\s*)(.+)/ ) {
+		$ENV{$1}= eval "\"$3\"";
+	} elsif( $arg=~ /(\w+)/ ) {
+		my $var= $1;
+		my $env_var= $var;
+		$var="\$".$var if( $var=~/^\w/ );
+		eval "$psh::eval_preamble; \$ENV{'$env_var'}=$var;";
+	} else {
+		print_error("Usage: setenv <variable> <value>\n".
+					"       setenv <variable>\n");
+	}
+	return undef;
+}
 
 ##############################################################################
 ##############################################################################
@@ -1661,7 +1681,7 @@ sub prompt_string
 
 sub readline_handler
 {
-    die "SECRET $bin: Signal $sig\n";
+    die "SECRET $bin: Signal $sig\n"; # changed to SECRET... just in case
 }
 
 
@@ -1797,6 +1817,8 @@ sub initialize
 		      'readline' => \&builtin_readline,
 		      'which'    => \&builtin_which,
 		      'source'   => \&builtin_source,
+			  'setenv'   => \&builtin_setenv,
+			  'export'   => \&builtin_setenv
 	);
 
 	#
@@ -2319,13 +2341,17 @@ sub try_executable_completion
 
 	if (!$state)
 	{
-		my @path           = split(':', $ENV{PATH});
 		my $old_cwd        = cwd;
 		@completion_buffer = ();
 
-		foreach my $dir (@path) {
+		my $tmp = which($cmd);
+		push( @completion_buffer, $tmp) if defined($tmp);
+		# set up absed_path if not already set and check
+		# wether we found an executable with exactly that name
+
+		foreach my $dir (@absed_path) {
 			chdir abs_path($dir);
-			push( @completion_buffer, grep { -x } glob "$cmd*" );
+			push( @completion_buffer, grep { -x && ! -d } glob "$cmd*" );
 		}
 
 		chdir $old_cwd;
@@ -2355,9 +2381,14 @@ sub custom_completion
 	#
 	# Only return if executable match found something, otherwise try
 	# filename completion
-	#
+	# Only try executable completion if it's the first word or after | and
+	# it does not contain .. or /
 
-	if (substr($line, 0, $start) =~ /^\s*$/) { # First word
+	my $start_text= substr( $line, 0, $start);
+
+	if ( ($start_text =~ /^\s*$/ ||
+		  $start_text =~ /\|\s*$/ ) &&
+		!( $text =~ /\/|\.\.@/)) {
 		@tmp = $term->completion_matches($text, \&try_executable_completion);
 		return @tmp if defined @tmp;
 	}
@@ -2487,10 +2518,10 @@ process_rc;
 if (@ARGV) {
 	process_args;
 } else {
-  while (1) {
-   eval { main_loop; };
-   handle_message($@,'main_loop');
-  }
+	while (1) {
+		exval { main_loop; };
+		handle_message($@,'main_loop');
+    }
 }
 
 exit 0;
