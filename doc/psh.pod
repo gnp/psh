@@ -387,6 +387,11 @@ The number of lines of command history to keep.
 
 The short host name of the machine B<psh> is currently running on.
 
+=item I<$Psh::interactive>
+
+This is not a customization variable but a flag which tells wether
+you are currently in interactive mode (1) or processing a file (0)
+
 =item I<$Psh::login_shell> (0)
 
 Set to true if B<psh> is the user's login shell. On systems where this
