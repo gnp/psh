@@ -153,7 +153,16 @@ eval "use Cwd 'fast_abs_path';";
 if (!$@) {
 	print_debug("Using &Cwd::fast_abs_path()\n");
 #	sub abs_path { return fast_abs_path(@_); }
-	*abs_path = sub { eval { &fast_abs_path; }};
+	*abs_path = sub {
+	    my $path= eval { &fast_abs_path(@_); };
+		$path= eval { &basic_abs_path(@_) } if( $@);
+		# This is a hack :-) I'm not sure yet wether
+		# fast_abs_path can do everything our abs_path
+		# can... I'm not even sure wether fast_abs_path
+		# is really fast and wether we need all its
+		# abilities (e.g. symlink resolving)
+		return $path;
+	};
 } else {
 	*abs_path = sub { eval { &basic_abs_path; }};
 }
@@ -178,12 +187,14 @@ if (!$@) {
     {
 		my $cmd      = shift;
 		my $FS= $Psh::OS::FILE_SEPARATOR;
-		my $qFS= "\\".$FS;
 
 		print_debug("[which $cmd]\n");
 
-		if ($cmd =~ m|$qFS|) {
-			my $try = abs_path($cmd);
+		if ($cmd =~ m|\Q$FS\E|) {
+			$cmd =~ m|^(.*)\Q$FS\E([^\Q$FS\E]+)$|;
+			my $path_element= $1;
+			my $cmd_element= $2;
+			my $try = abs_path($path_element).$FS.$cmd_element;
 			if ((-x $try) and (! -d _)) { return $try; }
 			return undef;
 		}
