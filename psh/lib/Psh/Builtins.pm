@@ -323,6 +323,8 @@ sub bi_alias
 	        my $aliasrhs = $aliases{$command};
 		$aliasrhs =~ s/\'/\\\'/g;
 		print_out("alias $command='$aliasrhs'\n");
+	} elsif ($text eq '-a') {
+	        print_error("Can't alias '-a'.\n");
 	} else {
 		print_debug("[[ Aliasing '$command' to '$text']]\n");
 		# my apologies for the gobbledygook
@@ -348,10 +350,13 @@ Removes the alias with name <C<I<NAME>> or all aliases if either <C<I<-a>>
 
 sub bi_unalias {
 	my $name= shift;
-	if( $name eq '-a' || $name eq 'all' ) {
-		%aliases= ();
+	if( ($name eq '-a' || $name eq 'all') and !_is_aliased($name) ) {
 		$Psh::built_ins= ();
-	} elsif( exists($aliases{$name})) {
+		for my $command (keys %aliases) {
+		  delete($Psh::built_ins{$command});
+		}
+		%aliases= ();
+	} elsif( _is_aliased($name)) {
 		delete($aliases{$name});
 		delete($Psh::built_ins{$name});
 	} else {
@@ -359,6 +364,17 @@ sub bi_unalias {
 		return 1;
 	}
 	return 0;
+}
+
+# 
+# bool _is_aliased( string COMMAND )
+#
+# returns TRUE if COMMAND is aliased:
+
+sub _is_aliased {
+       my $command = shift;
+       if (exists($aliases{$command})) { return 1; }
+       return 0;
 }
 
 $Psh::Builtins::help_fg = '
