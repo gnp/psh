@@ -137,7 +137,6 @@ sub resume {
 
 sub wait_for_finish {
     my $self= shift;
-    my $tmp= select(DEBUG); $|=1; select($tmp);
 
     my $psh_pgrp= CORE::getpgrp();
     my $pid_status= -1;
