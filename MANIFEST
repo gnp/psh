@@ -6,6 +6,7 @@ README
 INSTALL
 TODO
 docs/README
+docs/othershells
 docs/psh2.pod
 docs/syntax-notes
 lib/Psh2.pm

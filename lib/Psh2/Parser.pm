@@ -104,13 +104,19 @@ sub decompose {
     if (length($line)) {
 	$pieces[$#pieces].= $line;
     }
-
     my @pieces2= ();
     my @open= ();
     my @tmp= ();
-    my $expand_aliases= 1;
+    my $start_of_command= 1;
+    my $language_mode= 0;
 
     foreach my $piece (@pieces) {
+        if ($start_of_command and length($piece)>1 and
+            $piece=~ /^(\S+\:)(.*)$/) {
+            push @pieces2, $1;
+            $piece=$2;
+            $language_mode=1;
+        }
 	if (length($piece)<3) {
             if ($piece eq '[' or $piece eq '(' or $piece eq '{' or
 	        $piece eq '${'or $piece eq '$(') {
@@ -130,13 +136,14 @@ sub decompose {
         } elsif (@tmp) {
 	    my $tmp= join('', @tmp, $piece);
 	    @tmp= ();
-	    if (substr($tmp,0,2) eq '$(' or
-	        substr($tmp,0,2) eq '${') {
+	    if (!$language_mode and
+                (substr($tmp,0,2) eq '$(' or
+                 substr($tmp,0,2) eq '${')) {
 		$tmp= expand_dollar($psh,$tmp);
 	    }
 	    push @pieces2, $tmp;
 	} else {
-	    if ($expand_aliases and %{$psh->{aliases}}) {
+	    if ($start_of_command and %{$psh->{aliases}}) {
 		if ($piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s*)$/ or
 		    $piece=~/^(\s*)([a-zA-Z0-9_.-]+)(\s.*)$/) {
 		    my ($pre, $main, $post)= ($1, $2, $3);
@@ -148,28 +155,29 @@ sub decompose {
 						 $alias_disabled, 1)};
 			$tmppiec[0]= $pre.$tmppiec[0];
 			push @pieces2, @tmppiec;
-			$expand_aliases= 0;
 			$piece= $post;
 		    }
 		}
 	    }
+            $start_of_command= 0;
 
-	    $piece=~ s/(?<!\\)(\$[a-zA-Z0-9_]+)/&expand_dollar($psh,$1)/ge;
-	    $piece=~ s/(?<!\\)(\$\([a-zA-Z0-9_]+\))/&expand_dollar($psh,$1)/ge;
+            unless ($language_mode) {
+                $piece=~ s/(?<!\\)(\$[a-zA-Z0-9_]+)/&expand_dollar($psh,$1)/ge;
+                $piece=~ s/(?<!\\)(\$\([a-zA-Z0-9_]+\))/&expand_dollar($psh,$1)/ge;
+            }
 
 	    if ($tmp_tokens{$piece}) {
+                $language_mode=0;
 		push @pieces2, [$tmp_tokens{$piece}];
+                if ($tmp_tokens{$piece}<7) {
+                    $start_of_command=1;
+                    next;
+                }
 	    } else {
 		push @pieces2, $piece;
 	    }
-	    if (
-		$piece eq ';' or $piece eq '|' or $piece eq '&' or
-	        $piece eq "\n" or $piece eq '&&' or $piece eq '||') {
-		$expand_aliases= 1;
-		next;
-	    }
         }
-	$expand_aliases= 0;
+	$start_of_command= 0;
     }
     if (@open) {
 	die "parse: needmore: nest: missing @open";
@@ -178,45 +186,66 @@ sub decompose {
 
     my @pieces3= ();
     my $space= 0;
-    while (my $piece= shift @pieces2) {
+    $start_of_command=1;
+    $language_mode=0;
+    foreach my $piece (@pieces2) {
+        if ($language_mode) {
+            push @pieces3, $piece;
+            if (ref $piece) {
+                $language_mode=0;
+                $space=1;
+            }
+            next;
+        }
+        if ($start_of_command and length($piece)>1 and
+            substr($piece,-1) eq ':') {
+            push @pieces3, $piece;
+            $language_mode=1;
+            next;
+        }
+        $start_of_command=0;
 	if (ref $piece) {
 	    push @pieces3, $piece;
+            if ($piece->[0]<7) {
+                $start_of_command=1;
+            }
 	    $space= 1;
 	    next;
 	}
-	my $char= substr($piece,0,1);
-	if ( $char eq '{' or $char eq '(' or $char eq '[' or
-	     $piece eq '=') {
-	    push @pieces3, $piece;
-	    $space= 1;
-	} elsif ( $char eq '"' or $char eq "'" or
-		  (length($piece)>2 and substr($piece,0,2) eq 'q[') or
-		  (length($piece)>3 and substr($piece,0,3) eq 'qq[')) {
-	    _clean_word(\$piece);
-	    if (!$space and @pieces3>0) {
-		my $old= pop @pieces3;
-		$piece= $old. $piece
-	    }
-	    push @pieces3, $piece;
-	    $space= 0;
-	} else {
-	    @tmp= split /(?<!\\)\s+/, $piece, -1;
-	    if ($tmp[0] eq '') {
-		shift @tmp;
-		$space= 1;
-	    }
-	    if (!$space and @pieces3>0) {
-		my $old= pop @pieces3;
-		$tmp[0]=$old.$tmp[0];
-	    }
-	    if ($tmp[$#tmp] eq '') {
-		$space=1;
-		pop @tmp;
-	    } else {
-		$space=0;
-	    }
-	    push @pieces3, @tmp;
-	}
+
+        my $char= substr($piece,0,1);
+        if ( $char eq '{' or $char eq '(' or $char eq '[' or
+             $piece eq '=') {
+            push @pieces3, $piece;
+            $space= 1;
+        } elsif ( $char eq '"' or $char eq "'" or
+                  (length($piece)>2 and substr($piece,0,2) eq 'q[') or
+                  (length($piece)>3 and substr($piece,0,3) eq 'qq[')) {
+            _clean_word(\$piece);
+            if (!$space and @pieces3>0) {
+                my $old= pop @pieces3;
+                $piece= $old. $piece
+            }
+            push @pieces3, $piece;
+            $space= 0;
+        } else {
+            @tmp= split /(?<!\\)\s+/, $piece, -1;
+            if ($tmp[0] eq '') {
+                shift @tmp;
+                $space= 1;
+            }
+            if (!$space and @pieces3>0) {
+                my $old= pop @pieces3;
+                $tmp[0]=$old.$tmp[0];
+            }
+            if ($tmp[$#tmp] eq '') {
+                $space=1;
+                pop @tmp;
+            } else {
+                $space=0;
+            }
+            push @pieces3, @tmp;
+        }
     }
     return \@pieces3;
 }
@@ -528,13 +557,13 @@ sub _parse_simple {
 		return [ $strategy, $tmp, \@options, \@words, $line, $opt, undef];
 	    }
 	}
+        my $full_fun_name= $Psh2::Language::Perl::current_package.'::'.$first;
+        if (exists $psh->{function}{$full_fun_name}) {
+            return [ 'call', $psh->{function}{$full_fun_name}[0], \@options, \@words,
+                     $line, $opt, $psh->{function}{$full_fun_name}[1]];
+        }
     }
-    my $full_fun_name= $Psh2::Language::Perl::current_package.'::'.$first;
-    if (exists $psh->{function}{$full_fun_name}) {
-	return [ 'call', $psh->{function}{$full_fun_name}[0], \@options, \@words,
-	         $line, $opt, $psh->{function}{$full_fun_name}[1]];
-    }
-    die "duh";
+    die "duh: $first";
 }
 
 sub glob_expansion {

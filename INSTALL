@@ -1,14 +1,20 @@
 REQUIREMENTS
 ------------
 
-Currently, psh works on any modern Unix system with perl5. It has been
-most extensively tested on GNU/Linux systems with perl 5.005, and also
-works with perl 5.004. Earlier versions of perl will probably cause psh to
-fail.
+Currently, psh2 should work on any modern Unix system with perl5. It has been
+most extensively tested on GNU/Linux systems with perl 5.6/5.8.
 
+Requires Perl Modules:
+- POSIX, Getopt::Std, Pod::Text
 
-INSTALLING psh
---------------
+Optional and recommended Perl Modules:
+- Either Term::ReadLine::Gnu or Term::ReadLine::Perl for the readline frontend
+or Term::EditLine for the editline frontend
+- Pod::Text::Color for colored help pages
+- Locale::gettext for localization
+
+INSTALLING psh2
+---------------
 
 Follow the standard procedure (from the source directory):
 	perl Makefile.PL
@@ -16,14 +22,6 @@ Follow the standard procedure (from the source directory):
 
 As superuser (if required):
 	make install
-
-Copy pshrc to ~/.pshrc.
-
-Optional:
-Copy share to /usr/share/psh (or /usr/local/share/psh ).
-
-Alternatively, you can copy share to ~/.psh/ or to /psh/ on Windows.
-
 
 WITHOUT root ACCESS
 -------------------
@@ -51,14 +49,3 @@ putting something like
 in your shell's startup dotfile. Be careful that this file isn't executed
 by a shebang (#!) invocation of the shell, or shell scripts written for
 that shell may mysteriously fail.
-
-SETTING UP A .pshrc FILE
-------------------------
-
-After starting psh, you can enter the command
-
-   firsttime
-
-to have some help with setting up your first .pshrc file. The firsttime
-command will try to parse your bash and tcsh rc files to gather aliases,
-environment variables and bring them into psh format.

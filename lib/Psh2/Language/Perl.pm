@@ -11,8 +11,6 @@ package Psh2::Language::Perl;
 # handle_message to indicate where errors came from.
 #
 
-$Psh2::Language::Perl::current_package='main';
-
 sub protected_eval
 {
     #
@@ -41,12 +39,12 @@ sub protected_eval
 	$Psh2::Language::Perl::lastscalar= $_;
 	@Psh2::Language::Perl::lastarray= @_;
 
-	if ( !$@ && @Psh2::Language::Perl::result &&
-	     $#Psh2::Language::Perl::result==0 && $Psh2::Language::Perl::str &&
-	     $Psh2::Language::Perl::result[0] &&
-	     $Psh2::Language::Perl::result[0] eq $Psh2::Language::Perl::str &&
-	     !Psh::is_number($Psh2::Language::Perl::str) &&
-	     $Psh2::Language::Perl::str=~ /^\s*\S+\s*$/ &&
+	if ( !$@ and @Psh2::Language::Perl::result and
+	     $#Psh2::Language::Perl::result==0 and $Psh2::Language::Perl::str and
+	     $Psh2::Language::Perl::result[0] and
+	     $Psh2::Language::Perl::result[0] eq $Psh2::Language::Perl::str and
+#	     !Psh::is_number($Psh2::Language::Perl::str) and
+	     $Psh2::Language::Perl::str=~ /^\s*\S+\s*$/ and
 	     $Psh2::Language::Perl::str!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {
 	    #
 	    # Very whacky error handling

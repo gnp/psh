@@ -1,0 +1,71 @@
+OTHER SHELLS WRITTEN IN PERL
+
+Larry Walls' Perl Shell
+
+Larry Wall exhibits the simple Perl shell while (<>) { eval; print $@; } on
+page 161 of the Camel Book (2nd Edition).
+
+lpsh
+
+Lee Eakin <leakin@dfw.nostrum.com> has written the Fancy Poor Man's Perl SHell
+(called lpsh for Lee's Perl Shell), a simple Perl shell that he has used for
+a number of years now (it is derived from Larry Wall's Perl Shell). 
+He has added some numeric conversion functions because he often uses it as a
+calculator.
+
+He has placed it on the web at <http://www.dfw.nostrum.com/~leakin/psh>
+(for the code) and <http://www.dfw.nostrum.com/~leakin/psh.README> for a
+short explanation of the code and a reference to the main Perl Shell site.
+
+Perl Debugger Shell
+
+Rich Graves <rcgraves@brandeis.edu> posted a comment to the original
+psh-0.001 announcement on <http://freshmeat.net>, which contained this
+gem that leverages the Perl debugger: perl -d -e 1;
+
+perlsh
+
+Hiroo Hayashi <hiroo.hayashi@computer.org> includes perlsh, a 
+``one-line perl evaluator with line editing function and variable name
+completion function'' as an example with his Term::ReadLine::Gnu Perl module.
+
+PSH.pm
+
+In an example of convergent evolution, at <http://jenda.krynicky.cz/>
+there is a Perl shell module called PSH.pm. It is designed to provide
+a command line that can be called inside some other program via 
+PSH::prompt();, but a small file psh.pl is also included that uses PSH
+to provide a standalone shell.
+
+SoftList
+
+Some versions of the Perl faq mention an interactive Perl shell called
+SoftList, which can still be found at
+<http://www.mit.edu/afs/sipb/contrib/perl/SoftList/>. It predates
+Term::Readline and was apparently last touched in 1993, so it seems to
+be obsolescent.
+
+
+timtosh
+
+Tim Newsome, <nuisance@cmu.edu>, has developed a shell he calls
+timtosh (There Is More Than One SHell). Per his web site
+(<http://www.wiw.org/~drz/timtosh>), it is a shell written entirely in
+Perl. The goal is to get a shell which you can extend in Perl and can do
+some other niceties related to Perl (like perl re file matching). As o
+ 1999-12-13 (Perl Shell 0.004 release date), Tim says B<timtosh> ``is
+focused quite differently than B<psh> is, but is currently
+still waiting for a rewrite of the command line parsing.
+(It has been for almost a year now)''.
+
+
+vbsh
+
+Tom Christiansen and Nathan Torkington's book B<Perl Cookbook>, published by
+O'Reilly in 1998 (ISBN 1-56592-243-3) has "Example 15-4. vbsh" on page 531 for
+section 15.11 (Editing Input). It stands for Very Bad SHell.
+
+Zoidberg
+
+Jaap Karssenberg and Raoul Zwart actively develop a modular perl shell called
+B<Zoidberg>, available at C<http://zoidberg.sourceforge.net/>.

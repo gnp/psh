@@ -9,6 +9,7 @@ if ($^O eq 'MSWin32') {
 }
 
 *gt= *gt_dummy;
+$Psh2::Language::Perl::current_package='main';
 
 require POSIX;
 require Psh2::Parser;
@@ -168,6 +169,7 @@ sub init_minimal {
     my $self= shift;
     build_builtin_list($self);
     $| = 1;
+    $ENV{PSHELL}= $0;
     if (!$ENV{HOME}) {
 	$ENV{HOME}= $self->get_home_dir();
     }
@@ -353,10 +355,12 @@ sub printdebug {
 
 	    return undef unless $path_element and $cmd_element;
 	    $path_element= abs_path($self, $path_element);
-	    my $try= catfile_fast($path_element, $cmd_element);
-	    if (-x $try and ! -d _ ) {
-		return $try;
-	    }
+            if ($path_element and $cmd_element) {
+                my $try= catfile_fast($path_element, $cmd_element);
+                if (-x $try and ! -d _ ) {
+                    return $try;
+                }
+            }
 	    return undef;
 	}
 	return $self->{cache}{command}{$command} if !$all_flag and exists $self->{cache}{command}{$command};

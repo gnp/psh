@@ -4,6 +4,10 @@ $Psh2::VERSION='0.001';
 
 require Psh2;
 
+# just temporary
+# use Carp;
+# $SIG{__WARN__}= sub { Carp::cluck(@_)};
+
 my $psh= new Psh2();
 my %opt=();
 
@@ -11,7 +15,7 @@ if (@ARGV) {
     require Getopt::Std;
     Getopt::Std::getopts('Vifhc:', \%opt);
     if ($opt{'V'}) {
-	print "psh2, version $Psh2::VERSION\nCopyright (c) 1999-2003 psh Core Team\n";
+	print "psh2, version $Psh2::VERSION\nCopyright (c) 1999-2004 psh Core Team\n";
 	exit 1;
     }
     if ($opt{'h'}) {

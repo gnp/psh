@@ -180,6 +180,24 @@ the "help" command.
 For details about the implementation of built-ins, please see the
 B<pshdevel> manpage.
 
+=head2 CALLING LANGUAGES
+
+In addition to the native psh syntax, the shell can also execute perl code
+as well as code in other languages for which modules were installed. psh2
+currently comes with support for Perl and C. The syntax is straightforward:
+
+    languagename: code
+
+For examole:
+
+    perl: print "Hello world!\n"
+
+Please note, that the shell metacharacter parsing still happens - as soon as
+e.g. a ; is encountered, psh returns to shell syntax again. To use longer
+language blocks, simply wrap the code in { }:
+
+    perl: { print "Hello"; print " world!" }
+
 =head1 SPEED AND LIMITATIONS
 
 Depending on the exact commands, B<psh2> is between 2-5 times as fast as
@@ -192,117 +210,14 @@ in an interactive environment, neither the large memory usage of B<psh>
 (between 2 and 6 MB, depending on your system, perl version and psh
 configuration) nor the slower speed compared to pure perl or the
 different other shells are that important.
-
-=head1 REQUIREMENTS
-
-psh needs several optional Perl modules to offer full functionality:
-
-=over 4
-
-=item Term::ReadLine::Gnu or Term::ReadLine::Perl for readline support
-(command history, special editing chars etc.).
-
-=item Term::ReadLine::Gnu, Term::Size or Term::ReadKey to offer the
-ability to change the environment variables LINES and COLUMNS when the
-terminal window size changes while running as standard shell
-
-=item BSD::Resource is necessary for the ulimit builtin
-
-=back
-
-
-=head1 OTHER PERL SHELLS
-
-
-=head2 Larry Walls' Perl Shell
-
-Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@; }> on
-page 161 of the Camel Book (2nd Edition).
-
-
-=head2 lpsh
-
-Lee Eakin E<lt>F<leakin@dfw.nostrum.com>E<gt> has written the Fancy Poor Man's Perl SHell
-(called lpsh for Lee's Perl Shell), a simple Perl shell that he has used for a number of
-years now (it is derived from Larry Wall's Perl Shell).  He has added some numeric
-conversion functions because he often uses it as a calculator.
-
-He has placed it on the web at C<http://www.dfw.nostrum.com/~leakin/psh> (for the
-code) and C<http://www.dfw.nostrum.com/~leakin/psh.README> for a short explanation
-of the code and a reference to the main Perl Shell site.
-
-
-=head2 Perl Debugger Shell
-
-Rich Graves E<lt>F<rcgraves@brandeis.edu>E<gt> posted a comment to the original
-psh-0.001 announcement on C<http://freshmeat.net>, which contained this
-gem that leverages the Perl debugger: C<perl -d -e 1>;
-
-
-=head2 perlsh
-
-Hiroo Hayashi E<lt>F<hiroo.hayashi@computer.org>E<gt> includes B<perlsh>, a 
-``one-line perl evaluator with line editing function and variable name
-completion function'' as an example with his Term::ReadLine::Gnu Perl module.
-
-
-=head2 PSH.pm
-
-In an example of convergent evolution, at C<http://jenda.krynicky.cz/>
-there is a Perl shell module called F<PSH.pm> which is quite similar
-to this B<psh>. It is designed to provide a command line that can be called
-inside some other program via C<PSH::prompt();>, but a small file
-F<psh.pl> is also included that uses PSH to provide a standalone
-shell.
-
-=head2 SoftList
-
-Some versions of the Perl faq mention an interactive Perl shell called
-SoftList, which can still be found at
-C<http://www.mit.edu/afs/sipb/contrib/perl/SoftList/>. It predates
-Term::Readline and was apparently last touched in 1993, so it seems to
-be obsolescent.
-
-
-=head2 timtosh
-
-Tim Newsome, E<lt>F<nuisance@cmu.edu>E<gt>, has developed a shell he calls
-B<timtosh> (There Is More Than One SHell). Per his web site
-(C<http://www.wiw.org/~drz/timtosh>),
-it is a shell written entirely in Perl. The goal is to get a shell which you
-can extend in Perl and can do some other niceties related to
-Perl (like perl re file matching). As of 1999-12-13 (Perl Shell 0.004 release date),
-Tim says B<timtosh> ``is focused quite differently than B<psh> is, but is currently
-still waiting for a rewrite of the command line parsing.
-(It has been for almost a year now)''.
-
-
-=head2 vbsh
-
-Tom Christiansen and Nathan Torkington's book B<Perl Cookbook>, published by
-O'Reilly in 1998 (ISBN 1-56592-243-3) has "Example 15-4. vbsh" on page 531 for
-section 15.11 (Editing Input). It stands for Very Bad SHell.
-
-=head2 Zoidberg
-
-Jaap Karssenberg and Raoul Zwart actively develop a modular perl shell called
-B<Zoidberg>, available at C<http://zoidberg.sourceforge.net/>.
-
-=head1 FILES
-
-F<psh> - The Perl Shell executable script.
-
-F<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
-current directory; if both are present, both will be read in the order
-mentioned.
 		
 =head1 COPYRIGHT
 
-Copyright (C) 1999-2003 psh Core Team. All rights reserved.
+Copyright (C) 1999-2004 psh2 Core Team. All rights reserved.
 This script is free software. It may be copied or modified according
 to the same terms as Perl itself.
 
- E<lt>F<gregor@focusresearch.com>E<gt>
  E<lt>F<warp-psh@spin.de>E<gt>
+ E<lt>F<gregor@focusresearch.com>E<gt>
 
 =cut

@@ -21,7 +21,9 @@ sub init {
 	} else {
 	    eval { $self->{term}= Term::EditLine->new('psh2'); };
 	    if ( $self->{term} ) {
+                $self->{term}->add_fun('tabcompl','', sub { tab_completion($self, @_)});
 		$self->{term}->parse('bind', '-e');
+                $self->{term}->parse('bind', "\\t", 'tabcompl');
 	    }
 	}
     }
@@ -106,6 +108,13 @@ sub prompt {
     } while (!$line || lc($line) !~ $valid);
     chomp $line;
     return lc($line);
+}
+
+sub tab_completion {
+    my $self= shift;
+    my ($buffer, $caret, $length)= $self->{term}->line();
+    $self->{term}->insertstr("Tab completion dummy");
+    return Term::EditLine::CC_REFRESH();
 }
 
 1;
