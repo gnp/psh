@@ -131,7 +131,7 @@ sub read_until
 	my $input;
 	my $temp;
 
-	$input = '';
+	my @input;
 
 	while (1) {
 		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),
@@ -141,10 +141,10 @@ sub read_until
 			return '';
 		}
 		last if $temp =~ m/^$terminator$/;
-		$input .= $temp;
+		push @input, $temp;
 	}
 
-	return $input;
+	return join('',@input);
 }
 
 # string read_until_complete(PROMPT_TEMPL, string SO_FAR, subr GET)
@@ -160,6 +160,7 @@ sub read_until_complete
 {
 	my ($prompt_templ, $sofar, $get) = @_;
 	my $temp;
+	my @input=();
 
 	while (1) {
 		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),1,
