@@ -1,4 +1,4 @@
-#! /usr/local/bin/perl
+#! /usr/bin/perl
 #
 # psh - Perl Shell
 #
@@ -1904,9 +1904,10 @@ sub print_i18n
 {
 	my( $stream, $text, @rest) = @_;
 	$text= $psh::text{$text};
-	for( my $i=0; $i<=$#rest; $i++)
+	# This was looping over 0 and 1 and replacing %0 and %1
+	for( my $i=1; $i<=$#rest+1; $i++)
 	{
-		$text=~ s/\%$i/$rest[$i]/go;
+		$text=~ s/\%$i/$rest[$i-1]/g; # removed o from flags huggie
 	}
 	print $stream $text;
 }
