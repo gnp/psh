@@ -18,9 +18,12 @@ and CHANGES.pod and elsewhere:
     make install
 
 Go test it from the home directory and then come back.
+
+Update $VERSION in psh.
+
 Tag the repository, where X is the major version, Y is the
 minor version, and Z is the patch level.
-
+	
     cvs -q tag psh-X_YYYZZ
 
 Make the distribution materials:
