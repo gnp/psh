@@ -12,6 +12,22 @@ require Psh::Options;
 #
 
 my $default_prompt = '\s% ';
+my %color_table=
+  (
+   bold => '\E[1m',
+   nobold => '\E[0m',
+   black => '\E[30m',
+   red => '\E[31m',
+   green => '\E[32m',
+   yellow => '\E[33m',
+   blue => '\E[34m',
+   magenta => '\E[35m',
+   cyan => '\E[36m',
+   white => '\E[37m',
+   none => '\E[00m',
+  );
+
+
 
 %Psh::Prompt::prompt_vars = (
 	'd' => sub {
@@ -132,6 +148,8 @@ sub prompt_string
 		$sub=~ s/\\/\0/g;
 		$temp=$save1 . $sub . $save2;
 	}
+	# Color substitution
+	$temp=~ s/\\C\{(.*?)\}/$color_table{$1}/g;
 
 	# Standard prompt_var substitution
 	$temp=~ s/\\([0-9]x?[0-9a-fA-F]*|[^0-9\\])/&prompt_helper($1)/ge;

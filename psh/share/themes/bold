@@ -1,1 +1,4 @@
-PS1="\[\033[1;34m\][\$(date +%H%M)][\u@\h:\w]$\[\033[0;37m\] "
+#!psh
+
+option ps1='\[\C{bold}\C{blue}\][$(date +%H%M)][\u@\h:\w]$\[\C{none}\] '
+

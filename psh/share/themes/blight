@@ -3,20 +3,16 @@
 
 package themes;
 
-$color= "\\E[36m";
-$grey= "\\E[0m";
-$black= "\\E[30m";
-$bold="\\E[1m";
-$nobold="\\E[0m";
+$color= '\C{cyan}';
 
 $openright="/";
 $closeright="\\\\";
 $dash="-";
 
-$c1="\\[$nobold$color\\]";
-$c2="\\[$bold$color\\]";
-$c3="\\[$bold$black\\]";
-$c4="\\[$grey\\]";
+$c1='\[\C{nobold}'.$color.'\]';
+$c2='\[\C{bold}'.$color.'\]';
+$c3='\[\C{bold}\C{black}\]';
+$c4='\[\C{none}\]';
 
 Psh::Options::set_option('ps1',"$c3$openright$c1$dash$c2($c1\\u$c3\@$c1\\h$c2)$c1$dash$c2($c1\\#$c3/$c1\\t$c3:$c1\\d$c2)$c1$dash$c3$dash\n$c3$closeright$c1$dash$c2($c1\\\$$c3:$c1\\w$c2)$c1$dash$c3$dash$c4 ");
 
