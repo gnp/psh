@@ -1,7 +1,7 @@
 print "\n";
 print "Welcome to the Perl Shell (psh Version $psh::VERSION)!\n";
 print "\n";
-print &psh::news;
+print &Psh::news;
 
-$psh::prompt = '[\u@\h \W]{TESTING psh}$ ';
+$Psh::prompt = '[\u@\h \W]{TESTING psh}$ ';
 
