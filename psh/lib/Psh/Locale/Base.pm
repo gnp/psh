@@ -38,8 +38,9 @@ sub init {
 
 	# Now try to use a locale module depending on LANG
 	if( $lang and $lang ne "C" and $lang ne "POSIX") {
-		$lang=ucfirst(lc($lang));
+		$lang=lc($lang);
 		$lang=$alias_table{$lang} if( exists $alias_table{$lang});
+	    $lang=ucfirst($lang);
 		eval "use Psh::Locale::$lang";
 		#
 		# We are reading the locale data simply as perl modules

@@ -5,44 +5,6 @@ use vars qw($VERSION);
 
 $VERSION = '0.01';
 
-
-
-#
-# array variable_expansion (arrayref WORDS)
-#
-# For each element x of the array referred to by WORDS, substitute
-# perl variables that appear in x respecting the quoting symbols ' and
-# ", and return the array of substituted values. Substitutions inside
-# quotes always return a single element in the resulting array;
-# outside quotes, the result is split() and pushed on to the
-# accumulating array of substituted values
-#
-
-sub variable_expansion
-{
-	local ($psh::arref) = @_;
-	local @psh::retval  = ();
-	local $psh::word;
-
-	for $psh::word (@{$psh::arref}) {
-		if    ($psh::word =~ m/^\'/) { push @psh::retval, $psh::word; }
-		elsif ($psh::word =~ m/^\"/) { 
-			local $psh::val = eval("$psh::eval_preamble $psh::word");
-
-			if ($@) { push @psh::retval, $psh::word; }
-			else    { push @psh::retval, "\"$psh::val\""; }
-		} else {
-			local $psh::val = eval("$psh::eval_preamble \"$psh::word\"");
-
-			if ($@) { push @psh::retval, $psh::word; }
-			else    { push @psh::retval, split(" ",$psh::val); }
-		}
-	}
-
-	return @psh::retval;
-}
-
-
 #
 # array decompose(string LINE)
 #
@@ -67,31 +29,31 @@ sub decompose
     my @pieces = ('');
 
     while ($line) {
-      my ($prefix,$delimiter,$rest) =
-	($line =~ m/^(\S*?)(\s+|(?<!\\)\"|(?<!\\)\')(.*)$/s);
-      if (!defined($delimiter)) { # no delimiter found, so all one piece
-	$pieces[scalar(@pieces)-1] .= $line;
-	$line = '';
-      } elsif ($delimiter =~ m/\s+/) {
-	$pieces[scalar(@pieces)-1] .= $prefix;
-	push @pieces, '';
-	$line = $rest;
-      } else { # $delimiter is " or '
-	my ($restOfQuote,$remainder) = 
-	  ($rest =~ m/^(.*?(?<!\\)$delimiter)(.*)$/s);
-	if (defined($restOfQuote)) {
-	  $pieces[scalar(@pieces)-1] .= "$prefix$delimiter$restOfQuote";
-	  $line = $remainder;
-	} else { # can't find matching delimiter
-	  $pieces[scalar(@pieces)-1] .= $line;
-	  $line = '';
+		my ($prefix,$delimiter,$rest) =
+			($line =~ m/^(\S*?)(\s+|(?<!\\)\"|(?<!\\)\')(.*)$/s);
+		if (!defined($delimiter)) { # no delimiter found, so all one piece
+			$pieces[scalar(@pieces)-1] .= $line;
+			$line = '';
+		} elsif ($delimiter =~ m/\s+/) {
+			$pieces[scalar(@pieces)-1] .= $prefix;
+			push @pieces, '';
+			$line = $rest;
+		} else { # $delimiter is " or '
+			my ($restOfQuote,$remainder) = 
+				($rest =~ m/^(.*?(?<!\\)$delimiter)(.*)$/s);
+			if (defined($restOfQuote)) {
+				$pieces[scalar(@pieces)-1] .= "$prefix$delimiter$restOfQuote";
+				$line = $remainder;
+			} else { # can't find matching delimiter
+				$pieces[scalar(@pieces)-1] .= $line;
+				$line = '';
+			}
+		} 
 	}
-      } 
-    }
     my $lastpiece = pop @pieces;
     if ($lastpiece =~ m/^(.*)\&\s*$/) {
-      if ($1) { push @pieces, $1; }
-      push @pieces, '&';
+		if ($1) { push @pieces, $1; }
+		push @pieces, '&';
     } else { push @pieces, $lastpiece; }
     return @pieces;
 }
@@ -174,6 +136,8 @@ sub needs_double_quotes
 {
 	my ($word) = @_;
 
+	return if !defined($word) or !$word;
+
 	if ($word =~ m/[a-zA-Z]/                     # if it has some letters
 		and $word =~ m|^[$.:a-zA-Z0-9/.\\]*$|) { # and only these characters 
 		return 1;                                # then double-quote it
@@ -190,7 +154,7 @@ __END__
 
 =head1 NAME
 
-Psh::Parser
+Psh::Parser - bla
 
 =head1 SYNOPSIS
 

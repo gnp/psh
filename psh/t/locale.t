@@ -1,8 +1,6 @@
 
 use Psh::Locale::Base;
 
-print STDERR "Testing Psh::Locale::Base\n";
-
 print "1..2\n";
 
 &Psh::Locale::Base::init();
