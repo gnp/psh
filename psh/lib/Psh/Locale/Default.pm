@@ -96,7 +96,7 @@ foreground=foreground\
 readline_interrupted}=\nInterrupted!
 readline_error=Readline did not start up properly:\n%1
 no_readline=No Readline module available. Please install Term::ReadLine::Perl
-
+old_gnu_readline=Your version of Term::ReadLine::Gnu is %1 which is less than 1.06.  This is a known to be buggy version.  Please upgrade.\n
 
 # Prompt stuff
 prompt_wrong_type=%1: Warning: $Psh::prompt is neither a SCALAR nor a CODE reference.

@@ -558,7 +558,8 @@ sub _readline_handler
 {
 	my $sig= shift;
 	setup_readline_handler();
-    die "SECRET $Psh::bin: Signal $sig\n"; # changed to SECRET... just in case
+	print "\n"; # Clean up the display
+	die "SECRET $Psh::bin: Signal $sig\n"; # changed to SECRET... just in case
 }
 
 sub _ttou_handler
@@ -617,7 +618,7 @@ sub _error_handler
 sub _resize_handler
 {
 	my ($sig) = @_;
-	my ($cols, $rows) = (80, 24);
+	my ($cols, $rows); # Assume nothing so that unless works!
 
 	eval {
 		($cols,$rows)= &Term::Size::chars();
@@ -670,6 +671,11 @@ blaaa
 
 # The following is for Emacs - I hope it won't annoy anyone
 # but this could solve the problems with different tab widths etc
+#
+### The One True Width of tabs is 8 characters.  The point about tabs over
+### spaces is that it doesn't matter *WHAT* value you give it.
+### Unfortunately people persist in using the space bar.
+### Greater than three spaces should be a macro for TAB in all editors.
 #
 # Local Variables:
 # tab-width:4

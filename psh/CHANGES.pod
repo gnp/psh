@@ -15,6 +15,38 @@
 
 =head1 CVSHEAD
 
+huggie, 2000-01-30
+
+=head2 Features:
+
+=over 4
+
+=item *
+
+New builtin "set".  Acts like bash set and returns environment.  Could be
+extended to allow "set -o noclobber" bash-isms to work.
+
+=back
+
+=head2 Changes:
+
+=over 4
+
+=item *
+
+Changed the Unix resize handler so that it does what is intended from the
+code not what it says.  This now works for me in big xterms.
+
+=item *
+
+Added print "\n" on CTRL-C to clean up display.
+
+=item *
+
+Added README.perl5.004 to explain about File::Spec
+
+=back
+
 Warp, 2000-01-28
 
 =head2 Features:
