@@ -10,3 +10,6 @@ psh
 psh.NEWS
 psh.pod
 test.pl
+lib/Psh/Job.pm
+lib/Psh/Joblist.pm
+
