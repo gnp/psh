@@ -200,7 +200,12 @@ sub custom_completion
 		}
 		else
 		{
-			$starttext =~ /\s(\S*)$/;
+			my $file=$text;
+			if( $starttext =~ /\s(\S*)$/) {
+				$file= $1.$text;
+			} elsif( $starttext =~ /^(\S*)$/) {
+				$file= $1.$text;
+			}
 			@tmp= cmpl_filenames($1.$text);
 		}
 	}
