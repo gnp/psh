@@ -94,7 +94,11 @@ sub execute {
     } elsif ($strategy eq 'builtin') {
 	no strict 'refs';
 	my $coderef= *{$how.'::execute'};
-	return &{$coderef}($self,$words);
+	return &{$coderef}($self, $words);
+    } elsif ($strategy eq 'language') {
+	no strict 'refs';
+	my $coderef= *{$how.'::execute'};
+	return &{$coderef}($self, $words);
     }
 }
 
