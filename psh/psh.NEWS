@@ -1,0 +1,4 @@
+Try out the new features:
+  * Readline support, where available
+  * Smart Input (go ahead, type ls -l at it)
+  * Shell prompt variables (see README)

@@ -1,0 +1,17 @@
+1999-08-16
+
+* Implement background jobs. Matthew D. Allen suggests something like this:
+
+	if ($input =~ m/&$/) {
+		if (fork) {
+			#
+			# Run it.
+			#
+		} else {
+			#
+			# Record it for watching.
+			#
+		}
+	}
+
+

@@ -1,20 +1,20 @@
 NAME
-    `psh' - Perl Shell
+    psh - Perl Shell
 
 SYNOPSIS
     A fairly simple read-eval loop. The `-w' flag and '`use strict''
     are not employed so that the user is not bound by their
     stipulations. Setting `$^W = 1' will turn on warnings, and
-    calling '<use strict>' will do the usual thing if called by the
-    user.
+    calling '`use strict'' will (almost) do the usual thing if
+    called by the user (see LIMITATIONS, below).
 
 DESCRIPTION
     Each line of input is read and immediately evaluated.
 
     Multiline input may be entered by starting with a line like
-    `&lt&ltXXX', followed by lines of input not having `XXX' on a
-    line by itself, followed by such a line. If `XXX' is not
-    specified, then the first blank line terminates the input.
+    `<<XXX', followed by lines of input not having `XXX' on a line
+    by itself, followed by such a line. If `XXX' is not specified,
+    then the first blank line terminates the input.
 
     An input line beginning with `!' will be given as a parameter to
     the `system()' Perl function.
@@ -25,8 +25,10 @@ DESCRIPTION
 
     If `$ENV{HOME}' is set, and the file `$ENV{HOME}/.pshrc' is
     present, it will be read in and evaluated before processing
-    begins. If not, but <.pshrc> is present in the current
+    begins. If not, but `.pshrc' is present in the current
     directory, it will be read and executed.
+
+  PROMPT STRINGS
 
     Setting the variable `$psh::prompt' to a string will cause that
     string to be used as the prompt-string. Setting it to a
@@ -38,6 +40,21 @@ DESCRIPTION
     will cause the prompt to be `psh [1]$' followed by `psh [2]$',
     and so on.
 
+    `psh' uses some of the same ``prompting variables'' as `bash'.
+    They are accessed by placing a backslash followed by the code in
+    the prompt string, either hard coded, or as returned by the
+    prompt string function. The variables supported are:
+
+    d The date in ``Weekday Month Day'' format
+    h The hostname
+    n A carriage return and line feed
+    s The name of the shell
+    t The current time in HH:MM:SS format
+    u The username of the current user
+    w The current working directory
+    W The basename of the current working directory
+    # The command number of the current command
+    $ `#' if the effective UID is zero, else `$'
 LIMITATIONS
     The loop inside `psh' will clobber `$1' and other variables
     because it uses matches to implement some of its special
@@ -45,12 +62,56 @@ LIMITATIONS
 
     Very little error checking is done.
 
+    The effect of `use foo' is not as expected. Such statements,
+    when sent to Perl's eval() function, cause eval() to return
+    undef, which is supposed to indicate an error. Simple detection
+    of isolated use statements could be hacked in, but it would not
+    be general, and would therefore be fragile.
+
+OTHER PERL SHELLS
+    Larry Wall exhibits the simple Perl shell `while (<') { eval;
+    print $@; }> on page 161 of the Camel Book (2nd Edition).
+
+    Rich Graves <rcgraves@brandeis.edu> posted a comment to the
+    original psh-0.001 announcement on `http://freshmeat.net', which
+    contained this gem that leverages the Perl debugger: `perl -d -e
+    1';
+
 FILES
+    `psh' - The Perl Shell executable script.
+
     `.pshrc' - The user's Perl Shell `profile'. May be in `$HOME' or
     the current directory.
 
 AUTHOR
-    Gregor N. Purdy, `gregor@focusresearch.com'
+    Gregor N. Purdy, <gregor@focusresearch.com>
+
+CREDITS
+    The following people made contributions to this project.
+
+    ReadLine Support
+        Code examples showing how to apply the Term::ReadLine
+        package were contributed by Billy Naylor
+        <billy.naylor@eu.net> (in his `pash.pl' program, which is
+        his own Perl shell).
+
+    Symbol Table Dumping
+        Billy Naylor <billy.naylor@eu.net> also had an example of a
+        symbol table printing function that was used as the starting
+        point for the `psh' function `psh::symbols()'. The `psh'
+        version adds the ability to specify a package name, and it
+        also filters out some special variables. The implementation
+        technique is also different from Billy's.
+
+    Prompt String Variables
+        Matthew D. Allen <s2mdalle@titan.vcu.edu> contributed an
+        enhanced prompt string handling routine that emulates the
+        `bash' prompt variables. This was expanded into the form now
+        present.
+
+    Typo Spotting
+        Allan Kelly <akelly@holyrood.ed.ac.uk> found some problems
+        with the generated documentation.
 
 COPYRIGHT
     Copyright (C) 1999 Gregor N. Purdy. All rights reserved. This

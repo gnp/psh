@@ -4,3 +4,7 @@ MANIFEST
 Makefile.PL
 README
 psh
+psh.NEWS
+test.pl
+TODO
+.pshrc
