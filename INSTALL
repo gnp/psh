@@ -4,7 +4,7 @@ Follow the standard procedure:
 	make
 	make install
 
-If you want to install it somplace special, then try this:
+If you want to install it someplace special, then try this:
 
     perl Makefile.PL PREFIX=~
 	...

@@ -1,15 +1,5 @@
 1999-11-01
 
-  * Create @psh::lang variable, which can be set thusly:
-
-        @psh::lang = qw(ESP, ENG);
-
-    for a user that wants Spanish localization where available, falling
-    back to English if necessary.
-
-  * Create localized versions of things like the list of days of the week,
-    and months of the year. use @psh::lang to decide which ones to use.
-
   * There is something called the XML Shell that is like an xterm, but
     uses XML for its display. Find out if there is anything that can
     be done in psh to make interaction via XML Shell especially nice.

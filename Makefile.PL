@@ -4,7 +4,7 @@ WriteMakefile (
 	NAME         => 'psh',
 	VERSION_FROM => 'psh',
 	AUTHOR       => 'Gregor N. Purdy (gregor@focusresearch.com)',
-	ABSTRACT     => 'Simple Perl shell',
+	ABSTRACT     => 'Perl Shell',
 	EXE_FILES    => [ qw(psh) ],
 	PM           => {
 		'lib/Psh/Completion.pm' => '$(INST_LIBDIR)/Psh/Completion.pm',
