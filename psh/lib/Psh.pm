@@ -303,7 +303,17 @@ sub process
 			if (scalar(@result) > 1) {
 				my $n = scalar(@{$result_array_ref});
 				push @{$result_array_ref}, \@result;
-				Psh::Util::print_out("\$$result_array_name\[$n] = [", join(',',@result), "]\n") if $interactive;
+				if ($interactive) {
+					my @printresult=();
+					foreach my $val (@result) {
+						if (defined $val) {
+							push @printresult,qq['$val'];
+						} else {
+							push @printresult,qq[undef];
+						}
+					}
+					Psh::Util::print_out("\$$result_array_name\[$n] = [", join(',',@printresult), "]\n");
+				}
 			} else {
 				my $n = scalar(@{$result_array_ref});
 				my $res = $result[0];
@@ -652,8 +662,14 @@ sub finish_initialize
 					$readline_saves_history = 1;
 					$term->StifleHistory($history_length); # Limit history
 				}
-				$term->Attribs->{completion_function} =
+				my $attribs= $term->Attribs;
+				$attribs->{completion_function} =
 				  \&completion_dummy;
+
+				my $word_break=" \\\n\t\"&{}('`\$\%\@~<>=;|/";
+				$attribs->{special_prefixes}= "\$\%\@\~\&";
+				$attribs->{word_break_characters}= $word_break;
+				$attribs->{completer_word_break_characters}= $word_break ;
 			}
 		}
 
