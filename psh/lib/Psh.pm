@@ -576,7 +576,7 @@ sub minimal_initialize
 
 	if ($]>=5.005) {
 		eval {
-			$which_regexp= qr/$which_regexp/; # compile for speed reasons
+			$which_regexp= qr($which_regexp); # compile for speed reasons
 		};
 		Psh::Util::print_debug_class('e',"(minimal_init) Error: $@") if $@;
 	}
