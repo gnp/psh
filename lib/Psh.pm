@@ -47,7 +47,7 @@ use vars qw($bin $news_file $cmd $echo $host $debugging
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
 			$rc_file $login_shell $change_title $perlfunc_builtins
-			$window_title
+			$perlfunc_packages $window_title
 			@val @wday @mon @strategies @unparsed_strategies @history
 			%text %perl_builtins %perl_builtins_noexpand
 			%strategy_which %built_ins %strategy_eval %fallback_builtin);
@@ -166,42 +166,17 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
 # Contains names of fallback builtins we support
 #
 
-%fallback_builtins = qw( ls env );
+%fallback_builtin = ('ls'=>1, 'env'=>1 );
 
 #
-# bool matches_perl_binary(string FILENAME)
+# Builtins for which we support loading on demand
 #
-# Returns true if FILENAME referes directly or indirectly to the
-# current perl executable
-#
-
-sub matches_perl_binary
-{
-	my ($filename) = @_;
-
-	#
-	# Chase down symbolic links, but don't crash on systems that don't
-	# have them:
-	#
-
-	if ($Config{d_readlink}) {
-		my $newfile;
-		while ($newfile = readlink($filename)) { $filename = $newfile; }
-	}
-
-	if ($filename eq $Config{perlpath}) { return 1; }
-
-	my ($perldev,$perlino) = (stat($Config{perlpath}))[0,1];
-	my ($dev,$ino) = (stat($filename))[0,1];
-
-	#
-	# TODO: Does the following work on non-Unix OS ?
-	#
-
-	if ($perldev == $dev and $perlino == $ino) { return 1; }
-
-	return 0;
-}
+%built_ins = ( 'setenv'=>1, 'delenv'=>1, 'export'=>1,
+			   'cd'=>1, 'kill'=>1, 'which'=>1, 'alias'=>1,
+			   'unalias'=>1, 'fg'=>1, 'bg'=>1, 'jobs'=>1,
+			   'exit'=>1, 'source'=>1, 'strategy'=>1,
+			   'readline'=>1, 'help'=>1, 'builtin'=>1,
+			   'symbols'=>1);
 
 #
 # EVALUATION STRATEGIES:
@@ -215,16 +190,13 @@ sub matches_perl_binary
 	'built_in' => sub {
 	     my $fnname = ${$_[1]}[0];
          no strict 'refs';
-         if( $built_ins{$fnname}) {
-	         if (Psh::Builtins::_is_aliased($fnname)) {
-	                 return "(alias $fnname)";
-	         } else {
-	                 return "(built_in $fnname)";
-             }
-         }
          if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
  	         return "(Psh::Builtins::bi_$fnname)";
          }
+         if( $built_ins{$fnname}) {
+			 eval 'use Psh::Builtins::'.ucfirst($fnname);
+             return "(Psh::Builtins::".ucfirst($fnname)."::bi_$fnname)";
+		 }
 		 return '';
 	},
 
@@ -232,24 +204,10 @@ sub matches_perl_binary
 		my $fnname = ${$_[1]}[0];
 		
 		if( $fallback_builtin{$fnname}) {
-			eval 'Psh::Builtins::Fallback::' . ucfirst( $fnname );
+			eval 'use Psh::Builtins::Fallback::'.ucfirst($fnname);
             return "(fallback built in $fnname)";
         }
 		return '';
-	},
-
-	'auto_resume' => sub {
-		my $fnname= ${$_[1]}[0];
-        $joblist->enumerate;
-        while( my $job= $joblist->each) {
-			next if $job->{running};
-			my $call= $job->{call};
-			if( $call=~ m:/([^/\s]+)\s*$: ) {
-				$call= $1;
-			}
-			return "(auto-resume $call)" if( $call eq $fnname);
-		}
-        return '';
 	},
 
 	'perlfunc' => sub {
@@ -270,7 +228,18 @@ sub matches_perl_binary
 					 or scalar(@{$_[1]}) >= $needArgs)) {
 				$qPerlFunc = 1;
 			}
-        } elsif( $fnname =~ /^[a-zA-Z0-9]+$/) {
+        } elsif( $perlfunc_packages &&
+				 $fnname =~ /^([a-zA-Z0-9_]+)\:\:([a-zA-Z0-9_:]+)$/) {
+			if( $1 eq 'CORE') {
+				my $needArgs = $perl_builtins{$2};
+				if ($needArgs > 0
+					and ($parenthesized or scalar(@{$_[1]}) >= $needArgs)) {
+					$qPerlFunc = 1;
+				}
+            } else {
+				$qPerlFunc = (protected_eval("defined(&{'$fnname'})"))[0];
+            }
+        } elsif( $fnname =~ /^[a-zA-Z0-9_]+$/) {
 			$qPerlFunc = (protected_eval("defined(&{'$fnname'})"))[0];
 		}
 		if ( $qPerlFunc ) {
@@ -357,63 +326,6 @@ sub matches_perl_binary
  		return '';
 	},
 
-	'perlscript' => sub {
-		my $script = which(${$_[1]}[0]);
-
-		if (defined($script) and -r $script) {
-			#
-			# let's see if it really looks like a perl script
-			#
-
-			my $sfh = new FileHandle($script);
-			my $firstline = <$sfh>;
-
-			$sfh->close();
-			chomp $firstline;
-
-			my $filename;
-			my $switches;
-
-			if (($filename,$switches) =
-				($firstline =~ m|^\#!\s*(/.*perl)(\s+.+)?$|go)
-				and matches_perl_binary($filename)) {
-				my $possibleMatch = $script;
-				my %bangLineOptions = ();
-
-				if( $switches) {
-					$switches=~ s/^\s+//go;
-					local @ARGV = split(' ', $switches);
-
-					#
-					# All perl command-line options that take aruments as of
-					# Perl 5.00503:
-					#
-
-					getopt('DeiFlimMx', \%bangLineOptions);
-				}
-
-				if ($bangLineOptions{w}) {
-					$possibleMatch .= " warnings";
-					delete $bangLineOptions{w};
-				}
-
-				#
-				# TODO: We could handle more options. [There are some we
-				# can't. -d, -n and -p are popular ones that would be tough.]
-				#
-
-				if (scalar(keys %bangLineOptions) > 0) {
-					print_debug("[[perlscript: skip $script, options $switches.]]\n");
-					return '';
-				}
-
-				return $possibleMatch;
-			}
-		}
-
-		return '';
-	},
-
 	'executable' => sub {
 		my $executable = which(${$_[1]}[0]);
 
@@ -453,14 +365,13 @@ sub matches_perl_binary
         my @words= @{shift()};
         my $command= shift @words;
         my $rest= join(' ',@words);
-        if( $built_ins{$command}) {
-	        return (sub { &{$built_ins{$command}}($rest)}, undef);
-        }
-        {
-	        no strict 'refs';
-	        $coderef= *{"Psh::Builtins::bi_$command"};
-            return (sub { &{$coderef}($rest,\@words); }, undef );
-        }
+        no strict 'refs';
+        if( ref *{"Psh::Builtins::bi_$command"}{CODE} eq 'CODE') {
+			$coderef= *{"Psh::Builtins::bi_$command"};
+        } elsif( $built_ins{$command}) {
+			$coderef= *{'Psh::Builtins::'.ucfirst($command)."::bi_$command"};
+		}			
+        return (sub { &{$coderef}($rest,\@words); }, 0, undef );
 	},
 
 	'fallback_builtin' => sub {
@@ -471,75 +382,12 @@ sub matches_perl_binary
         {
 	        no strict 'refs';
 	        $coderef= *{"Psh::Builtins::Fallback::bi_$command"};
-            return (sub { &{$coderef}($rest,\@words); }, undef );
+            return (sub { &{$coderef}($rest,\@words); }, 0, undef );
         }
 	},
 
-	'auto_resume' => sub {
-		my $fnname= ${$_[1]}[0];
-        $joblist->enumerate;
-        my $index=0;
-        while( my $job= $joblist->each) {
-			next if $job->{running};
-			my $call= $job->{call};
-			if( $call=~ m:/([^/\s]+)\s*$: ) {
-				$call= $1;
-			}
-			if( $call eq $fnname) {
-				Psh::OS::restart_job(1,$index);
-				return undef;
-			}
-			$index++;
-		}
-        return undef;
-	},
-
-	'perlscript' => sub {
-		my ($script, @options) = split(' ',$_[2]);
-		my @arglist = @{$_[1]};
-
-		shift @arglist; # Get rid of script name
-		my $fgflag = 1;
-
-		if (scalar(@arglist) > 0) {
-			my $lastarg = pop @arglist;
-
-			if ($lastarg =~ m/\&$/) {
-				$fgflag = 0;
-				$lastarg =~ s/\&$//;
-			}
-
-			if ($lastarg) { push @arglist, $lastarg; }
-		}
-
-		print_debug("[[perlscript $script, options @options, args @arglist.]]\n");
-
-		my $pid;
-
-		my %opts = ();
-		foreach (@options) { $opts{$_} = 1; }
-
-
-		return (sub {
-			package main;
-			# TODO: Is it possible/desirable to put main in the pristine
-			# state that it typically is in when a script starts up,
-			# i.e. undefine all routines and variables that the user has set?
-
-			local @ARGV = @arglist;
-			local $^W;
-
-			if ($opts{warnings}) { $^W = 1; }
-			else                 { $^W = 0; }
-
-			do $script;
-
-			exit 0;
-		}, undef);
-	},
-
 	'executable' => sub {
-		return ("$_[2]",undef);
+		return ("$_[2]", 0, undef);
 	},
 );
 
@@ -561,7 +409,7 @@ $strategy_eval{brace}= $strategy_eval{eval}= sub {
     } else {
 		return (sub {
 			return protected_eval($todo,'eval');
-		}, undef);
+		}, 0, undef);
 	}
 };
 
@@ -569,7 +417,7 @@ $strategy_eval{perlfunc}= sub {
 	my $todo= $_[2];
 	return (sub {
 		return protected_eval($todo,'eval');
-	}, undef);
+	}, 0, undef);
 };
 
 
@@ -1006,6 +854,7 @@ sub minimal_initialize
 	$currently_active            = 0;
 	$result_array                = '';
 	$perlfunc_expand_arguments   = 0;
+	$perlfunc_packages           = 1;
 	$executable_expand_arguments = 1;
 	$which_regexp                = '^[-a-zA-Z0-9_.~+]*$'; #'
 	$cmd                         = 1;
@@ -1225,52 +1074,6 @@ sub is_number
 	return defined($test) && $test &&
 		$test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
 }
-
-#
-# void symbols()
-#
-# Print out the symbols of each type used by a package. Note: in testing,
-# it bears out that the filehandles are present as scalars, and that arrays
-# are also present as scalars. The former is not particularly surprising,
-# since they are implemented as tied objects. But, use vars qw(@X) causes
-# both @X and $X to show up in this display. This remains mysterious.
-#
-
-sub symbols
-{
-	my $pack = shift;
-	my (@ref, @scalar, @array, @hash, @code, @glob, @handle);
-	my @sym;
-
-	{
-		no strict qw(refs);
-		@sym = keys %{*{"${pack}::"}};
-	}
-
-	for my $sym (sort @sym) {
-		next unless $sym =~ m/^[a-zA-Z]/; # Skip some special variables
-		next if     $sym =~ m/::$/;       # Skip all package hashes
-
-		{
-			no strict qw(refs);
-
-			push @ref,    "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'REF';
-			push @scalar, "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'SCALAR';
-			push @array,  "\@$sym" if ref *{"${pack}::$sym"}{ARRAY}  eq 'ARRAY';
-			push @hash,   "\%$sym" if ref *{"${pack}::$sym"}{HASH}   eq 'HASH';
-			push @code,   "\&$sym" if ref *{"${pack}::$sym"}{CODE}   eq 'CODE';
-			push @handle, "$sym"   if ref *{"${pack}::$sym"}{FILEHANDLE};
-		}
-	}
-
-	print_out("Reference: ", join(' ', @ref),    "\n");
-	print_out("Scalar:    ", join(' ', @scalar), "\n");
-	print_out("Array:     ", join(' ', @array),  "\n");
-	print_out("Hash:      ", join(' ', @hash),   "\n");
-	print_out("Code:      ", join(' ', @code),   "\n");
-	print_out("Handle:    ", join(' ', @handle), "\n");
-}
-
 
 ##############################################################################
 ##############################################################################

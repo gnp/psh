@@ -99,7 +99,7 @@ sub execute_complex_command {
 	for( my $i=0; $i<@array; $i++) {
 		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
 		my $line= join(' ',@$words);
-		my ($eval_thingie,@return_val)= &$coderef( \$line, $words,$how);
+		my ($eval_thingie,$bgflag,@return_val)= &$coderef( \$line, $words,$how);
 		my @tmp;
 
 		if( defined($eval_thingie)) {
@@ -168,7 +168,7 @@ sub is_path_absolute {
 
 sub get_path_extension {
 	my $extsep = $Psh::OS::PATH_SEPARATOR || ';';
-	my $pathext = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\Environment\\PATHEXT"} || $ENV{PATHEXT} || ".exe";
+	my $pathext = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\Environment\\PATHEXT"} || $ENV{PATHEXT} || ".cmd;.bat;.exe;.com";
 	return split("$extsep",$pathext);
 }
 

@@ -1,7 +1,7 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($VERSION %custom_completions @bookmarks @netprograms);
+use vars qw($VERSION %custom_completions @bookmarks @netprograms $ac);
 
 use Cwd qw(:DEFAULT chdir);
 use Psh::Util qw(:all starts_with ends_with);
@@ -12,7 +12,6 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 my @user_completions;
 my $APPEND="not_implemented";
 my $GNU=0;
-my $ac; # character to append
 
 %custom_completions= ();
 
@@ -221,13 +220,13 @@ sub cmpl_symbol
 		my $firstchar=substr($tmp,0,1);
 		my $rest=substr($tmp,1);
 
-		# Hack Alert ;-)
-		next if(! eval "defined($firstchar$package$rest)" &&
-				! eval "tied($firstchar$package$rest)" &&
-				! eval "\%$package$rest" &&
-				$rest ne "ENV" && $rest ne "INC" && $rest ne "SIG" &&
-				$rest ne "ARGV" && !($rest=~ /::$/) );
 		if( starts_with($tmp,$text)) {
+			# Hack Alert ;-)
+			next if(! eval "defined($firstchar$package$rest)" &&
+					! eval "tied($firstchar$package$rest)" &&
+					! eval "\%$package$rest" &&
+					$rest ne "ENV" && $rest ne "INC" && $rest ne "SIG" &&
+					$rest ne "ARGV" && !($rest=~ /::$/) );
 		    if($firstchar eq "\$" && eval "\%$package$rest" &&
 			   !($rest=~ /::$/)) {
 				$ac='{';
@@ -328,6 +327,11 @@ sub completion
 
 	if( grep { $_ eq $startword } Psh::Builtins::get_builtin_commands() ) {
 		my @tmp2= eval "Psh::Builtins::cmpl_$startword('$text','$pretext','$starttext')";
+		if( !@tmp2 && $Psh::built_ins{$startword}) {
+			my $pkg= ucfirst($startword);
+			eval "use Psh::Builtins::$pkg";
+			@tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext')";
+		}
 		if( @tmp2 && $tmp2[0]) {
 			shift(@tmp2);
 			@tmp= @tmp2;
@@ -341,6 +345,7 @@ sub completion
 		$starttext =~ /\s(\S*)$/;
 		my @tmp2=cmpl_custom($text,$1,$startword,$starttext);
 		if( @tmp2 && $tmp2[0]) {
+			$ac=' ';
 			shift(@tmp2);
 			push @custom, @tmp2;
 			@tmp= @custom;

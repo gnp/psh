@@ -239,7 +239,8 @@ sub execute_complex_command {
 		$text||='';
 
 		my $line= join(' ',@$words);
-		($eval_thingie,@return_val)= &$coderef( \$line, $words,$how,$i>0);
+		my $forcefork;
+		($eval_thingie,$forcefork, @return_val)= &$coderef( \$line, $words,$how,$i>0);
 
 		if( defined($eval_thingie)) {
 			if( $#array) {
@@ -254,7 +255,7 @@ sub execute_complex_command {
 			my $termflag=!($i==$#array);
 
 			($pid,@tmp)= _fork_process($eval_thingie,$fgflag,$text,$options,
-									   $pgrp_leader,$termflag);
+									   $pgrp_leader,$termflag,$forcefork);
 
 			if( !$i && !$pgrp_leader) {
 				$pgrp_leader=$pid;
@@ -351,13 +352,13 @@ sub _remove_redirects {
 
 sub _fork_process {
     my( $code, $fgflag, $string, $options,
-		$pgrp_leader, $termflag) = @_;
+		$pgrp_leader, $termflag, $forcefork) = @_;
 	my($pid);
 
 	# HACK - if it's foreground code AND perl code
 	# we do not fork, otherwise we'll never get
 	# the result value, changed variables etc.
-	if( $fgflag && ref($code) eq 'CODE') {
+	if( $fgflag && !$forcefork && ref($code) eq 'CODE') {
 		my $cache= _setup_redirects($options);
 		my @result= eval { &$code };
 		_remove_redirects($cache);
