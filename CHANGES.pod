@@ -72,6 +72,11 @@ can find. (works only in Term::ReadLine::Gnu)
 It's now possible to bind simple commands with C<&&> and C<||> like
 in a normal shell.
 
+=item *
+
+Global precommand modifiers: You can put B<noglob>, B<noalias>, B<noexpand> in
+front of any command to disable the specified expansion or all of them.
+
 =back
 
 =head2 New builtins
