@@ -303,12 +303,15 @@ sub process
 			if (scalar(@result) > 1) {
 				my $n = scalar(@{$result_array_ref});
 				push @{$result_array_ref}, \@result;
-				print_out("\$$result_array_name\[$n] <- [", join(',',@result), "]\n");
+				print_out("\$$result_array_name\[$n] = [", join(',',@result), "]\n");
 			} else {
 				my $n = scalar(@{$result_array_ref});
 				my $res = $result[0];
 				push @{$result_array_ref}, $res;
-				print_out("\$$result_array_name\[$n] <- $res\n");
+				print_out("\$$result_array_name\[$n] = \"$res\"\n");
+			}
+			if (@{$result_array_ref}>100) {
+				shift @{$result_array_ref};
 			}
 		}
 	}
@@ -788,7 +791,7 @@ sub main_loop
 sub is_number
 {
 	my $test = shift;
-	return defined($test) &&
+	return defined($test) && !ref($test) &&
 		$test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
 }
 

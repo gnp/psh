@@ -33,7 +33,11 @@ sub protected_eval
 		if ($Psh::redo_sentinel) { last; } 
 		$Psh::redo_sentinel = 1;
 		local $Psh::currently_active= -1;
-		local @Psh::result= eval "$Psh::eval_preamble $Psh::string";
+		$_= $Psh::PerlEval::lastscalar;
+		@_= @Psh::PerlEval::lastarray;
+		local @Psh::result= eval $Psh::eval_preamble.' '.$Psh::string;
+		$Psh::PerlEval::lastscalar= $_;
+		@Psh::PerlEval::lastarray= @_;
 
 		if ( !$@ && @Psh::result &&
 			 $#Psh::result==0 &&
