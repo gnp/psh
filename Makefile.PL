@@ -26,6 +26,7 @@ WriteMakefile(
                                'Term::EditLine' => 0.05,
 			       'Test::More' => 0,
 			       'File::Glob' => 0,
+                               'BSD::Resource' => 0,
 			   },
 	      MAN1PODS     => $pods,
               MAN3PODS     => {}, # don't create man file for CHANGES.pod

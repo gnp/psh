@@ -186,8 +186,10 @@ sub init_finish {
     }
 }
 
-sub init_interactive {
+sub init_frontend {
     my $self= shift;
+
+    return if $self->{frontend_inited};
     my $frontend_name= 'Psh2::Frontend::'.ucfirst($self->{option}{frontend});
     eval "require $frontend_name";
     if ($@) {
@@ -196,6 +198,13 @@ sub init_interactive {
     }
     $self->{frontend}= $frontend_name->new($self);
     $self->fe->init();
+    $self->{frontend_inited}= 1;
+}
+
+sub init_interactive {
+    my $self= shift;
+
+    init_frontend();
     setup_signal_handlers();
 }
 
