@@ -22,7 +22,7 @@ sub bi_exit
 		process_file(abs_path($file));
 	}
 
-	Psh::OS::exit($result);
+	Psh::OS::exit_psh($result);
 }
 
 1;
