@@ -1,5 +1,7 @@
 2004-01-28  Markus Peter  <warp@spin.de>
 
+	* Removed CHANGES.pod. Changes are now logged in ChangeLog and major user visible changes will be logged to docs/psh2news.pod
+
 	* Added which builtin
 
 

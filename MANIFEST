@@ -1,5 +1,4 @@
 psh2
-NEWS.pod
 COPYRIGHT
 MANIFEST
 README
@@ -11,6 +10,7 @@ Makefile.PL
 docs/README
 docs/othershells
 docs/psh2.pod
+docs/psh2news.pod
 docs/design
 lib/Psh2.pm
 lib/Psh2/Builtins/Alias.pm

@@ -339,6 +339,8 @@ sub _parse_fileno {
 		    # TODO: Add Perl Filehandle access
 		}
 	    }
+            use Data::Dumper;
+            print STDERR Dumper(\@result);
 	    @$fileno= @result;
 	} else {
 	    unshift @$parts, $tmp;

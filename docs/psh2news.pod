@@ -1,0 +1,9 @@
+=head1 NAME
+
+psh2news - news about psh2
+
+=head1 SYNOPSIS
+
+Bla
+
+=cut
