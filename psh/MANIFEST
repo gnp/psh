@@ -83,6 +83,7 @@ lib/Psh/Builtins/Source.pm
 lib/Psh/Builtins/Strategy.pm
 lib/Psh/Builtins/Symbols.pm
 lib/Psh/Builtins/Theme.pm
+lib/Psh/Builtins/Tieopt.pm
 lib/Psh/Builtins/Ulimit.pm
 lib/Psh/Builtins/Unalias.pm
 lib/Psh/Builtins/Which.pm
@@ -95,11 +96,15 @@ lib/Psh/Support/Debug.pm
 lib/Psh/Support/Dirs.pm
 lib/Psh/Support/Env.pm
 lib/Psh/Support/Functions.pm
+lib/Psh/Support/TiedOption.pm
 t/locale.t
 t/parser.t
 t/unix.psh
 t/win32.psh
 examples/complete-examples
+share/complete/debian
+share/complete/perl
+share/complete/standard
 share/themes/aix
 share/themes/blank
 share/themes/blight

@@ -31,13 +31,15 @@ if (!exists $ENV{HISTSIZE}) {
 sub set_option {
 	my $option= lc(shift());
 	my @value= @_;
+	return unless $option;
+	return unless @value;
 	my $val;
 	if ($env_options{$option}) {
 		if (@value>1 or (ref $value[0] and ref $value[0] eq 'ARRAY')) {
 			if (ref $value[0]) {
-				@value= @$value[0];
+				@value= @{$value[0]};
 			}
-			if ($options{array_exports}{$option}) {
+			if ($options{array_exports} and $options{array_exports}{$option}) {
 				$val= join($options{array_exports}{$option},@value);
 			} else {
 				$val= $value[0];
@@ -61,7 +63,7 @@ sub get_option {
 	my $val;
 	if ($env_options{$option}) {
 		$val= $ENV{uc($option)};
-		if ($options{array_exports}{$option}) {
+		if ($options{array_exports} and $options{array_exports}{$option}) {
 			$val= [split($options{array_exports}{$option}, $val)];
 		}
 	} else {

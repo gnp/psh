@@ -85,6 +85,9 @@ bi_fc_notfound=no command found.
 bi_pshtoken_dumper=The pshtokenize command needs the Data::Dumper module!!
 bi_builtin_inactive=The strategy 'built_in' is currently not active.
 bi_bsdresource=Please install the BSD::Resource package. This builtin will not work otherwise!
+bi_tieopt_badtype_array=Option %1 is not an array
+bi_tieopt_badtype_hash=Option %1 is not a hash
+bi_tieopt_badtype_scalar=Option %1 is not a scalar
 
 # Stuff for Job handling
 done=done\

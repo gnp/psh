@@ -1,4 +1,4 @@
-use Psh::Locale::Base;
+use Psh::Locale;
 
 print "1..2\n";
 
@@ -7,9 +7,9 @@ while (<DATA>) {
 	print "$@\n" if $@;
 }
 
-&Psh::Locale::Base::init();
+&Psh::Locale::load_locale();
 
-if ($#Psh::mon == 11) {
+if ( Psh::Locale::months() == 12) {
 	print "month count ok\n";
 	print "ok 1\n";
 } else {
@@ -17,7 +17,7 @@ if ($#Psh::mon == 11) {
 	print "not ok 1\n";
 }
 
-if ($#Psh::wday == 6) {
+if ( Psh::Locale::weekdays() == 7) {
 	print "day of week count ok\n";
 	print "ok 2\n";
 } else {
