@@ -396,7 +396,7 @@ sub _fork_process {
 		my $cache= _setup_redirects($options);
 		my @result= eval { &$code };
 		_remove_redirects($cache);
-		Psh::Util::print_error($@) if $@;
+		Psh::Util::print_error($@) if $@ && $@ !~/^SECRET/;
 		return (0,@result);
 	}
 

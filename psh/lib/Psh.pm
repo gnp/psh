@@ -46,6 +46,7 @@ use vars qw($bin $cmd $echo $host $debugging
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $change_title $window_title
+            $interactive
 			@val @wday @mon @strategies @unparsed_strategies @history
             @executable_noexpand
 			%text %perl_builtins %perl_builtins_noexpand
@@ -504,6 +505,7 @@ sub process_file
 	my ($path) = @_;
 
 	print_debug("[PROCESSING FILE $path]\n");
+	$interactive=0;
 
 	if (!-r $path) {
 		print_error_i18n('cannot_read_script',$path,$bin);
@@ -527,6 +529,8 @@ sub process_file
 
 	eval { flock($pfh, LOCK_UN); };
 	$pfh->close();
+
+	$interactive=1;
 
 	print_debug("[FINISHED PROCESSING FILE $path]\n");
 }
@@ -563,6 +567,7 @@ sub iget
 	my $prompt_pre= '';
 	my $line;
 	my $sigint = 0;
+	$interactive=1;
 
 	# Additional newline handling for prompts as Term::ReadLine::Perl
 	# cannot use them properly

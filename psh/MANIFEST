@@ -12,7 +12,8 @@ RELEASE
 TODO
 psh
 psh.NEWS
-psh.pod
+doc/psh.pod
+doc/pshdevel.pod
 tryme
 lib/Psh.pm
 lib/Psh/Job.pm
@@ -42,6 +43,8 @@ lib/Psh/Builtins/Bg.pm
 lib/Psh/Builtins/Builtin.pm
 lib/Psh/Builtins/Exit.pm
 lib/Psh/Builtins/Fg.pm
+lib/Psh/Builtins/Firsttime.pm
+lib/Psh/Builtins/Function.pm
 lib/Psh/Builtins/Dirs.pm
 lib/Psh/Builtins/Help.pm
 lib/Psh/Builtins/History.pm
