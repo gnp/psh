@@ -60,3 +60,19 @@ eval {
 if ($@) {
 	print "The 'ulimit' command in psh will not work, unless you install BSD::Resource.\n";
 }
+
+
+#
+# Does anyone know how to get MakeMaker to do this automatically ?
+#
+
+if ($^O =~ /win/) {
+	print <<TEXT;
+Please copy the 'share' directory to c:/psh after building and installing
+psh!!!
+}
+print <<TEXT;
+Do not forget to copy the 'share' directory to
+/usr/share/psh or /usr/local/share/psh or ~/.psh after building and
+installing !!!
+TEXT
