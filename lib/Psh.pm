@@ -301,8 +301,11 @@ sub matches_perl_binary
 
 sub signal_name {
 	my $signalnum = shift;
-	my @numbers= split ",",$Config{sig_num};
-	my @names= split " ",$Config{sig_name};
+	my @numbers= split ',',$Config{sig_num};
+	@numbers= split ' ',$Config{sig_num} if( @numbers==1);
+	# Strange incompatibility between perl versions
+
+	my @names= split ' ',$Config{sig_name};
 	for( my $i=0; $i<$#numbers; $i++)
 	{
 		return $names[$i] if( $numbers[$i]==$signalnum);
@@ -348,8 +351,7 @@ sub signal_description {
          if( $built_ins{$fnname}) {
 	         return "(built_in $fnname)";
          }
-         return '' if substr($fnname,0,1) eq '_';
-         if( ref *{"Psh::Builtins::$fnname"}{CODE} eq 'CODE') {
+         if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
  	         return "(built_in $fnname)";
          }
 		 return '';
@@ -357,9 +359,8 @@ sub signal_description {
 
     'fallback_builtin' => sub {
 		my $fnname = ${$_[1]}[0];
-        return '' if substr($fnname,0,1) eq '_';
         no strict 'refs';
-        if( ref *{"Psh::Builtins::Fallback::$fnname"}{CODE} eq 'CODE') {
+        if( ref *{"Psh::Builtins::Fallback::bi_$fnname"}{CODE} eq 'CODE') {
 			return "(built_in $fnname)";
 		}
 		return '';
@@ -563,7 +564,7 @@ sub signal_description {
         }
         {
 	        no strict 'refs';
-	        $coderef= *{"Psh::Builtins::$command"};
+	        $coderef= *{"Psh::Builtins::bi_$command"};
             return &{$coderef}($rest);
         }
 	},
@@ -576,7 +577,7 @@ sub signal_description {
 		}
         {
 	        no strict 'refs';
-	        $coderef= *{"Psh::Builtins::Fallback::$command"};
+	        $coderef= *{"Psh::Builtins::Fallback::bi_$command"};
             return &{$coderef}($rest);
         }
 	},
@@ -1233,6 +1234,8 @@ sub finish_initialize
 	}
 	else    { print_debug("Using &Term::Size::chars().\n"); }
 
+	Psh::OS::reinstall_resize_handler();
+	# ReadLine objects often mess with the SIGWINCH handler
 
 	if (defined($term) and $save_history) {
 		if ($readline_saves_history) {

@@ -15,7 +15,7 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 @ISA= qw(Exporter);
 
 @EXPORT= qw( );
-@EXPORT_OK= qw( starts_with ends_with);
+@EXPORT_OK= qw( starts_with ends_with print_list);
 %EXPORT_TAGS = ( all => [qw(print_warning print_debug print_error
 							print_out print_error_i18n print_out_i18n
 							which abs_path)] );
@@ -73,6 +73,38 @@ sub print_out_i18n
 sub print_out
 {
 	print STDOUT @_;
+}
+
+# Copied from readline.pl - pretty prints a list in columns
+sub print_list
+{
+	my @list= @_;
+    return unless @list;
+    my ($lines, $columns, $mark, $index);
+
+    ## find width of widest entry
+    my $maxwidth = 0;
+	my $screen_width=$ENV{COLUMNS};
+    grep(length > $maxwidth && ($maxwidth = length), @list);
+    $maxwidth++;
+
+    $columns = $maxwidth >= $screen_width?1:int($screen_width / $maxwidth);
+
+    ## if there's enough margin to interspurse among the columns, do so.
+    $maxwidth += int(($screen_width % $maxwidth) / $columns);
+
+    $lines = int((@list + $columns - 1) / $columns);
+    $columns-- while ((($lines * $columns) - @list + 1) > $lines);
+
+    $mark = $#list - $lines;
+    for (my $l = 0; $l < $lines; $l++) {
+        for ($index = $l; $index <= $mark; $index += $lines) {
+            print_out(sprintf("%-$ {maxwidth}s", $list[$index]));
+        }
+        print_out($list[$index]) if $index <= $#list;
+        print_out("\n\r");
+    }
+
 }
 
 
