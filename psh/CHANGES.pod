@@ -25,7 +25,7 @@ A reverse-chronological ordered list of changes
 ###############################################################################
 ###############################################################################
 
-=head1 CVS HEAD
+=head1 0.010-pre1 [2001-11-16]
 
 =head2 New Features
 
@@ -180,6 +180,12 @@ If you're redirecting perl code, a new fork will be created. You'll therefore
 lose all variable changes etc. in redirected perl code. That's not as bad as
 it seems, as before the change, psh segfaulted most of the time you tried
 redirecting perl code.
+
+=item *
+
+Completion was a improved a bit - completions of filenames like "foo\ bar"
+(where backslash is used to escape whitespace) works a little bit better
+now. A complete rewrite of Completion is currently scheduled for 0.11
 
 =back
 
