@@ -34,7 +34,24 @@ sub protected_eval
 		$Psh::redo_sentinel = 1;
 		local $Psh::currently_active= -1;
 		local @Psh::result= eval "$Psh::eval_preamble $Psh::string";
-		Psh::handle_message($@, $Psh::from);
+
+		if ( !$@ && $#Psh::result==0 &&
+			 $Psh::result[0] eq $Psh::string &&
+			 $Psh::string=~ /^\s*\S+\s*$/ &&
+			 $Psh::string!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {
+			#
+			# Very whacky error handling
+			# If you pass one word to perl and it's no function etc
+			# it will simply return the word - that's not even a
+			# bug actually but in case of psh it's annoying
+			# so we try to detect these cases
+			#
+
+			Psh::Util::print_error_i18n('no_command',$Psh::string);
+		}
+		else {
+			Psh::handle_message($@, $Psh::from);
+		}
 		return @Psh::result;
 	}
 	Psh::handle_message("Can't use loop control outside a block",

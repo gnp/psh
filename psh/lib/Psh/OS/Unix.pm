@@ -221,7 +221,7 @@ sub _handle_wait_status {
 	if ($verb && $visindex>0) {
 		my $line="[$visindex] $verb $pid $command\n";
 		return $line if $collect;
-		
+
 		Psh::Util::print_out($line );
 	}
 	return '';
