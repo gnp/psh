@@ -37,6 +37,9 @@ sub execute {
 	my @tmp= Psh::Parser::make_tokens(substr($fnname,1));
 	print "Tokenization:\n";
 	print Psh::Support::Debug::explain_tokens(\@tmp)."\n";
+	@tmp= Psh::Parser::parse_line(substr($fnname,1));
+	use Data::Dumper;
+	print Dumper(\@tmp);
     return undef;
 }
 

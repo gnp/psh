@@ -12,6 +12,10 @@ sub T_WORD() { 1; }
 sub T_PIPE() { 2; }
 sub T_REDIRECT() { 3; }
 sub T_BACKGROUND() { 4; }
+sub T_OR() { 5; }
+sub T_AND() { 6; }
+
+sub T_EXECUTE() { 1; }
 
 # ugly, ugly, but makes things faster
 
@@ -308,7 +312,7 @@ sub make_tokens {
 		if( $tmp =~ /^\s*\|\s*$/ ) {
 			if( $previous_token eq '|') {
 				pop @tokens;
-				push @tokens, [T_WORD,'||'];
+				push @tokens, [T_OR];
 				$previous_token= '';
 			} elsif( $previous_token eq "\\") {
 				pop @tokens;
@@ -375,7 +379,7 @@ sub make_tokens {
 			if( $previous_token eq '&') {
 				pop @tokens;
 				pop @tokens; # pop T_END and T_BACKGROUND
-				push @tokens, [T_WORD,'&&'];
+				push @tokens, [T_AND];
 				$previous_token='';
 			} elsif( $previous_token eq "\\") {
 				pop @tokens;
@@ -430,7 +434,7 @@ sub parse_line {
 				my $name= $strategy->name;
 				Psh::Util::print_debug_class('s',
 											 "[Using strategy $name: $how]\n");
-				return ([ 1, [$strategy, $how, [], [$line], $line ]]);
+				return ([ T_EXECUTE, 1, [$strategy, $how, [], [$line], $line ]]);
 			}
 		}
 	}
@@ -444,10 +448,16 @@ sub parse_line {
 		while( @tokens > 0) {
 			$element=parse_complex_command(\@tokens,$lvl3);
 			return undef if ! defined( $element); # TODO: Error handling
-			if (@tokens > 0 && $tokens[0][0] == T_END) {
-				shift @tokens;
-			}
 			push @elements, $element;
+			if (@tokens > 0) {
+				if ($tokens[0][0] == T_END) {
+					shift @tokens;
+				} elsif ($tokens[0][0] == T_AND) {
+					push @elements, [ T_AND ];
+				} elsif ($tokens[0][0] == T_OR) {
+					push @elements, [ T_OR ];
+				}
+			}
 		}
 		return @elements;
 	}
@@ -458,7 +468,7 @@ sub parse_complex_command {
 	my $strategies= shift;
 	my $piped= 0;
 	my $foreground = 1;
-	return [ $foreground, _subparse_complex_command($tokens,$strategies,\$piped,\$foreground,{})];
+	return [ T_EXECUTE, $foreground, _subparse_complex_command($tokens,$strategies,\$piped,\$foreground,{})];
 }
 
 sub _subparse_complex_command {

@@ -1,7 +1,8 @@
 package Psh::Support::Debug;
 
 my %token_types= ( 0=> 'END', 1=>'WORD:',2=>'PIPE',
-				   3=>'REDIRECT',4=>'BACKGROUND' );
+				   3=>'REDIRECT',4=>'BACKGROUND',
+				   5=>'OR', 6=> 'AND');
 
 sub explain_tokens {
 	my $tokens= shift;
