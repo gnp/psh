@@ -804,7 +804,7 @@ sub finish_initialize
 			print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
 			eval "use Term::ReadKey";
 			if( $@) {
-				print_debug_class('i',"[Term::ReadKey not available - no resize handling!]\n");
+				print_debug_class('i',"[Term::ReadKey not available]\n");
 			}
 		}
 		else    { print_debug_class('i',"[Using &Term::Size::chars().]\n"); }
