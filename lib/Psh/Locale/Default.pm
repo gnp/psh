@@ -32,6 +32,7 @@ BEGIN {
 	$Psh::text{no_such_dir}="%2: %1: No such directory.\n";
 	$Psh::text{no_such_builtin}="%2: %1: No such builtin.\n";
 	$Psh::text{readline_interrupted}="\nInterrupted!\n";
+	$Psh::text{readline_error}="Readline did not start up properly:\n%1\n";
 	$Psh::text{no_readline}="No Readline module available. Please install Term::ReadLine::Perl\n";
 	$Psh::text{unalias_noalias}="unalias: `%1' not an alias\n";
 	$Psh::text{builtin_readline_header}="Using Readline: %1, with features:\n";
