@@ -4,6 +4,7 @@ use strict;
 use vars qw($VERSION $AUTOLOAD $ospackage);
 use Carp 'croak';
 use Config;
+use File::Spec;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -64,7 +65,7 @@ sub glob {
 	if( !$dir) {
 		$dir=$ENV{PWD};
 	} else {
-		$dir=abs_path($dir);
+		$dir=Psh::Util::abs_path($dir);
 	}
 
 	# Expand ~
