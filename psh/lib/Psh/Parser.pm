@@ -285,6 +285,18 @@ sub unquote {
 	return $text;
 }
 
+sub ungroup {
+	my $text= shift;
+	if (substr($text,0,1) eq '(' and
+	    substr($text,-1,1) eq ')') {
+		return substr($text,1,-1);
+	} elsif (substr($text,0,1) eq '{' and
+			substr($text,-1,1) eq '}') {
+		return substr($text,1,-1);
+	}
+	return $text;
+}
+
 sub make_tokens {
 	my $line= shift;
 	my @tmpparts= @{scalar(decompose($def_tokenizer,

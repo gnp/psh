@@ -31,6 +31,16 @@ A reverse-chronological ordered list of changes
 
 =over 4
 
+=item *
+
+The new B<if> builtin allows mixing evaluation strategies. Example:
+
+   if ( -r 'README' ) {
+       if ( grep -q "Perl Shell" README ) {
+           print "OK\n";
+       }
+   }
+
 =item * 
 
 New B<-F> command line switch to disable processing of any pshrc files
