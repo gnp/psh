@@ -586,7 +586,11 @@ sub backtick {
 # Setup special treatment of certain signals
 # Having a value of 0 means to ignore the signal completely in
 # the loops while a code ref installs a different default
-# handler
+# handler. Note that calling _ignore_handler is different than
+# setting the signal action to ignore - if you set the signal
+# action to ignore, the signal might be passed on to parent processes
+# which could decide to handle them for us
+
 my %special_handlers= (
 					   'CHLD' => \&_ignore_handler,
 					   'CLD'  => \&_ignore_handler,
@@ -720,9 +724,6 @@ sub _signal_handler
 
 #
 # ignore_handler()
-#
-# From Markus: Apparently letting a signal execute an empty sub is not the same
-# as setting the sighandler to IGNORE
 #
 
 sub _ignore_handler
