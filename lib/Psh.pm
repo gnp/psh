@@ -38,7 +38,7 @@ use vars qw($bin $cmd $echo $host $debugging
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $window_title
-            $interactive
+            $interactive $trace
 			@val @history %text );
 
 #
@@ -102,12 +102,14 @@ sub evl {
 		return;
 	}
 
+	if ($trace) {
+		print STDERR "+ $line\n";
+	}
 	my @elements= eval { Psh::Parser::parse_line($line, @use_strats) };
 	return undef unless @elements;
 
 	my ($success,$result)= _evl(@elements);
 	print_debug_class('i',"Success: $success\n");
-
 	return ($success,@$result);
 }
 
