@@ -175,7 +175,7 @@ use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
 
 my %opt;
 my $default_prompt         = '\s\$ ';
-my @default_strategies     = qw(comment bang built_in executable eval);
+my @default_strategies     = qw(comment bang built_in perlfunc executable eval);
 my $input;
 my $readline_saves_history = 0;
 my $last_dir               = '.'; # By default 'cd -' won't change directory at all.
@@ -479,18 +479,31 @@ sub builtin_which
 # int builtin_alias(string COMMAND)
 #
 
-sub builtin_alias
 {
-    my $line = shift;
-	my ($command, $text) = Psh::Parser::decompose('\s+|=', $line, 2, 0);
+  # "Static variable" for builtin_alias
+  my %aliases = ();
 
+  sub builtin_alias
+  {
+        my $line = shift;
+	my ($command, $firstDelim, @rest) = Psh::Parser::decompose('([ \t\n=]+)', $line, undef, 0);
+	if (!defined(@rest)) { @rest = (); }
+	my $text = join('',@rest); # reconstruct everything after the
+                                   # first delimiter, sans quotes
 	if (($command eq "") && ($text eq "")) {
-		print_out("Alias List currently not implemented anymore.\n");
-
-		# This was already in my alias code but vanished with the move
-		# to simulate aliases as a built-in. I recommend adding my
-		# old code as new evaluation strategy
+	        my $wereThereSome = 0;
+ 	        for $command (sort keys %aliases) {
+		        print_out("alias $command='$aliases{$command}'\n");
+			$wereThereSome = 1;
+		}
+		if (!$wereThereSome) {
+		        print_out("No aliases.\n");
+		}
 	} else {
+	        #
+                # TODO: if $text is empty, should we just print out the
+	        # alias for $command like bash does?
+                #
 		print_debug("[[ Aliasing '$command' to '$text']]\n");
 		# my apologies for the gobbledygook
 		my $string_to_eval = "\$psh::built_ins{$command} = "
@@ -498,10 +511,19 @@ sub builtin_alias
 		print_debug("[[ alias evaluating: $string_to_eval ]]\n");
 		eval($string_to_eval);
 		if ($@) { print_error($@); return 1; }
+		# if successful, record the alias
+		$aliases{$command} = $text;
 	}
 
 	return 0;
+  }
+
+  #
+  # TODO: I do believe we need an unalias.
+  #
+
 }
+
 
 
 #
@@ -873,6 +895,14 @@ sub signal_description {
 # EVALUATION STRATEGIES:
 #
 
+#
+# TODO: We have a foolproof symbol for ignoring a line, and for
+# sending it to system. Should there be one for sending it to the Perl
+# interpreter? I suggest adding a "brace" strategy, so that any line
+# whose first word starts with a brace is automatically sent to the 
+# perl evaluator unchanged.
+#
+
 %strategy_which = (
 	'bang'     => sub { if (${$_[1]}[0] =~ m/^!/)  { return 'system';  } return ''; },
 
@@ -888,7 +918,14 @@ sub signal_description {
 
 	'perlfunc' => sub {
 		my $fnname = ${$_[1]}[0];
-
+		# TODO: The following check will catch input lines
+		# like "print 'Hello';"; should we also look at
+		# everything up to the first '(' to grab input lines
+		# like "print('hello');" at this stage instead of
+		# having to let them trickle all the way down to the
+		# "eval" strategy? We could simply re-"decompose" the
+		# first word with "(" as a delimiter, and check the
+		# first word of that as well.
 		if (exists($perl_builtins{$fnname}) 
 			or defined(&{"main::$fnname"})) {
 			my $copy = ${$_[0]};
@@ -967,8 +1004,7 @@ sub signal_description {
 					$command .= "$fnname(" . join(",",@args) . ')';
 				}
 
-				return $command . $ampersand;
-			}
+				return $command . $ampersand;			}
 		}
 
  		return '';
@@ -1088,6 +1124,15 @@ sub remove_signal_handlers
 sub give_terminal_to
 {
 	# Why are the signal handlers changed for this method only ?!?
+
+        # Current answer by gtw: I put these signal-handler changes in
+        # here. It's the last bit of "magic" I copied from
+        # bash-2.03/jobs.c . I don't know why it's necessary, I just
+        # know that job control was erratic, sometimes causing hangs
+        # when foreground children terminated, until I changed these
+        # signal handlers. This whole function is closely modeled on
+        # the function by the same name in bash-2.03/jobs.c .
+
 	local $SIG{TSTP}  = 'IGNORE';
 	local $SIG{TTIN}  = 'IGNORE';
 	local $SIG{TTOU}  = 'IGNORE';
@@ -1682,7 +1727,7 @@ sub minimal_initialize
     @strategies                  = @default_strategies;
 	$eval_preamble               = 'package main;';
     $currently_active            = 0;
-	$perlfunc_expand_arguments   = 1;
+	$perlfunc_expand_arguments   = 0;
 	$executable_expand_arguments = 0;
 	$cmd                         = 1;
 
@@ -2157,7 +2202,12 @@ sub my_system
 	# a full parser for quoting and all special
 	# characters soon!!
 	#
-	
+	# Well, Psh::Parser::decompose is pretty flexible now; perhaps
+	# this function ought to be modified to take the fgflag as a
+	# parameter, and the calls changed to have done the parsing
+	# already, passing only the actyal string to be exec'ed and
+	# the fgflag. Just one way maybe to skin the cat...
+
 	my $fgflag = 1;
 
 	if ($call =~ /^(.*)\&\s*$/) {

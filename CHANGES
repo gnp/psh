@@ -1,6 +1,25 @@
 CHANGES
 
 ------------------------------------------------------------
+DEVELOPMENT                                     [1999-12-10]
+------------------------------------------------------------
+
+Bug Fixes:
+
+  * alias now handles quotes on rhs, e.g. alias ls='ls -CF'
+    does the expected thing.
+
+Additional features:
+
+  * added perlfunc as a default strategy, so that the 
+    distribution pshrc will run regardless of whether there
+    is an executable named "print" in your path.
+  * (re)implemented a list of aliases if builtin "alias" is
+    called with no arguments
+
+[LOTS OF OTHER HISTORY since 0.004pre2 not in here yet. ]
+
+------------------------------------------------------------
 0.004pre2 (Limited Release)                     [1999-12-05]
 ------------------------------------------------------------
 
