@@ -72,14 +72,14 @@ sub prompt_helper {
 	} elsif($code =~ /^0x/) {
 		$sub= chr(hex($code));
 	} else {
-		print_warning_i18n('prompt_unknown_escape',$code,$Psh::bin);
+		Psh::Util::print_warning_i18n('prompt_unknown_escape',$code,$Psh::bin);
 		$sub = ''
 	}
 	
 	{
 		local $1;
 		if ($sub =~ m/\\([^\\])/) {
-			print_warning_i18n('prompt_expansion_error',$code,
+			Psh::Util::print_warning_i18n('prompt_expansion_error',$code,
 							   $1, $Psh::bin);
 			$sub =~ s/\\[^\\]//g;
 		}
@@ -99,7 +99,7 @@ sub prompt_string
 	if (ref($prompt_templ) eq 'CODE') { # If it is a subroutine,
 		$temp = &$prompt_templ();
 	} elsif (ref($prompt_templ)) {      # If it isn't a scalar
-		print_warning_i18n('prompt_wrong_type',$Psh::bin);
+		Psh::Util::print_warning_i18n('prompt_wrong_type',$Psh::bin);
 		$temp = $default_prompt;
 	} else {
 		$temp = $prompt_templ;
