@@ -139,14 +139,7 @@ my $input;
 	'executable' => sub {
 		my $executable = which(${$_[1]}[0]);
 
-		if (defined($executable)) {
-			shift @{$_[1]}; # OK to destroy the command line because we're
-                            # going to match this strategy
-			@newargs= $executable_expand_arguments?variable_expansion($_[1]):
-				$_[1];
-			@newargs = Psh::Parser::glob_expansion(\@newargs,' ');
-			return "$executable @newargs";
-		}
+		return "$executable" if defined($executable);
 
 		return '';
 	},
@@ -181,11 +174,16 @@ my $input;
         } elsif( $built_ins{$command}) {
 			$coderef= *{'Psh::Builtins::'.ucfirst($command)."::bi_$command"};
 		}			
-        return (sub { &{$coderef}($rest,\@words); }, 0, undef );
+        return (sub { &{$coderef}($rest,\@words); }, [], 0, undef );
 	},
 
 	'executable' => sub {
-		return ("$_[2]", 0, undef);
+		@newargs= $executable_expand_arguments?variable_expansion($_[1]):
+		  $_[1];
+		@newargs = Psh::Parser::glob_expansion(\@newargs,' ');
+		@newargs = map { Psh::Parser::unquote($_)} @newargs;
+
+		return ("$_[2] @newargs", ["$_[2]",@newargs], 0, undef, );
 	},
 );
 
@@ -207,7 +205,7 @@ $strategy_eval{brace}= $strategy_eval{eval}= sub {
     } else {
 		return (sub {
 			return protected_eval($todo,'eval');
-		}, 0, undef);
+		}, [], 0, undef);
 	}
 };
 

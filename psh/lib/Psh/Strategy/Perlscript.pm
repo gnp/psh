@@ -156,7 +156,7 @@ $Psh::strategy_eval{perlscript} = sub {
 			do $script;
 
 			exit 0;
-		}, 1, undef);
+		}, [], 1, undef);
 };
 
 @always_insert_before= qw( executable);

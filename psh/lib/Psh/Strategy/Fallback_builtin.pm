@@ -29,7 +29,7 @@ $Psh::strategy_eval{fallback_builtin}= sub {
         {
 	        no strict 'refs';
 	        $coderef= *{"Psh::Builtins::Fallback::bi_$command"};
-            return (sub { &{$coderef}($rest,\@words); }, 0, undef );
+            return (sub { &{$coderef}($rest,\@words); },[], 0, undef );
         }
 };
 

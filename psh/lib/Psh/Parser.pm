@@ -413,7 +413,7 @@ sub parse_line {
 
 	my @words= std_tokenize($line);
 	foreach my $strat (@Psh::unparsed_strategies) {
-		if (!defined($Psh::strategy_which{$strat})) {
+		if (!exists($Psh::strategy_which{$strat})) {
 			Psh::Util::print_warning_i18n('no_such_strategy',
 										  $strat,$Psh::bin);
 			next;
@@ -503,7 +503,7 @@ sub parse_simple_command {
 
 	my $line= join ' ', @words;
 	foreach my $strat (@use_strats) {
-		if (!defined($Psh::strategy_which{$strat})) {
+		if (!exists($Psh::strategy_which{$strat})) {
 			Psh::Util::print_warning_i18n('no_such_strategy',
 										 $strat,$Psh::bin);
 			next;
