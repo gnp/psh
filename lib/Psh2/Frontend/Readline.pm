@@ -15,6 +15,7 @@ sub init {
     my $self= shift;
 
     if (-t STDIN) {
+        $ENV{PERL_RL}='Gnu o=0';
 	eval { require Term::ReadLine; };
 	if ($@) {
 	} else {
@@ -25,10 +26,16 @@ sub init {
 		eval { $self->{term}= Term::ReadLine->new('psh2'); };
 		if ($@) {
 		    delete $self->{term};
+                    die $@;
 		}
 	    }
 	    if ( $self->{term} ) {
-
+                my $attribs= $self->{term}->Attribs;
+                $self->{term}->add_defun('complete2', sub { tab_completion($self)} );
+                $self->{term}->parse_and_bind(qq["\t":complete2]);
+                $self->{term}->parse_and_bind(qq["\\M-\e":complete2]);
+                $self->{term}->parse_and_bind(qq["\\C-i":complete2]);
+                $attribs->{completion_function}= sub { tab_completion2($self)};
 	    }
 	}
     }
@@ -109,6 +116,24 @@ sub prompt {
     } while (!$line || lc($line) !~ $valid);
     chomp $line;
     return lc($line);
+}
+
+# we override tab completion itself to have more control
+sub tab_completion {
+    my $self= shift;
+    my $attribs= $self->{term}->Attribs;
+    my $buffer= $attribs->{line_buffer};
+    my $caret= $attribs->{point};
+
+    $attribs->{line_buffer}='complete dummy';
+    $attribs->{point}=0;
+    $self->{term}->redisplay();
+    '';
+}
+
+# for the other completion functions like insert-completions
+sub tab_completion2 {
+    
 }
 
 1;

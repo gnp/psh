@@ -543,6 +543,11 @@ sub _parse_simple {
 	}
     }
     unless ($opt->{builtin}) {
+        my $full_fun_name= $Psh2::Language::Perl::current_package.'::'.$first;
+        if (exists $psh->{function}{$full_fun_name}) {
+            return [ 'call', $psh->{function}{$full_fun_name}[0], \@options, \@words,
+                     $line, $opt, $psh->{function}{$full_fun_name}[1]];
+        }
 	my $tmp= $psh->which($first);
 	if ($tmp) {
 	    return [ 'execute', $tmp, \@options, \@words, $line, $opt, undef];
@@ -557,11 +562,6 @@ sub _parse_simple {
 		return [ $strategy, $tmp, \@options, \@words, $line, $opt, undef];
 	    }
 	}
-        my $full_fun_name= $Psh2::Language::Perl::current_package.'::'.$first;
-        if (exists $psh->{function}{$full_fun_name}) {
-            return [ 'call', $psh->{function}{$full_fun_name}[0], \@options, \@words,
-                     $line, $opt, $psh->{function}{$full_fun_name}[1]];
-        }
     }
     die "duh: $first";
 }

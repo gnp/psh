@@ -8,7 +8,7 @@ Requires Perl Modules:
 - POSIX, Getopt::Std, Pod::Text
 
 Optional and recommended Perl Modules:
-- Either Term::ReadLine::Gnu or Term::ReadLine::Perl for the readline frontend
+- Term::ReadLine::Gnu for the readline frontend
 or Term::EditLine for the editline frontend
 - Pod::Text::Color for colored help pages
 - Locale::gettext for localization

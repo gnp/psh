@@ -85,9 +85,11 @@ perform case insensitive matching, all other letters (rwxoRWXOzsfdlpSugkTB)
 correspond to the Perl filetest of the same name. Examples:
 
    C<ls [c.*(i)]>    will match all files starting with c or C
-   C<ls [*(f)]>      matches all plain files
-   C<ls [*/*(o)]>    matches all files owned by you
-   C<ls [*(z)]>      matches all files of zero length
+   C<ls [.*(f)]>     matches all plain files
+   C<ls [(o)]>      matches all files owned by you
+   C<ls [(z)]>      matches all files of zero length
+
+If you're only interested in applying an additional option, you can also completely leave out the .*
 
 In addition, Perl Shell knows the very powerful '**' globbing,
 replacing many C<find>s in your daily work. '**' will be replaced

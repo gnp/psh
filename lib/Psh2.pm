@@ -546,8 +546,11 @@ sub glob {
     my $opts={};
     my @re= ();
     if (substr($pattern,0,1) eq '[') {
-	if ($pattern=~ /^\[(.+)\(([a-zA-Z]*)\)\]$/) {
+	if ($pattern=~ /^\[(.*)\(([a-zA-Z]*)\)\]$/) {
 	    $pattern=$1;
+            if (!$pattern or $pattern eq '*') {
+                $pattern='.*';
+            }
 	    my $optstring=$2;
 	    foreach (split //, $optstring) {
 		$opts->{$_}= 1;
@@ -583,6 +586,12 @@ sub fe {
     return shift()->{frontend};
 }
 
+sub completor {
+    my $self= shift;
+    return $self->{completor} if $self->{completor};
+    require Psh2::Completor;
+    $self->{completor}= Psh2::Completor->new($self);
+}
 
 ############################################################################
 ##

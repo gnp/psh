@@ -8,7 +8,7 @@ TODO
 docs/README
 docs/othershells
 docs/psh2.pod
-docs/syntax-notes
+docs/design
 lib/Psh2.pm
 lib/Psh2/Builtins/Alias.pm
 lib/Psh2/Builtins/Bg.pm
@@ -41,6 +41,7 @@ lib/Psh2/Frontend/Editline.pm
 lib/Psh2/Frontend/Readline.pm
 lib/Psh2/Language/Perl.pm
 lib/Psh2/Language/C.pm
+lib/Psh2/Completor.pm
 lib/Psh2/Parser.pm
 lib/Psh2/Unix.pm
 lib/Psh2/Windows.pm

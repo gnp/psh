@@ -1,0 +1,58 @@
+psh2 design and philosophy
+--------------------------
+
+psh1 was basically a shell executing perl code. If input matched certain
+characteristics, it was recognized as a "shell command", but perl
+execution always was the final fallback.
+
+psh2 is a shell acting as a shell written in perl. Executing perl is
+not the primary function anymore.
+
+- psh2 has actually a straightforward, parsable syntax
+- the grammar is not ambigue
+- the grammar tries to avoid relying on whitespace as much as possible
+  (unlike sh-derivates)
+
+psh1 was delivered with its own homebrew localization system. As only
+the German locale was ever up to date, and nobody seemed to use them
+anyway, localization is now less a priority. We switched to Locale::gettext
+- if someone absolutely wants a different locale he should be able to
+install an additional dependancy.
+
+Windows support was temporarily dropped but could be added again. As I do
+not use Windows regularly, the port of psh1 was usually broken anyway.
+
+Components
+----------
+
+- the Psh2 main object - containing basic infrastructur and accessors
+- the Psh2::Parser module (no object) which tokenizes input. Tokenizations
+in this context means much more than in psh1: the parser already decides
+which evaluation strategies to use
+- an OS-dependant part: Psh2::Unix (and the unimplemented Psh2::Windows) which
+is handling filesystem, jobs creation and management
+- one of the available frontends objects. The frontends take care of fetching input from the user and feeding output back to him. psh1 only had a hard-coded Term::ReadLine frontend. psh2 will feature at least an own, pure perl frontend as well as a Term::ReadLine and Term::EditLine frontend
+- Language modules: every "sublanguage" which is accessible from psh2 (initially Perl and C) has an own language module implementing support for that language.
+- the Completer object is responsible for calculating possible completions for input. The wiring of tab completion itself is done in the frontends.
+
+Syntax
+------
+
+Syntax in Pseudo-EBNF.
+
+input := ( line \n ) ...
+line := complexcommand [(; | &)  complexcommand] ...
+complexcommand := basiccommand [pipe basiccommand] ...
+basiccommand := command [redirection]
+redirect := ( > | >& | >> | < ) [fd] filename ...
+pipe := \| [fd]
+fd := \[ (0-9|=GLOB|all|0-9=0-9) \]
+command := languagename: code | builtin | function | executable |
+           pluggablestrategy
+
+
+"..." means: any number of elements, [] signifies optional components
+| means an alternative
+
+
+Maybe we'll also support <{ } and >{ }
