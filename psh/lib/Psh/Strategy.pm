@@ -141,6 +141,7 @@ sub setup_defaults {
 			 get('perl'),
 			 get('brace'),
 			 get('built_in'),
+			 get('perlfunc'),
 			 get('executable'),
 			 get('eval'),
 			);

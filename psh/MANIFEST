@@ -41,6 +41,7 @@ lib/Psh/Strategy/Executable.pm
 lib/Psh/Strategy/Fallback_builtin.pm
 lib/Psh/Strategy/Perl.pm
 lib/Psh/Strategy/Perlfunc.pm
+lib/Psh/Strategy/Perlfunc_heavy.pm
 lib/Psh/Strategy/Perlscript.pm
 lib/Psh/Util.pm
 lib/Psh/Builtins/Fallback/Ls.pm

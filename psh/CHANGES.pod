@@ -119,6 +119,11 @@ B<debug> strategy.
 The comment strategy was removed. Comments are now already recognized and
 ignored by the parser.
 
+=item *
+
+A limited version of the B<perlfunc> strategy is now loaded by default.
+The old strategy B<perlfunc> was renamed to B<perlfunc_heavy>.
+
 =cut
 
 ###############################################################################
