@@ -17,17 +17,31 @@
 package psh;
 
 use vars qw($VERSION);
-$VERSION   = '0.00204';
+$VERSION   = '0.00205';
 
 use Cwd;
 use Cwd 'chdir';
+
+use Getopt::Std;
+
+my %opt;
+
+getopts('dr:', \%opt);
+
+
+#
+# TODO: Figure out how to make this useful, including abandoning the current
+# input even when it is under the control of ReadLine...
+#
+# $SIG{'INT'} = sub { print "\n!!!\n"; };
+#
 
 
 #
 # Deal with debug mode:
 #
 
-if (@ARGV and $ARGV[0] eq '-d') {
+if ($opt{'d'}) {
 	print "DEBUGGING!\n";
 
 	$^W = 1;    # Simulate the -w command-line switch
@@ -57,15 +71,15 @@ my $input;
 
 my $term;
 
-eval { use Term::ReadLine; };
+eval "use Term::ReadLine;";
 
 if ($@) {
 	$term = undef;
-	#print "Term::ReadLine not available.\n";
+	print "Term::ReadLine not available.\n" if $opt{'d'};
 } else {
 	$term = Term::ReadLine->new('psh');
-	$term->MinLine(undef); # No minimum line length for history adding.
-	#print "Using ReadLine: ", $term->ReadLine(), "\n";
+	$term->MinLine(0);   # We will handle history adding ourselves (undef causes trouble).
+	print "Using ReadLine: ", $term->ReadLine(), "\n" if $opt{'d'};
 }
 
 
@@ -138,12 +152,14 @@ sub which
 	'which' => sub {
 		my $cmd   = shift;
 		if (!defined($cmd) or $cmd eq '') {
-			print STDER "which: requires one argument\n";
+			print STDERR "which: requires one argument\n";
 		}
-		my $which = which $cmd;
-		if (!defined($which)) {
-			print STDERR "which: no $cmd in ($ENV{PATH})\n";
-		}
+
+		my $which;
+		if ($built_ins{$cmd}) { $which = '(built-in)'; }
+		else                  { $which = which $cmd;   }
+
+		if (!defined($which)) { print STDERR "which: no $cmd in ($ENV{PATH})\n"; }
 		print "$which\n";
 	}
 );
@@ -156,10 +172,14 @@ sub process
 #	print "[[PROCESSING GENERIC INPUT]]\n";
 
 	while (1) {
-		&$put(prompt_string()) if $put and $prompt;
+		if ($prompt) {
+			$input = &$get(prompt_string());
+		} else {
+			$input = &$get();
+		}
+
 		$cmd++;
 
-		$input = &$get();
 		last unless defined($input);
 
 		chomp $input;
@@ -178,8 +198,7 @@ sub process
 			undef $input;
 
 		#
-		# TODO: This expression works well for single arguments with no
-		# quoting or internal spaces. Really what we need is a perl
+		# TODO: Really what we need is a perl
 		# quoting mechanism that produces an array of arguments using
 		# shell-like parsing rules. The idea would be you give it a
 		# string which is expected to be a sequence of scalars without
@@ -188,17 +207,19 @@ sub process
 		# sent to system() probably has some of the necessary logic.
 		#
 
-		} elsif ($input =~ m/^\s*([a-zA-Z0-9_-]+)(\s*)(|\S+)\s*$/) {
+		} elsif ($input =~ m/^\s*([a-zA-Z0-9_-]+)(\s+(.*)$|($))/) {
 			my $cmd = $1;
 			my $arg = $3;
 
 			if (ref $psh::built_ins{$cmd} eq 'CODE') {
+				print "Using built-in '$cmd'.\n" if $opt{'d'};
 				&{$psh::built_ins{$cmd}}($arg);
 				undef $input;
 			} elsif ($psh::smart) {
 				my $which = which($cmd);
 
 				if (defined($which)) {
+					print "Using smart '$which'.\n" if $opt{'d'};
 					system("$which $arg");
 					undef $input;
 				}
@@ -380,15 +401,21 @@ sub prompt_string
 
 sub iget
 {
+	my $prompt = shift;
 	my $line;
 
 	if ($term) {
-		$line = $term->readline();
-		$term->addhistory($line);
+		$line = $term->readline($prompt);
 	} else {
+		print $prompt;
 		$line = <STDIN>;
-		chomp $line;
 	}
+
+	chomp $line;
+	$line =~ s/^\s+//;
+	$line =~ s/\s+$//;
+
+	if ($term and $line) { $term->addhistory($line); }
 
 	return $line . "\n";         # This is expected by other code.
 }
@@ -449,13 +476,39 @@ sub process_rc
 
 #	print "[ LOOKING FOR .pshrc ]\n";
 
-	if ($ENV{HOME}) { push @rc, "$ENV{HOME}/$rc_name"; }
-	push @rc, "$rc_name" unless $ENV{HOME} eq cwd;
+	if ($opt{'r'}) {
+		push @rc, $opt{'r'};
+	} else {
+		if ($ENV{HOME}) { push @rc, "$ENV{HOME}/$rc_name"; }
+		push @rc, "$rc_name" unless $ENV{HOME} eq cwd;
+	}
 
 	foreach my $rc (@rc) {
 		if (-r $rc) {
 #			print "[ PROCESSING $rc ]\n";
 			process_file($rc);
+		}
+	}
+}
+
+
+#
+# process_args()
+#
+# Process files listed on command-line.
+#
+
+sub process_args
+{
+	my @rc;
+	my $rc_name = ".pshrc";
+
+#	print "[ PROCESSING @ARGV FILES ]\n";
+
+	foreach my $arg (@ARGV) {
+		if (-r $arg) {
+#			print "[ PROCESSING $arg ]\n";
+			process_file($arg);
 		}
 	}
 }
@@ -537,7 +590,12 @@ sub symbols
 
 initialize;
 process_rc;
-main_loop;
+
+if (@ARGV) {
+	process_args;
+} else {
+	main_loop;
+}
 
 exit 0;
 
