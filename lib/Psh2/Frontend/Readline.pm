@@ -47,4 +47,14 @@ sub getline {
     return $line;
 }
 
+sub print {
+    my $self= shift;
+    my $where= shift;
+    if ($where==0) {
+	CORE::print STDOUT @_;
+    } else {
+	CORE::print STDERR @_;
+    }
+}
+
 1;

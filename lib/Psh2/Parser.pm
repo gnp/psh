@@ -36,6 +36,11 @@ my $regexp= qr[^((?:[^\\\\]|\\\\.)*?)(?:$part1|($part2))(.*)$]s;
 
 sub decompose {
     my $line= shift;
+
+    if ($line=~/^[a-zA-Z0-9]*$/) {
+	return [$line];
+    }
+
     my @pieces= ('');
     my $start_new_piece= 0;
     my $fresh_piece= 1;
@@ -284,7 +289,7 @@ sub parse_line {
     my $line= shift;
     my $psh= shift;
 
-    return [] if substr( $line, 0, 1) eq '#';
+    return [] if substr( $line, 0, 1) eq '#' or $line=~/^\s*$/;
 
     my $tokens= make_tokens( $line );
     my @elements= ();
@@ -369,7 +374,7 @@ sub _parse_simple {
 	}
     }
 
-    return () unless @words;
+    return () if !@words or (@words==1 and $words[0] eq '');
 
     if (!$opt->{noalias} and $psh->{aliases} and
         $psh->{aliases}->{$words[0]} and
@@ -394,6 +399,7 @@ sub _parse_simple {
 	if (exists $psh->{language}{$tmp}) {
 	    eval 'use Psh2::Language::'.ucfirst($words[0]);
 	    if ($@) {
+		print STDERR $@;
 		# TODO: Error handling
 	    }
 	    return [ 'language', 'Psh2::Language::'.ucfirst($words[0]), \@options, \@words, $line, $opt];
@@ -406,6 +412,7 @@ sub _parse_simple {
 	if ($psh->is_builtin($words[0])) {
 	    eval 'use Psh2::Builtins::'.ucfirst($words[0]);
 	    if ($@) {
+		print STDERR $@;
 		# TODO: Error handling
 	    }
 	    return [ 'builtin', 'Psh2::Builtins::'.ucfirst($words[0]), \@options, \@words, $line, $opt];
@@ -427,6 +434,8 @@ sub _parse_simple {
 	    }
 	}
     }
+    use Data::Dumper;
+    print STDERR Dumper(\@words);
     die "duh";
 }
 
