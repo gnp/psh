@@ -15,7 +15,7 @@ use Exporter ();
 use vars qw(@ISA @EXPORT_OK);
 
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(pcomp_getopts %ACTION %COMPSPEC);
+@EXPORT_OK = qw(pcomp_getopts %ACTION %COMPSPEC compgen redir_test);
 
 # for COMPSPEC actions
 # borrowed from bash-2.04
@@ -71,6 +71,11 @@ BEGIN {
 	   variable	=> CA_VARIABLE,	# Perl variable
 	   hashvar	=> CA_HASH,	# Perl hash variable
 	  );
+
+	# Simulate old @netprograms support
+	my $tmp= {'action'=>CA_HOSTNAME};
+	%COMPSPEC=('ftp'=>$tmp,'ncftp'=>$tmp,'telnet'=>$tmp,'traceroute'=>$tmp,
+			   'ssh'=>$tmp,'ssh1'=>$tmp,'ssh2'=>$tmp,'ping'=>$tmp);
 }
 
 # global variables for compgen()
@@ -336,20 +341,39 @@ sub pcomp_getopts {
     return \%cs;
 }
 
+sub _redir_op {
+    local $_ = shift;
+    return 0 if /'[<>]'/;
+    return 1 if /[<>]/;
+    return 0;
+}
+
+sub redir_test {
+    my($cur, $prev) = @_;
+
+    if (_redir_op($cur)) {
+        return compgen('-f', $cur);
+    } elsif (_redir_op($prev)) {
+        return compgen('-f', $cur);
+    } else {
+        return ();
+    }
+}
+
+sub compgen {
+    my $cs = pcomp_getopts($_[0]) or usage_compgen(), return ;
+    @_ = @{$_[0]};
+    usage_compgen() if $cs->{print} or $cs->{remove} or $#_ > 1;
+
+    pcomp_list($cs, $_[0] || '', $__line, $__start, $__cmd);
+}
+
 sub usage_compgen {
     print STDERR <<EOM;
 compgen [-abcdefjkvu] [-A ACTION] [-G GLOBPAT] [-W WORDLIST]
 	[-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-F FUNCTION]
 	[-C COMMAND] [WORD]
 EOM
-}
-
-sub compgen {
-    my $cs = pcomp_getopts($_[0]) or usage_compgen, return ;
-    @_ = @{$_[0]};
-    usage_compgen if $cs->{print} or $cs->{remove} or $#_ > 1;
-
-    pcomp_list($cs, $_[0] || '', $__line, $__start, $__cmd);
 }
 
 package main;

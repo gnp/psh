@@ -83,6 +83,9 @@ sub _do_setenv
 			$ENV{$var}=$1;
 		} else {
 			$var =~ s/^\$//;
+			if ($value=~ /^\"(.*)\"/) {
+				$value=$1;
+			}
 			# Use eval so that variables may appear on RHS
 			# ($value); use protected_eval so that lexicals
 			# in this file don't shadow package variables

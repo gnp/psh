@@ -1,7 +1,7 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($VERSION %custom_completions @bookmarks @netprograms @user_completions $ac $complete_first_word_dirs);
+use vars qw($VERSION @bookmarks @user_completions $ac $complete_first_word_dirs);
 
 use Cwd qw(:DEFAULT chdir);
 use Psh::Util qw(:all starts_with ends_with);
@@ -13,9 +13,9 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 my $APPEND="not_implemented";
 my $GNU=0;
 
-%custom_completions= ();
+#%custom_completions= ();
 
-@netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute');
+#@netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute');
 @bookmarks= Psh::OS::get_known_hosts();
 
 sub init
@@ -52,25 +52,6 @@ sub cmpl_bookmarks
            map { substr($_,$length) }
 	         grep { starts_with($_,$prefix.$text) } @bookmarks;
 }
-
-sub cmpl_custom
-{
-	my( $text, $prefix, $startword)= @_;
-	my $length=length($prefix);
-	my $rules= $custom_completions{$startword};
-	if(ref($rules) eq 'CODE') {
-		$rules= &$rules($text, $prefix, $startword);
-	}
-	my @rules= @{$rules};
-	my @result=
-		grep { length($_)>0 }
-            map { substr($_,$length) }
-	         grep { starts_with($_,$prefix.$text) }
-	            @{$rules[1]};
-	$ac=$rules[0] if @result==1;
-	return ($rules[2],@result);
-}
-
 
 # Returns a list of possible file completions
 sub cmpl_filenames
@@ -309,10 +290,14 @@ sub cmpl_method {
 				     || defined *$sym{FILEHANDLE}),
 				 keys %$pkg);
 		# Do we need a user customizable variable to ignore @packages?
-		return grep(/^\Q$text/,
-			    !$prefix && @keyword,
-			    map($prefix . $_, @packages, @subs));
+		my @result= grep(/^\Q$text/,
+						 !$prefix && @keyword,
+						 map($prefix . $_, @packages, @subs));
+		if (@result==1) {
+			$ac='';
 		}
+		return @result;
+    }
 
 	BEGIN {
 		# from perl5.004_02 perlfunc
@@ -426,8 +411,10 @@ sub completion
 	$ac=' ';
 
 	# Check completion-spec is defined or not.
-	my ($dir, $base) = $line =~ m|^\s*(\S*/)?(\S*)|;
 	my $cmd;
+	$line =~ m|^\s*(\S*/)?(\S*)|;
+	my $dir=$1||'';
+	my $base=$2||'';
 	my $cs = $Psh::PCompletion::COMPSPEC{$cmd = $dir . $base}
 	    || $Psh::PCompletion::COMPSPEC{$cmd = $base};
 
@@ -471,20 +458,20 @@ sub completion
 			# Afterwards we add possible matches for perl barewords
 			push @tmp, cmpl_perl_function($text);
 		}
-  	} elsif( !$firstflag && @netprograms &&
-  			 grep { $_ eq $startword } @netprograms)
-  	{
-  		@tmp= cmpl_bookmarks($text,$pretext);
+#    	} elsif( !$firstflag && @netprograms &&
+#    			 grep { $_ eq $startword } @netprograms)
+#    	{
+#    		@tmp= cmpl_bookmarks($text,$pretext);
   	} else {
 		@tmp = cmpl_filenames($pretext.$text);
 	}
 
 	if( grep { $_ eq $startword } Psh::Builtins::get_builtin_commands() ) {
-		my @tmp2= eval "Psh::Builtins::cmpl_$startword('$text','$pretext','$starttext')";
+		my @tmp2= eval "Psh::Builtins::cmpl_$startword('$text','$pretext','$starttext','$line')";
 		if( !@tmp2 && $Psh::built_ins{$startword}) {
 			my $pkg= ucfirst($startword);
 			eval "use Psh::Builtins::$pkg";
-			@tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext')";
+			@tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext','$line')";
 		}
 		if( @tmp2 && $tmp2[0]) {
 			shift(@tmp2);
@@ -492,22 +479,6 @@ sub completion
 		} else {
 			shift(@tmp2);
 			push @tmp, @tmp2;
-		}
-	}
-
-	my @custom=();
-	if( $custom_completions{$startword}) {
-		$starttext =~ /\s(\S*)$/;
-		my @tmp2=cmpl_custom($text,$1,$startword,$starttext);
-		if( @tmp2 && $tmp2[0]) {
-			$ac=' ';
-			shift(@tmp2);
-			push @custom, @tmp2;
-			@tmp= @custom;
-		} else {
-			shift(@tmp2);
-			push @custom, @tmp2;
-			push @tmp, @custom;
 		}
 	}
 

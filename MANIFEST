@@ -8,6 +8,7 @@ HACKING
 Makefile.PL
 README
 README.perl5.004
+README.upgrade
 RELEASE
 TODO
 psh
