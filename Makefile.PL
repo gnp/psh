@@ -28,7 +28,7 @@ install ::
 lib/Psh/StrategyBunch.pm : $sb_depends
 ";
 	if ($^O eq 'MSWin32') {
-	    $tmp.="	copy $sb_winfiles lib\Psh\StrategyBunch.pm
+	    $tmp.="	copy $sb_winfiles lib\\Psh\\StrategyBunch.pm
 
 ";
 	} else {
