@@ -54,10 +54,6 @@
     missed the point?
     [GNP]
 
-  * Add a help command, that leverages info from the pod file. Extracting
-    parts of the pod file might require POD::Parser.
-    [GNP]
-
   * ulimit.
     [GNP]
 
