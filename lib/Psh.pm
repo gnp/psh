@@ -164,17 +164,8 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 #
 
 my $default_prompt         = '\s\$ ';
-my @default_strategies     = qw(comment bang built_in perlfunc executable eval);
+my @default_strategies     = qw(comment bang built_in executable fallback_builtin eval);
 my $input;
-
-##############################################################################
-##############################################################################
-##
-## SETUP
-##
-##############################################################################
-##############################################################################
-
 
 ##############################################################################
 ##############################################################################
@@ -219,22 +210,25 @@ my $input;
 # keywords than the following? Surprisingly enough,
 # defined(&CORE::abs) does not work, i.e., it returns false.
 #
+# If a value is anything > 1, then it's the minimum number of
+# arguments for that function
+#
 
 %perl_builtins = qw( -X 1 abs 1 accept 1 alarm 1 atan2 1 bind 1
-binmode 1 bless 1 caller 1 chdir 1 chmod 1 chomp 1 chop 1 chown 1 chr
-1 chroot 1 close 1 closedir 1 connect 1 continue 1 cos 1 crypt 1
+binmode 1 bless 1 caller 1 chdir 1 chmod 2 chomp 1 chop 1 chown 2 chr
+1 chroot 1 close 1 closedir 1 connect 2 continue 1 cos 1 crypt 1
 dbmclose 1 dbmopen 1 defined 1 delete 1 die 1 do 1 dump 1 each 1
 endgrent 1 endhostent 1 endnetent 1 endprotoent 1 endpwent 1
-endservent 1 eof 1 eval 1 exec 1 exists 1 exit 1 exp 1 fcntl 1 fileno
+endservent 1 eof 1 eval 1 exec 2 exists 1 exit 1 exp 1 fcntl 1 fileno
 1 flock 1 for 1 foreach 1 fork 1 format 1 formline 1 getc 1 getgrent 1
 getgrgid 1 getgrnam 1 gethostbyaddr 1 gethostbyname 1 gethostent 1
 getlogin 1 getnetbyaddr 1 getnetbyname 1 getnetent 1 getpeername 1
 getpgrp 1 getppid 1 getpriority 1 getprotobyname 1 getprotobynumber 1
 getprotoent 1 getpwent 1 getpwnam 1 getpwuid 1 getservbyname 1
 getservbyport 1 getservent 1 getsockname 1 getsockopt 1 glob 1 gmtime
-1 goto 1 grep 1 hex 1 import 1 if 1 int 1 ioctl 1 join 1 keys 1 kill 1
+1 goto 1 grep 2 hex 1 import 1 if 1 int 1 ioctl 1 join 1 keys 1 kill 1
 last 1 lc 1 lcfirst 1 length 1 link 1 listen 1 local 1 localtime 1 log
-1 lstat 1 m// 1 map 1 mkdir 1 msgctl 1 msgget 1 msgrcv 1 msgsnd 1 my 1
+1 lstat 1 m// 1 map 1 mkdir 2 msgctl 1 msgget 1 msgrcv 1 msgsnd 1 my 1
 next 1 no 1 oct 1 open 1 opendir 1 ord 1 pack 1 package 1 pipe 1 pop 1
 pos 1 print 1 printf 1 prototype 1 push 1 q/STRING/ 1 qq/STRING/ 1
 quotemeta 1 qw/STRING/ 1 qx/STRING/ 1 rand 1 read 1 readdir 1 readlink
@@ -354,10 +348,21 @@ sub signal_description {
          if( $built_ins{$fnname}) {
 	         return "(built_in $fnname)";
          }
+         return '' if substr($fnname,0,1) eq '_';
          if( ref *{"Psh::Builtins::$fnname"}{CODE} eq 'CODE') {
  	         return "(built_in $fnname)";
          }
 		 return '';
+	},
+
+    'fallback_builtin' => sub {
+		my $fnname = ${$_[1]}[0];
+        return '' if substr($fnname,0,1) eq '_';
+        no strict 'refs';
+        if( ref *{"Psh::Builtins::Fallback::$fnname"}{CODE} eq 'CODE') {
+			return "(built_in $fnname)";
+		}
+		return '';
 	},
 
 	'perlfunc' => sub {
@@ -370,8 +375,10 @@ sub signal_description {
 		# "eval" strategy? We could simply re-"decompose" the
 		# first word with "(" as a delimiter, and check the
 		# first word of that as well.
-		if (exists($perl_builtins{$fnname}) 
-			or defined(&{"main::$fnname"})) {
+		if ( (exists($perl_builtins{$fnname}) &&
+	          ($perl_builtins{$fnname} < 2 ||
+	           @{$_[1]} > $perl_builtins{$fnname})) ||
+			   defined(&{"main::$fnname"})) {
 			my $copy = ${$_[0]};
 
 			#
@@ -561,6 +568,20 @@ sub signal_description {
         }
 	},
 
+	'fallback_builtin' => sub {
+		my ($command,$rest) = Psh::Parser::std_tokenize(${$_[0]},2);
+        if ($command ne ${$_[1]}[0]) {
+                print_error("Parsing error: $command ne ${$_[1]}[0]\n");
+				return undef;
+		}
+        {
+	        no strict 'refs';
+	        $coderef= *{"Psh::Builtins::Fallback::$command"};
+            return &{$coderef}($rest);
+        }
+	},
+
+
 	'perlscript' => sub {
 		my ($script, @options) = split(' ',$_[2]);
 		my @arglist = @{$_[1]};
@@ -659,6 +680,7 @@ sub handle_message
 	chomp $message;
 
 	if ($message) {
+		return if ($from eq 'hide');
 		if ($message =~ m/^SECRET $bin:(.*)$/s) {
 			if ($from ne 'main_loop') { print_out("$1\n"); }
 		} else {

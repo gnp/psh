@@ -17,7 +17,17 @@ CVS HEAD
     and Psh::Util
   * Added portability infrastructure
   * Working Win32 port !!! (though it has limited features)
-    Documentation for limitations follows
+  * Added new eval strategy "fallback_builtin" - builtins of
+    that type (currently searched in package Psh::Builtins::Fallback)
+    will be executed AFTER no program of that name was found.
+	This allows to simulate common commands like 'ls' and
+	'env' on systems not having such binaries
+  * Removed perlfunc again from the list of default strategies
+    after it caused too many namespace collisions. I tried to
+	fix it by adding a minimum argument number but it did not
+	help either. Commands like mkdir, rmdir, chmod etc. MUST
+	be accessible without escape in the default settings I
+	think
 
  Features:
   * Changed builtin alias so that 'alias name' displays the

@@ -17,14 +17,14 @@ my $FS=$Psh::OS::FILE_SEPARATOR;
 					 'FIGNORE'=>$PS,'CDPATH'=>$PS);
 
 #
-# string do_setenv(string command)
+# string _do_setenv(string command)
 #
 # command is of the form "VAR VALUE" or "VAR = VALUE" or "VAR"; sets
 # $ENV{VAR} to "VALUE" in the first two cases, or to "$VAR" in the
 # third case unless $VAR is undefined. Used by the setenv and export
 # builtins. Returns VAR (which is a string with no $).
 
-sub do_setenv
+sub _do_setenv
 {
 	my $arg = shift;
 	if( $arg=~ /^\s*(\w+)(\s+|\s*=\s*)(.+)/ ) {
@@ -53,7 +53,7 @@ sub do_setenv
 
 sub setenv
 {
-	my $var = do_setenv(@_);
+	my $var = _do_setenv(@_);
 	if (!$var) {
 		print_error("Usage: setenv <variable> <value>\n".
 					"       setenv <variable>\n");
@@ -70,7 +70,7 @@ sub setenv
 
 sub export
 {
-	my $var = do_setenv(@_);
+	my $var = _do_setenv(@_);
 	if ($var) {
 		my @result = Psh::protected_eval("tied(\$$var)");
 		my $oldtie = $result[0];
@@ -83,9 +83,9 @@ sub export
 		} else {
 			Psh::protected_eval("use Env '$var';");
 			if( exists($Psh::array_exports{$var})) {
-				eval "use Env::Array";
+				eval "use Env::Array;";
 				if( ! @$) {
-					Psh::protected_eval("use Env::Array qw($var $Psh::array_exports{$var});");
+					Psh::protected_eval("use Env::Array qw($var $Psh::array_exports{$var});",'hide');
 				}
 			}
 		}
@@ -447,6 +447,17 @@ sub readline
 	return undef;
 }
 
+#####################################################################
+# 'Fallback' builtins are following now
+# Fallback builtins are NOT called under normal circumstances
+# Instead they will be used if we expected a binary with that
+# name to exist on the system but it did not
+# (e.g. to simulate command.com/cmd.exe builtins on Win32
+#  or simple stuff like ls on MacOS)
+#####################################################################
+
+package Psh::Builtins::Fallback;
+
 #
 # void env
 #
@@ -456,16 +467,13 @@ sub readline
 
 sub env
 {
-	my $original_env=Psh::Util::which('env');
-	if( $original_env) {
-		Psh::evl($original_env.' '.shift);
-	} else {
-		foreach my $key (keys %ENV) {
-			print_out("$key=$ENV{$key}\n");
-		}
+	foreach my $key (keys %ENV) {
+		print_out("$key=$ENV{$key}\n");
 	}
 	return undef;
 }
+
+package Psh::Builtins;
 
 1;
 
