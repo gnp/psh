@@ -509,6 +509,7 @@ sub _parse_simple {
             $val= $1;
             $key=substr($words[0],0,length($words[0])-1);
             my @val=();
+            print STDERR "val=$val\n";
             if (!$opt->{noglob}) {
                 @val= @{glob_expansion($psh, [$val])};
             } else {
