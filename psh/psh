@@ -7,13 +7,10 @@
 # to the same terms as Perl itself.
 #
 
-
 package psh;
 
-
 use vars qw($VERSION);
-$VERSION   = '0.003-gw1';
-
+$VERSION   = '0.003-gw2';
 
 use Cwd;
 use Cwd 'chdir';
@@ -24,9 +21,7 @@ use FileHandle;
 my %opt;
 #use POSIX qw(tcsetpgrp);
 
-
 getopts('dwr:', \%opt);
-
 
 $SIG{'INT'}   = \&signal_handler;
 $SIG{'QUIT'}  = \&signal_handler;
@@ -40,22 +35,16 @@ $SIG{'TTOU'}  = \&signal_handler;
 $SIG{'CHLD'}  = \&ignore_handler;
 $SIG{'WINCH'} = \&handle_resize;
 
-
 #
 # Deal with warnings mode:
 #
 
-
 if ($opt{'w'}) {
-        print_out("Simulating -w switch and strict\n");
+	print_out("Simulating -w switch and strict\n");
 
-
-        $^W = 1;    # Simulate the -w command-line switch
-        use strict; # Turned on when debugging
+	$^W = 1;    # Simulate the -w command-line switch
+	use strict; # Turned on when debugging
 }
-
-
-print_debug("Debugging!\n");
 
 
 #
@@ -69,29 +58,33 @@ print_debug("Debugging!\n");
 # The other global variables are private, lexical variables.
 #
 
+use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
+	    $perlfunc_insert_commas $executable_interpolate_arguments
+	    $history_file $save_history $history_length
+	    @val @wday @mon @strategies 
+	    %prompt_vars %built_ins %strategy_which %strategy_eval);
 
-use vars qw($bin $news_file $cmd $prompt $echo $host
-            $perlfunc_insert_commas $executable_interpolate_arguments
-            $history_file $save_history $history_length
-            @val @wday @mon @strategies 
-            %prompt_vars %built_ins %strategy_which %strategy_eval);
+# Have to set $debugging up right away so that it can be used
+# throughout
+
+if ($opt{'d'}) { $debugging = 1; }
+else           { $debugging = 0; }
+
+print_debug("Debugging!\n");
 
 
 #
 # Private, Lexical Variables:
 #
 
-
 my $default_prompt = '\s\$ ';
 my @default_strategies = qw(comment bang built_in executable eval);
 my $eval_preamble = 'package main;';
 my $input;
 
-
 my $currently_active       = 0;
-my $flag_signal_sent       = 0;
-my $signal_sent            = 0;
-my %jobs                   = (),
+my %job_commands           = ();
+my %job_running            = ();
 my @jobs_order             = ();
 my $readline_saves_history = 0;
 my $last_dir               = '.'; # By default 'cd -' won't change directory at all.
@@ -99,47 +92,43 @@ my $term;                         # Term::ReadLine object.
 my @completion_buffer      = ();
 
 
-
 #
 # Set up Term::ReadLine:
 #
 
-
 eval "use Term::ReadLine;";
 
-
 if ($@) {
-        $term = undef;
-        print_debug("Term::ReadLine not available.\n");
+	$term = undef;
+	print_debug("Term::ReadLine not available.\n");
 } else {
-        $term = Term::ReadLine->new('psh');
-        $term->MinLine(10000);   # We will handle history adding
+	$term = Term::ReadLine->new('psh');
+	$term->MinLine(10000);   # We will handle history adding
                                  # ourselves (undef causes trouble). 
-        $term->ornaments(0);
-        print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
-        if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
-                $readline_saves_history = 1;
-                $term->StifleHistory($history_length); # Limit history
-                $term->Attribs->{attempted_completion_function} = \&custom_completion;
-        }
+	$term->ornaments(0);
+	print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
+	if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
+		$readline_saves_history = 1;
+		$term->StifleHistory($history_length); # Limit history
+		$term->Attribs->{attempted_completion_function} = \&custom_completion;
+	}
 }
-
 
 #
 # Set up Term::Size:
 #
 
-
 eval "use Term::Size 'chars'";
 
-
 if ($@) {
-        print_debug("Term::Size not available.\n");
+	print_debug("Term::Size not available.\n");
 } else {
-        print_debug("Using &Term::Size::chars().\n");
+	print_debug("Using &Term::Size::chars().\n");
 }
 
+# End of setup section; main program is below, marked MAIN
 
+#### SUBROUTINES
 
 #
 # string read_until(string TERMINATOR, subr GET)
@@ -151,33 +140,28 @@ if ($@) {
 # TODO: Undo any side effects of, e.g., m//.
 #
 
-
 sub read_until
 {
-        my ($terminator, $get) = @_;
-        my $input;
-        my $temp;
+	my ($terminator, $get) = @_;
+	my $input;
+	my $temp;
 
+	$input = '';
+	while (1) {
+		$temp = &$get();
+		last unless defined($temp);
+		last if $temp =~ m/^$terminator$/;
+		$input .= $temp;
+	}
 
-        $input = '';
-        while (1) {
-                $temp = &$get();
-                last unless defined($temp);
-                last if $temp =~ m/^$terminator$/;
-                $input .= $temp;
-        }
-
-
-        return $input;
+	return $input;
 }
-
 
 #
 # string abs_path(string DIRECTORY)
 #
 # expands the argument DIRECTORY into a full, absolute pathname.
 #
-
 
 eval "use Cwd 'fast_abs_path';";
 if (!$@) {
@@ -186,28 +170,27 @@ if (!$@) {
 } else {
     sub abs_path
       {
-        my $dir = shift;
-        
-        $dir = '~' unless defined $dir and $dir ne '';
-        
-        if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
-          my $user = $2; 
-          my $rest = $3;
-          
-          my $home;
-          
-          if ($user eq '') { $home = $ENV{HOME}; }
-          else             { $home = (getpwnam($user))[7]; }
-          
-          if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
-        }
-        
-        if (!$dir =~ m|^/|) { $dir = cwd . '/', $dir }
-        
-        return $dir;
+	my $dir = shift;
+	
+	$dir = '~' unless defined $dir and $dir ne '';
+	
+	if ($dir =~ m|^(~([a-zA-Z0-9-]*))(.*)$|) {
+	  my $user = $2; 
+	  my $rest = $3;
+	  
+	  my $home;
+	  
+	  if ($user eq '') { $home = $ENV{HOME}; }
+	  else             { $home = (getpwnam($user))[7]; }
+	  
+	  if ($home) { $dir = "$home$rest"; } # If user's home not found, leave it alone.
+	}
+	
+	if (!$dir =~ m|^/|) { $dir = cwd . '/', $dir }
+	
+	return $dir;
       }
 }
-
 
 
 #
@@ -217,52 +200,48 @@ if (!$@) {
 # $ENV{PATH}. Return the absolute filename if found, or undef if not.
 #
 
-
 {
+
+# "static variables" for which() :
+
   my $last_path_cwd = '';
   my @absed_path = ();
   my %hashed_cmd = ();
-
-
-# "static variables" for which()
-
 
   sub which
     {
       my $cmd      = shift;
       if ($cmd =~ m|/|) {
-        my $try = abs_path($cmd);
-        if ((-x $try) and (! -d _)) {
-          return $try;
-        }
-        return undef;
+	my $try = abs_path($cmd);
+	if ((-x $try) and (! -d _)) {
+	  return $try;
+	}
+	return undef;
       }
       if ($last_path_cwd ne ($ENV{PATH} . cwd())) {
-        $last_path_cwd = $ENV{PATH} . cwd();
-        @absed_path = ();
-        $hashed_cmd = ();
-        my @path = split(':', $ENV{PATH});
-        foreach my $dir (@path) {
-          print_debug("[[ABSING $dir]]\n");
-          push @absed_path, abs_path($dir);
-        }
+	$last_path_cwd = $ENV{PATH} . cwd();
+	@absed_path = ();
+	$hashed_cmd = ();
+	my @path = split(':', $ENV{PATH});
+	foreach my $dir (@path) {
+	  push @absed_path, abs_path($dir);
+	}
       }
       if (exists($hashed_cmd{$cmd})) {
-        return $hashed_cmd{$cmd};
+	return $hashed_cmd{$cmd};
       }
       
       foreach my $dir (@absed_path) {
-        my $try = "$dir/$cmd";
-        if ((-x $try) and (!-d _)) { 
-          $hashed_cmd{$cmd} = $try; return $try; 
-        }
+	my $try = "$dir/$cmd";
+	if ((-x $try) and (!-d _)) { 
+	  $hashed_cmd{$cmd} = $try; return $try; 
+	}
       }
       
       $hashed_cmd{$cmd} = undef;
       return undef;
     }
 }
-
 
 
 #
@@ -272,91 +251,91 @@ if (!$@) {
 # last directory that psh was in
 #
 
-
 sub builtin_cd
 {
-        my $in_dir = shift;
-        my $dir = $in_dir;
+	my $in_dir = shift;
+	my $dir = $in_dir;
 
+	$dir = $last_dir if $dir eq '-';
+	$dir = abs_path($dir);
 
-        $dir = $last_dir if $dir eq '-';
-        $dir = abs_path($dir);
+	if ((-e $dir) and (-d _)) {
+		if (-x _) {
+			$last_dir = cwd;
+			chdir $dir;
+		} else {
+			print_error("psh: $in_dir: Permission denied\n");
+			return 1;
+		}
+	} else  {
+		print_error("psh: $in_dir: No such directory\n");
+		return 1;
+	}
 
-
-        if ((-e $dir) and (-d _)) {
-                if (-x _) {
-                        $last_dir = cwd;
-                        chdir $dir;
-                } else {
-                        print_error("psh: $in_dir: Permission denied\n");
-                        return 1;
-                }
-        } else  {
-                print_error("psh: $in_dir: No such directory\n");
-                return 1;
-        }
-
-
-        return 0;
+	return 0;
 }
-
 
 
 #
 # int builtin_kill(string COMMAND)
 #
 
-
 sub builtin_kill
 {
         my @args = split(' ',$_[0]);
-        my $sig;
-        my $pid;
+	my $sig;
+	my $pid;
 
+	if (scalar(@args) == 1) {
+		$pid = $args[0];
+		$sig = 'TERM';
+	} elsif (scalar(@args) == 2) {
+		($sig, $pid) = @args;
+	} else {
+		print_error("kill: usage: kill <sig> <pid>\n");
+		return 1;
+	}
 
-        if (scalar(@args) == 1) {
-                $pid = $args[0];
-                $sig = 'TERM';
-        } elsif (scalar(@args) == 2) {
-                ($sig, $pid) = @args;
-        } else {
-                print_error("kill: usage: kill <sig> <pid>\n");
-                return 1;
-        }
+	if ($pid =~ m|^%(\d+)$|) {
+		my $temp = $1 - 1;
 
+		if (($temp < 0) or ($temp >= scalar(@jobs_order))) {
+			print_out("pid   = $pid\n");
+			print_out("temp  = $temp\n");
+			print_out("#jobs = ", scalar(@jobs_order), "\n");
+			print_error("kill: No such job $pid\n");
+			return 1;
+		}
 
-        if ($pid =~ m|^%(\d+)$|) {
-                my $temp = $1 - 1;
+		$pid = $jobs_order[$pid];
+	}
 
+	if ($pid =~ m/\D/) {
+	  print_error("kill: Unknown job specification $pid\n");
+	  return 1;
+	}
 
-                if (($temp < 0) or ($temp >= scalar(@jobs_order))) {
-                        print_out("pid   = $pid\n");
-                        print_out("temp  = $temp\n");
-                        print_out("#jobs = ", scalar(@jobs_order), "\n");
-                        print_error("kill: No such job $pid\n");
-                        return 1;
-                }
+	if ($sig ne 'CONT' and  job_exists($sig) and 
+	    !is_job_running($pid)) {
+	  #Better wake up the process so it can respond to this signal
+	  continue_job($pid);
+	}
 
+	if (kill($sig, $pid) != 1) {
+		print_error("kill: Error sending signal $sig to process $pid\n");
+		return 1;
+	}
 
-                $pid = $jobs_order[$pid];
-        }
-
-
-        if (kill($sig, $pid) != 1) {
-                print_error("kill: Error sending signal $sig to process $pid\n");
-                return 1;
-        }
-
-
-        return 0;
+	if ($sig eq 'CONT' and job_exists($pid)) {
+	  record_job_running($pid, 1);
+	}
+	return 0;
 }
-
 
 
 #
 # int builtin_which(string COMMAND)
 #
-
 
 sub builtin_which
 {
@@ -384,14 +363,12 @@ sub builtin_which
 
 
 
-
 #
 # int builtin_alias(string COMMAND)
 #
 # TODO: Handles alias ls=ls -F fine, but doesn't do well with alias ls='ls -F'.
 # Generally, we need work on quoting issues.
 #
-
 
 sub builtin_alias
 {
@@ -408,69 +385,61 @@ sub builtin_alias
 }
 
 
-
 #
 # void builtin_fg(int JOB_NUMBER)
 #
 
-
 sub builtin_fg
 {
-        my $arg = shift;
+	my $arg = shift;
 
+	$arg = -1 if (!defined($arg) or ($arg eq ''));
+	$arg =~ s/\%//;
 
-        $arg = -1 if (!defined($arg) or ($arg eq ''));
-        $arg =~ s/\%//;
-
-
-        restart_job(1, $arg - 1);
+	restart_job(1, $arg - 1);
 }
-
 
 
 #
 # int builtin_bg(string JOB)
 #
 
-
 sub builtin_bg
 {
-        my $arg = shift;
+	my $arg = shift;
 
+	$arg = -1 if (!defined($arg) or ($arg eq ''));
+	$arg =~ s/\%//;
 
-        $arg = -1 if (!defined($arg) or ($arg eq ''));
-        $arg =~ s/\%//;
-
-
-        restart_job(0, $arg - 1);
+	restart_job(0, $arg - 1);
 }
-
 
 
 #
 # void builtin_jobs()
 #
 
-
 sub builtin_jobs {
-        for($i = 0; $i <= $#jobs_order; $i++) {
-                my $visindex = $i+1;
-                my $pid      = $jobs_order[$i];
-                my $tmp      = $jobs{$pid};
+        my $joblist = '';
+	#Checking whether jobs are running might print reports that
+	#jobs have stopped, so accumulate the job list and print it
+	#all at once so it's readable.
+	for($i = 0; $i <= $#jobs_order; $i++) {
+		my $visindex = $i+1;
+		my $pid      = $jobs_order[$i];
+		my $command  = get_job_command($pid);
 
+#		next unless $tmp;
 
-#               next unless $tmp;
+	    
+		$joblist .= "[$visindex] $pid $command";
 
-
-                print_out( "[$visindex] $pid ".@$tmp[0]);
-
-
-                if (@$tmp[1]) { print_out("\n");           }
-                else          { print_out(" (stopped)\n"); }
-        }
-        return undef;
+		if (is_job_running($pid)) { $joblist .= "\n"; }
+		else                      { $joblist .= " (stopped)\n"; }
+	}
+        print_out($joblist);
+	return undef;
 }
-
 
 
 #
@@ -479,26 +448,24 @@ sub builtin_jobs {
 # TODO: What if a string is passed in?
 #
 
-
 sub builtin_exit
 {
-        my $result = shift;
-        $result = 0 unless defined($result);
+	my $result = shift;
+	$result = 0 unless defined($result);
+	if ($result eq '') { $result = 0; }
 
+	if ($save_history && $readline_saves_history) {
+		$term->WriteHistory($psh::history_file);
+	}
+	
+	#TODO: should there be a .psh_logout file of commands?
 
-        if ($save_history && $readline_saves_history) {
-                $term->WriteHistory($psh::history_file);
-        }
-
-
-        exit $result;
+	exit $result;
 }
-
 
 #
 # void builtin_source(string LIST_OF_FILES)
 #
-
 
 sub builtin_source {
   local $echo = 0;
@@ -506,6 +473,24 @@ sub builtin_source {
   return undef;
 }
 
+#
+# void builtin_readline(string IGNORED)
+#
+# interface to the readline module being used. Currently very
+# rudimentary 
+
+# TODO: How can we print out the current bindings in an
+# ReadLine-implementation-independent way? We should allow rebinding
+# of keys if Readline interface allows it, etc.
+
+sub builtin_readline {
+  print_out("Using ReadLine: ", $term->ReadLine(), ", with features:\n");
+  my $featureref = $term->Features();
+  for my $feechr (keys %{$featureref}) {
+    print_out("  $feechr => ${$featureref}{$feechr}\n");
+  }
+  return undef;
+}
 
 #
 # array decompose(string LINE)
@@ -519,36 +504,36 @@ sub builtin_source {
 #    echo|fred(joe,|"Happy Days",|' steve"jan',|"\"Oh, no!\"")
 #
 
-
 sub decompose 
   {
     my ($line) = @_;
+    $line =~ s/^\s*//; # remove initial whitespace, shouldn't be in
+                       # any piece
     my @pieces = ('');
     while ($line) {
       my ($prefix,$delimiter,$rest) =
-        ($line =~ m/^(\S*?)(\s+|(?<!\\)\"|(?<!\\)\')(.*)$/s);
+	($line =~ m/^(\S*?)(\s+|(?<!\\)\"|(?<!\\)\')(.*)$/s);
       if (!defined($delimiter)) { # no delimiter found, so all one piece
-        $pieces[scalar(@pieces)-1] .= $line;
-        $line = '';
+	$pieces[scalar(@pieces)-1] .= $line;
+	$line = '';
       } elsif ($delimiter =~ m/\s+/) {
-        $pieces[scalar(@pieces)-1] .= $prefix;
-        push @pieces, '';
-        $line = $rest;
+	$pieces[scalar(@pieces)-1] .= $prefix;
+	push @pieces, '';
+	$line = $rest;
       } else { # $delimiter is " or '
-        my ($restOfQuote,$remainder) = 
-          ($rest =~ m/^(.*?(?<!\\)$delimiter)(.*)$/s);
-        if (defined($restOfQuote)) {
-          $pieces[scalar(@pieces)-1] .= "$prefix$delimiter$restOfQuote";
-          $line = $remainder;
-        } else { # can't find matching delimiter
-          $pieces[scalar(@pieces)-1] .= $line;
-          $line = '';
-        }
+	my ($restOfQuote,$remainder) = 
+	  ($rest =~ m/^(.*?(?<!\\)$delimiter)(.*)$/s);
+	if (defined($restOfQuote)) {
+	  $pieces[scalar(@pieces)-1] .= "$prefix$delimiter$restOfQuote";
+	  $line = $remainder;
+	} else { # can't find matching delimiter
+	  $pieces[scalar(@pieces)-1] .= $line;
+	  $line = '';
+	}
       } 
     }
     return @pieces;
   }
-
 
 # EVALUATION STRATEGIES: We have two hashes, %strategy_which and
 #  %strategy_eval; an evaluation strategy called "foo" is implemented
@@ -563,7 +548,7 @@ sub decompose
 #  non-whitespace, and that the first string in the array is
 #  non-empty.
 #
-# The $strategy_eval{foo} routine accepts the same two first arguments
+# The $strategy_eval{foo} routine accepts the same first two arguments
 #  and a third argument, which is the string returned by
 #  $strategy_which{foo}. It should do the evaluation, and return the
 #  result. Note that the $strategy_eval function will be evaluated in
@@ -574,11 +559,9 @@ sub decompose
 # @psh::strategies contains the evaluation strategies in order that
 # will be called by evl().
 
-
 #
 # TODO: Is there a better way to detect Perl built-in-functions and
 # keywords than the following?
-
 
 
 my %perl_builtins = qw( -X 1 abs 1 accept 1 alarm 1 atan2 1 bind 1
@@ -611,7 +594,6 @@ tr/// 1 truncate 1 uc 1 ucfirst 1 umask 1 undef 1 unless 1 unlink 1
 unpack 1 unshift 1 untie 1 until 1 use 1 utime 1 values 1 vec 1 wait 1
 waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
 
-
 %strategy_which = 
   ('bang' => sub { if (${$_[1]}[0] =~ m/^!/) { return 'system'; } ''; },
    'comment' => sub { if (${$_[1]}[0] =~ m/^\#/) { return 'comment'; } ''; },
@@ -624,13 +606,13 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
      my $fnname = ${$_[1]}[0];
      if (exists($perl_builtins{$fnname}) or defined(&{"main::$fnname"})) {
        if (!$perlfunc_insert_commas or ${$_[0]} =~ m/[(){},]/) {
-         return ${$_[0]}; 
+	 return ${$_[0]}; 
        } else { # no parens, braces, or commas, so add in commas between
               # args: 
-         my $retval = shift @{$_[1]};
-         $retval .= " ";
-         $retval .= join(",", @{$_[1]});
-         return $retval;
+	 my $retval = shift @{$_[1]};
+	 $retval .= " ";
+	 $retval .= join(",", @{$_[1]});
+	 return $retval;
        }
      }
    },
@@ -640,19 +622,19 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
        shift @{$_[1]}; # OK to destroy the command line because we're
                        # going to match this strategy
        if (!$executable_interpolate_arguments) {
-         return "$executable @{$_[1]}"; 
+	 return "$executable @{$_[1]}"; 
        }
        for my $arg (@{$_[1]}) {
-         if ($arg =~ m/^\'/) { $executable .= " $arg"; }
-         elsif ($arg =~ m/^\"/) { 
-           my $val = eval("$eval_preamble $arg");
-           if ($@) { $executable .= " $arg"; }
-           else    { $executable .= " \"$val\""; }
-         } else {
-           my $val = eval("$eval_preamble \"$arg\"");
-           if ($@) { $executable .= " $arg"; }
-           else    { $executable .= " $val"; }
-         }
+	 if ($arg =~ m/^\'/) { $executable .= " $arg"; }
+	 elsif ($arg =~ m/^\"/) { 
+	   my $val = eval("$eval_preamble $arg");
+	   if ($@) { $executable .= " $arg"; }
+	   else    { $executable .= " \"$val\""; }
+	 } else {
+	   my $val = eval("$eval_preamble \"$arg\"");
+	   if ($@) { $executable .= " $arg"; }
+	   else    { $executable .= " $val"; }
+	 }
        }
        return $executable;
      }
@@ -661,13 +643,12 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
    'eval' => sub { return 'perl evaluation'; }
  );
 
-
 %strategy_eval =
   ('comment' => sub { return undef; },
    'bang' => sub { my ($string) = (${$_[0]} =~ m/!(.*)$/); my_system($string);
-                return undef; },
+		return undef; },
    'built_in' => sub { my $command = shift @{$_[1]};
-                       return &{$psh::built_ins{$command}}("@{$_[1]}"); },
+		       return &{$psh::built_ins{$command}}("@{$_[1]}"); },
    'executable' => sub { my_system("$_[2]"); return undef; },
    #
    # TODO: Is this the best way to manage the package context?
@@ -705,7 +686,6 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
 # printing errors properly.
 #
 
-
 sub protected_eval {
   my $string = shift;
   my $old_currently_active = $currently_active;
@@ -716,31 +696,29 @@ sub protected_eval {
   return @result;
 }
 
-
 #
-# void handle_message (string MESSAGE, bool QUIET = 0)
+# void handle_message (string MESSAGE, bool MAIN = 0)
 #
 # handles any message that an eval might have returned. Distinguishes
 # internal messages from psh's signal handlers from all other
-# messages. The latter it displays with print_error, the former it
-# either displays with print_out or does nothing with if QUIET is
-# true.
+# messages. It displays internal messages with print_out or does
+# nothing with them if MAIN is true. It displays other messages with
+# print_error, and if MAIN is true, psh dies in addition.
 #
 
-
 sub handle_message {
-  my ($message, $quiet) =  @_;
-  if (!defined($quiet)) { $quiet = 0; }
+  my ($message, $main) =  @_;
+  if (!defined($main)) { $quiet = 0; }
   chomp $message;
   if ($message) {
     if ($message =~ m/^SECRET $bin:(.*)$/s) {
-      if (!$quiet) { print_out("$1\n"); }
+      if (!$main) { print_out("$1\n"); }
     } else {
       print_error("eval error ($message)!\n");
+      if ($main) { die("Internal psh error."); }
     }
   }
 }
-
 
 #
 # array evl(string LINE, [array STRATEGIES])
@@ -753,7 +731,6 @@ sub handle_message {
 # evaluation function for that strategy and returns its value. If the
 # STRATEGIES argument is supplied, it overrides @psh::strategies.
 
-
 sub evl 
   {
     my ($line,@use_strats) = @_;
@@ -765,15 +742,15 @@ sub evl
     my @result;
     for my $strat (@use_strats) {
       if (!defined($psh::strategy_which{$strat})) {
-        print_warning("$bin: WARNING: unknown strategy '$strat'.\n");
-        next;
+	print_warning("$bin: WARNING: unknown strategy '$strat'.\n");
+	next;
       }
       my $how = &{$psh::strategy_which{$strat}}(\$line,\@words);
       if ($how) {
         print_debug("Using strategy $strat by $how\n");
         @result = &{$psh::strategy_eval{$strat}}(\$line,\@words,$how);
         $qSucceeded = 1;
-        last;
+	last;
       }
     }
     if (!$qSucceeded) {
@@ -782,7 +759,6 @@ sub evl
     }
     return @result;
   }
-
 
 #
 # void process(bool PROMPT, subr GET)
@@ -801,41 +777,37 @@ sub evl
 # TODO: Undo any side effects, e.g. done by m//.
 #
 
-
 sub process
 {
-        my ($prompt, $get) = @_;
-        local $cmd;
-
+	my ($prompt, $get) = @_;
+	local $cmd;
 
 # The following is just too much to always have in:
-#       print_debug("[[PROCESSING GENERIC INPUT]]\n");
+#	print_debug("[[PROCESSING GENERIC INPUT]]\n");
 
+	while (1) {
 
-        while (1) {
-                if ($prompt) {
-                        $input = &$get(prompt_string());
-                } else {
-                        $input = &$get();
-                }
+		if ($prompt) {
+			$input = &$get(prompt_string());
+		} else {
+			$input = &$get();
+		}
 
+	        reap_children(); # Check wether we have dead children
 
-                $cmd++;
+		$cmd++;
 
+		last unless defined($input);
 
-                last unless defined($input);
+		chomp $input;
 
-
-                chomp $input;
-
-
-                if ($input =~ m/^\s*$/) { next; }
-                if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
+		if ($input =~ m/^\s*$/) { next; }
+		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
                   my $terminator = $1;
                   $input .= "\n";
-                  $input .= read_until($terminator, $get);
+		  $input .= read_until($terminator, $get);
                   $input .= "$terminator";
-                } elsif ($input =~ m/\{\s*$/) {
+		} elsif ($input =~ m/\{\s*$/) {
                   #
                   # TODO: A better version of this would detect
                   # unbalanced braces, and read until they balanced.
@@ -845,9 +817,7 @@ sub process
                   $input .= '}';
                 }
 
-
-                my @result = evl($input);
-
+      		my @result = evl($input);
 
                 my $qEcho = 0;
                 if (ref($echo) eq 'CODE') {
@@ -858,29 +828,26 @@ sub process
                   if ($echo) { $qEcho = defined_and_nonempty(@result); }
                 }
 
-
-                if ($qEcho) {
-                  if (scalar(@result) > 1) {
-                    my $n = scalar(@val);
-                    push @val, \@result;
-                    print_out("\$psh::val[$n] <- [@result]\n");
-                  } else {
-                    my $n = scalar(@val);
-                    my $res = $result[0];
-                    push @val, $res;
-                    print_out("\$psh::val[$n] <- $res\n");
-                  }
-                }
-        }
+		if ($qEcho) {
+		  if (scalar(@result) > 1) {
+		    my $n = scalar(@val);
+		    push @val, \@result;
+		    print_out("\$psh::val[$n] <- [@result]\n");
+		  } else {
+		    my $n = scalar(@val);
+		    my $res = $result[0];
+		    push @val, $res;
+		    print_out("\$psh::val[$n] <- $res\n");
+		  }
+		}
+	}
 }
-
 
 #
 # bool defined_and_nonempty(args)
 #
 # returns true if it has any defined, nonempty args
 #
-
 
 sub defined_and_nonempty {
   if (!defined(@_)) { return 0; }
@@ -893,45 +860,36 @@ sub defined_and_nonempty {
   return 1; # multiple args always true
 }
 
-
 #
 # void process_file(string FILENAME)
 #
 # process() the lines of FILENAME
 #
 
-
 sub process_file
 {
-        my ($path) = @_;
+	my ($path) = @_;
 
+	print_debug("[[PROCESSING FILE $path]]\n");
 
-        print_debug("[[PROCESSING FILE $path]]\n");
+	if (!-r $path) {
+		print_error("$bin: Cannot read script `$path'\n");
+		return;
+	}
+	
+	my $pfh = new FileHandle($path,'r');
 
+	if (!$pfh) {
+		print_error("$bin: Cannot open script `$path'\n");
+		return;
+	}
 
-        if (!-r $path) {
-                print_error("$bin: Cannot read script `$path'\n");
-                return;
-        }
-        
-        my $pfh = new FileHandle($path,'r');
+	process(0, sub { return <$pfh>; }); # don't prompt
 
+	$pfh->close();
 
-        if (!$pfh) {
-                print_error("$bin: Cannot open script `$path'\n");
-                return;
-        }
-
-
-        process(0, sub { return <$pfh>; }); # don't prompt
-
-
-        $pfh->close();
-
-
-        print_debug("[[FINISHED PROCESSING FILE $path]]\n");
+	print_debug("[[FINISHED PROCESSING FILE $path]]\n");
 }
-
 
 
 #
@@ -942,94 +900,82 @@ sub process_file
 # TODO: Should we have an entry for '\'?
 #
 
-
 %prompt_vars = (
-        'd' => sub {
-                        my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
-                        $wday = $wday[$wday];
-                        $mon  = $mon[$mon];
-                        return "$wday $mon $mday";
-                },
-        'h' => sub { return $host; },
-        's' => sub {
-                        my $shell = $bin;
-                        $shell =~ s/^.*\///;
-                        return $shell;
-                },
-        'n' => sub { return "\n"; },
-        't' => sub {
-                        my ($hour, $min, $sec) = (localtime)[2, 1, 0];
-                        return sprintf("%02d:%02d:%02d", $hour, $min, $sec);
-                },
-        'u' => sub {
-                        # Camel, 2e, p. 172: 'getlogin'.
-                        return getlogin || (getpwuid($>))[0] || "uid$>";
-                },
-        'w' => sub { return cwd; },
-        'W' => sub { my $dir = cwd; $dir =~ s/^.*\///; return $dir },
-        '#' => sub { return $cmd; },
-        '$' => sub { return ($> ? '$' : '#'); }
+	'd' => sub {
+			my ($wday, $mon, $mday) = (localtime)[6, 4, 3];
+			$wday = $wday[$wday];
+			$mon  = $mon[$mon];
+			return "$wday $mon $mday";
+		},
+	'h' => sub { return $host; },
+	's' => sub {
+			my $shell = $bin;
+			$shell =~ s/^.*\///;
+			return $shell;
+		},
+	'n' => sub { return "\n"; },
+	't' => sub {
+			my ($hour, $min, $sec) = (localtime)[2, 1, 0];
+			return sprintf("%02d:%02d:%02d", $hour, $min, $sec);
+		},
+	'u' => sub {
+			# Camel, 2e, p. 172: 'getlogin'.
+			return getlogin || (getpwuid($>))[0] || "uid$>";
+		},
+	'w' => sub { return cwd; },
+	'W' => sub { my $dir = cwd; $dir =~ s/^.*\///; return $dir },
+	'#' => sub { return $cmd; },
+	'$' => sub { return ($> ? '$' : '#'); }
 );
-
 
 sub prompt_string
 {
-        my $temp;
+	my $temp;
 
+	#
+	# First, get the prompt string from a subroutine or from the default:
+	#
 
-        #
-        # First, get the prompt string from a subroutine or from the default:
-        #
+	if (ref($prompt) eq 'CODE') { # If it is a subroutine,
+		$temp = &$prompt();
+	} elsif (ref($prompt)) {      # If it isn't a scalar
+		print_warning("$bin: Warning: \$psh::prompt is neither a SCALAR nor a CODE reference.\n");
+		$temp = $default_prompt;
+	} else {
+		$temp = $prompt;
+	}
 
+	#
+	# Now, subject it to substitutions:
+	#
 
-        if (ref($prompt) eq 'CODE') { # If it is a subroutine,
-                $temp = &$prompt();
-        } elsif (ref($prompt)) {      # If it isn't a scalar
-                print_warning("$bin: Warning: \$psh::prompt is neither a SCALAR nor a CODE reference.\n");
-                $temp = $default_prompt;
-        } else {
-                $temp = $prompt;
-        }
+	while ($temp =~ m/^(.*)\\(.)(.*)$/) {
+		my $sub;
 
+		my $var = $prompt_vars{$2};
 
-        #
-        # Now, subject it to substitutions:
-        #
+		if (ref $var eq 'CODE') {
+			$sub = &$var();
+		} else {
+			print_warning("$bin: Warning: \$psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n");
+			$sub = ''
+		}
 
+		{
+			local $1;
+			if ($sub =~ m/\\(.)/) {
+				print_warning("$bin: Warning: Expansion of `\\$2' in prompt string yielded\n",
+					  "     string containing `$1'. Stripping escape sequences from\n",
+					  "     substitution.\n");
+				$sub =~ s/\\(.)//g;
+			}
+		}
 
-        while ($temp =~ m/^(.*)\\(.)(.*)$/) {
-                my $sub;
+		$temp = $1 . $sub . $3
+	}
 
-
-                my $var = $prompt_vars{$2};
-
-
-                if (ref $var eq 'CODE') {
-                        $sub = &$var();
-                } else {
-                        print_warning("$bin: Warning: \$psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n");
-                        $sub = ''
-                }
-
-
-                {
-                        local $1;
-                        if ($sub =~ m/\\(.)/) {
-                                print_warning("$bin: Warning: Expansion of `\\$2' in prompt string yielded\n",
-                                          "     string containing `$1'. Stripping escape sequences from\n",
-                                          "     substitution.\n");
-                                $sub =~ s/\\(.)//g;
-                        }
-                }
-
-
-                $temp = $1 . $sub . $3
-        }
-
-
-        return $temp;
+	return $temp;
 }
-
 
 
 #
@@ -1052,50 +998,39 @@ sub prompt_string
 # prompting is necessary.
 #
 
-
 sub iget
 {
-        my $prompt = shift;
-        my $line;
+	my $prompt = shift;
+	my $line;
+
+	if ($term) {
+		$line = $term->readline($prompt);
+	} else {
+		print_out($prompt);
+		$line = <STDIN>;
+	}
 
 
-        if ($term) {
-                $line = $term->readline($prompt);
-        } else {
-                print_out($prompt);
-                $line = <STDIN>;
-        }
-
-
-
-        chomp $line;
+	chomp $line;
 # [ gtw: Why monkey with the input? If we take out whitespace now,
 #   we'll never know if it was there. Better wait.
 # ]
 
+#	$line =~ s/^\s+//;
+#	$line =~ s/\s+$//;
 
-#       $line =~ s/^\s+//;
-#       $line =~ s/\s+$//;
-
-
-        if ($term and $line !~ m/^\s*$/) {
+	if ($term and $line !~ m/^\s*$/) {
                $term->addhistory($line); 
 
+		if ($save_history && !$readline_saves_history) {
+		  my $fhist = new FileHandle($psh::history_file, 'a');
+		  $fhist->print("$line\n");
+		  $fhist->close();
+		}
+	}
 
-                if ($save_history && !$readline_saves_history) {
-                        open(HIST, ">>$psh::history_file");
-                        print HIST $line."\n";
-                        close(HIST);
-                }
-        }
-
-
-        reap_children(); # Check wether we have dead children
-
-
-        return $line . "\n";         # This is expected by other code.
+	return $line . "\n";         # This is expected by other code.
 }
-
 
 
 #
@@ -1103,73 +1038,65 @@ sub iget
 #
 # Return the news
 
-
 sub news 
 {
-        if (-r $news_file) {
-                return `cat $news_file`;
-        } else {
-                return '';
-        }
+	if (-r $news_file) {
+		return `cat $news_file`;
+	} else {
+		return '';
+	}
 }
-
 
 
 #
 # void initialize()
 #
 
-
 sub initialize
 {
-        $|         = 1;                # Set ouput autoflush on
+	$|         = 1;                # Set ouput autoflush on
    # Set up accessible psh:: package variables:
-        $prompt                 = $default_prompt;  # Set default prompt
+	$prompt                 = $default_prompt;  # Set default prompt
         @strategies             = @default_strategies;
-        $save_history           = 1;
-        $history_length         = 50;
-        $perlfunc_insert_commas = 0;
-        $executable_interpolate_arguments = 0;
-        $cmd                    = 1;
+	$save_history           = 1;
+	$history_length         = 50;
+	$perlfunc_insert_commas = 0;
+	$executable_interpolate_arguments = 0;
+	$cmd                    = 1;
 
-
-        $bin                    = $0;
-        $bin                    =~ s/.*\///;
-        $host                   = qx(hostname);
+	$bin                    = $0;
+	$bin                    =~ s/.*\///;
+	$host                   = qx(hostname);
         chomp $host;
 
+	$news_file              = "$bin.NEWS";
+	$history_file           = "$ENV{HOME}/.${bin}_history";
 
-        $news_file              = "$bin.NEWS";
-        $history_file           = "$ENV{HOME}/.${bin}_history";
+	%built_ins = (
+		      '.'        => \&builtin_source,
+		      'alias'    => \&builtin_alias,
+		      'bg'       => \&builtin_bg,
+		      'cd'       => \&builtin_cd,
+		      'exit'     => \&builtin_exit,
+		      'fg'       => \&builtin_fg,
+		      'jobs'     => \&builtin_jobs,
+		      'kill'     => \&builtin_kill,
+		      'readline' => \&builtin_readline,
+		      'which'    => \&builtin_which,
+		      'source'   => \&builtin_source,
+		     );
+	#
+	# TODO: Internationalize!
+	#
+	# Although, right now they can be overridden in the .pshrc file
+	# via @psh::wday = qw(Dom Lun Mar Mie Jue Vie Sab).
+	#
 
-
-        %built_ins = (
-                      '.'      => \&builtin_source,
-                      'alias'  => \&builtin_alias,
-                      'bg'     => \&builtin_bg,
-                      'cd'     => \&builtin_cd,
-                      'exit'   => \&builtin_exit,
-                      'fg'     => \&builtin_fg,
-                      'jobs'   => \&builtin_jobs,
-                      'kill'   => \&builtin_kill,
-                      'which'  => \&builtin_which,
-                      'source' => \&builtin_source,
-                     );
-        #
-        # TODO: Internationalize!
-        #
-        # Although, right now they can be overridden in the .pshrc file
-        # via @psh::wday = qw(Dom Lun Mar Mie Jue Vie Sab).
-        #
-
-
-        @wday      = qw(Sun Mon Tue Wed Thu Fri Sat);
-        @mon       = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
-
+	@wday      = qw(Sun Mon Tue Wed Thu Fri Sat);
+	@mon       = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
         @val = ();
 }
-
 
 
 #
@@ -1178,50 +1105,40 @@ sub initialize
 # Search for and process .pshrc files.
 #
 
-
 sub process_rc
 {
-        my @rc;
-        my $rc_name = ".pshrc";
+	my @rc;
+	my $rc_name = ".pshrc";
 
+	print_debug("[ LOOKING FOR .pshrc ]\n");
 
-        print_debug("[ LOOKING FOR .pshrc ]\n");
+	if ($opt{'r'}) {
+		push @rc, $opt{'r'};
+	} else {
+		if ($ENV{HOME}) { push @rc, "$ENV{HOME}/$rc_name"; }
+		push @rc, "$rc_name" unless $ENV{HOME} eq cwd;
+	}
 
+	foreach my $rc (@rc) {
+		if (-r $rc) {
+		        print_debug("[ PROCESSING $rc ]\n");
+			process_file($rc);
+		}
+	}
 
-        if ($opt{'r'}) {
-                push @rc, $opt{'r'};
-        } else {
-                if ($ENV{HOME}) { push @rc, "$ENV{HOME}/$rc_name"; }
-                push @rc, "$rc_name" unless $ENV{HOME} eq cwd;
-        }
-
-
-        foreach my $rc (@rc) {
-                if (-r $rc) {
-                        print_debug("[ PROCESSING $rc ]\n");
-                        process_file($rc);
-                }
-        }
-
-
-        if ($save_history) {
-                if ($readline_saves_history) {
-                        $term->ReadHistory($psh::history_file);
-                } else {
-                        open(HIST, "<$psh::history_file") || return;
-
-
-                        while(<HIST>) {
-                                chomp;
-                                $term->addhistory($_);
-                        }
-
-
-                        close(HIST);
-                }
-        }
+	if (defined($term) and $save_history) {
+		if ($readline_saves_history) {
+			$term->ReadHistory($psh::history_file);
+		} else {
+		  my $fhist = new FileHandle($psh::history_file);
+		  while (<$fhist>) {
+		    chomp;
+		    $term->addhistory($_);
+		  }
+		  $fhist->close();
+		}
+	}
 }
-
 
 
 #
@@ -1230,20 +1147,17 @@ sub process_rc
 # Process files listed on command-line.
 #
 
-
 sub process_args
 {
-        print_debug("[ PROCESSING @ARGV FILES ]\n");
+	print_debug("[ PROCESSING @ARGV FILES ]\n");
 
-
-        foreach my $arg (@ARGV) {
-                if (-r $arg) {
-                        print_debug("[ PROCESSING $arg ]\n");
-                        process_file($arg);
-                }
-        }
+	foreach my $arg (@ARGV) {
+		if (-r $arg) {
+		        print_debug("[ PROCESSING $arg ]\n");
+			process_file($arg);
+		}
+	}
 }
-
 
 
 #
@@ -1254,54 +1168,49 @@ sub process_args
 # input.
 #
 
-
 sub main_loop
 {
-        my $interactive = (-t STDIN) and (-t STDOUT);
-        my $get;
+	my $interactive = (-t STDIN) and (-t STDOUT);
+	my $get;
 
+	print_debug("[[STARTING MAIN LOOP]]\n");
 
-        print_debug("[[STARTING MAIN LOOP]]\n");
+	if ($interactive) { $get = \&iget;                  }
+	else              { $get = sub { return <STDIN>; }; }
 
-
-        if ($interactive) { $get = \&iget;                  }
-        else              { $get = sub { return <STDIN>; }; }
-
-
-        process($interactive, $get);
+	process($interactive, $get);
 }
 
+# bool is_number(ARG)
+#
+# Return true if ARG is a number
+#
 
 sub is_number
 {
-        my ( $test)=@_;
-        return $test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
+	my ( $test)=@_;
+	return $test=~/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/o;
 }
-
 
 sub print_warning
 {
-        print STDERR @_;
+	print STDERR @_;
 }
-
 
 sub print_debug
 {
-        print STDERR @_ if $opt{'d'};
+	print STDERR @_ if $debugging;
 }
-
 
 sub print_error
 {
-        print STDERR @_;
+	print STDERR @_;
 }
-
 
 sub print_out
 {
-        print STDOUT @_;
+	print STDOUT @_;
 }
-
 
 
 #
@@ -1314,284 +1223,282 @@ sub print_out
 # both @X and $X to show up in this display. This remains mysterious.
 #
 
-
 sub symbols
 {
-        my $pack = shift;
-        my (@ref, @scalar, @array, @hash, @code, @glob, @handle);
-        my @sym;
+	my $pack = shift;
+	my (@ref, @scalar, @array, @hash, @code, @glob, @handle);
+	my @sym;
 
+	{
+		no strict qw(refs);
+		@sym = keys %{*{"${pack}::"}};
+	}
 
-        {
-                no strict qw(refs);
-                @sym = keys %{*{"${pack}::"}};
-        }
+	for my $sym (sort @sym) {
+		next unless $sym =~ m/^[a-zA-Z]/; # Skip some special variables
+		next if     $sym =~ m/::$/;       # Skip all package hashes
 
+		{
+			no strict qw(refs);
 
-        for my $sym (sort @sym) {
-                next unless $sym =~ m/^[a-zA-Z]/; # Skip some special variables
-                next if     $sym =~ m/::$/;       # Skip all package hashes
+			push @ref,    "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'REF';
+			push @scalar, "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'SCALAR';
+			push @array,  "\@$sym" if ref *{"${pack}::$sym"}{ARRAY}  eq 'ARRAY';
+			push @hash,   "\%$sym" if ref *{"${pack}::$sym"}{HASH}   eq 'HASH';
+			push @code,   "\&$sym" if ref *{"${pack}::$sym"}{CODE}   eq 'CODE';
+#			push @glob,   "\*$sym" if ref *{"${pack}::$sym"}{GLOB}   eq 'GLOB';
+			push @handle, "$sym"   if ref *{"${pack}::$sym"}{FILEHANDLE};
+		}
+	}
 
-
-                {
-                        no strict qw(refs);
-
-
-                        push @ref,    "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'REF';
-                        push @scalar, "\$$sym" if ref *{"${pack}::$sym"}{SCALAR} eq 'SCALAR';
-                        push @array,  "\@$sym" if ref *{"${pack}::$sym"}{ARRAY}  eq 'ARRAY';
-                        push @hash,   "\%$sym" if ref *{"${pack}::$sym"}{HASH}   eq 'HASH';
-                        push @code,   "\&$sym" if ref *{"${pack}::$sym"}{CODE}   eq 'CODE';
-#                       push @glob,   "\*$sym" if ref *{"${pack}::$sym"}{GLOB}   eq 'GLOB';
-                        push @handle, "$sym"   if ref *{"${pack}::$sym"}{FILEHANDLE};
-                }
-        }
-
-
-        print_out("Reference: ", join(' ', @ref),    "\n");
-        print_out("Scalar:    ", join(' ', @scalar), "\n");
-        print_out("Array:     ", join(' ', @array),  "\n");
-        print_out("Hash:      ", join(' ', @hash),   "\n");
-        print_out("Code:      ", join(' ', @code),   "\n");
-#       print_out("Glob:      ", join(' ', @glob),   "\n");
-        print_out("Handle:    ", join(' ', @handle), "\n");
+	print_out("Reference: ", join(' ', @ref),    "\n");
+	print_out("Scalar:    ", join(' ', @scalar), "\n");
+	print_out("Array:     ", join(' ', @array),  "\n");
+	print_out("Hash:      ", join(' ', @hash),   "\n");
+	print_out("Code:      ", join(' ', @code),   "\n");
+#	print_out("Glob:      ", join(' ', @glob),   "\n");
+	print_out("Handle:    ", join(' ', @handle), "\n");
 }
 
-
 #
-# signal_handler()
+# void signal_handler( string SIGNAL )
 #
-
 
 sub signal_handler {
-        my( $sig) = @_;
-        print_debug( "Received signal SIG$sig, sending to $currently_active\n");
-        $flag_signal_sent=1;
-        $signal_sent= $sig;
-   
-        kill $sig, $currently_active if $currently_active;
-        $SIG{$sig}=\&signal_handler;
+	my( $sig) = @_;
+	
+	if ($currently_active) {
+	  print_debug( "Received signal SIG$sig, sending to $currently_active\n");
+	  kill $sig, $currently_active;
+	} else {
+	  print_debug("Received signal SIG$sig, die-ing\n");
+	}
+	$SIG{$sig}=\&signal_handler;
         if (!$currently_active) { die "SECRET $bin: Signal $sig\n"; }
 }
-
 
 
 #
 # ignore_handler()
 #
 
-
 sub ignore_handler { }
-
 
 #
 # handle_resize()
 #
 
-
 sub handle_resize
 {
-        my ($cols, $rows) = (80, 24);
+	my ($cols, $rows) = (80, 24);
 
+	eval {
+		($cols,$rows)= &Term::Size::chars();
+	};
 
-        eval {
-                ($cols,$rows)= &Term::Size::chars();
-        };
-
-
-        if(($cols > 0) && ($rows > 0)) {
-                $ENV{COLUMNS} = $cols;
-                $ENV{LINES}   = $rows;
-        }
+	if(($cols > 0) && ($rows > 0)) {
+		$ENV{COLUMNS} = $cols;
+		$ENV{LINES}   = $rows;
+	}
 }
 
 
-
 #
-# my_system()
+# void my_system(string COMMAND_LINE)
 #
-# Executes a program and allows jobcontrol
+# Executes COMMAND_LINE via system, noticing and stripping final '&'
+# to allow jobcontrol
 #
-
 
 sub my_system {
-        my($call) = @_;
+	my($call) = @_;
 
+	# TODO: This is an absolute hack... we need
+	# a full parser for quoting and all special
+	# characters soon!!
+	
+	my $fgflag=1;
+	if( $call =~ /^(.*)\&\s*$/ )
+	{
+		$call= $1;
+		$fgflag=0;
+	}
+	eval {
+		open(TMPOUT,">-");
+		open(TMPIN,"-");
+		my $pid= open2(">&TMPOUT", "<&TMPIN", $call);
+		$job_commands{$pid}=$call;
+		record_job_running($pid,1);
+		push(@jobs_order,$pid);
+		if( $fgflag)
+		{
+			wait_for_system($pid, 1);
+		}
+		else
+		{
+			my $visindex=$#jobs_order+1;
+			print_out("[$visindex] Background $pid $call\n");
+		}
+	};
 
-        # TODO: This is an absolute hack... we need
-        # a full parser for quoting and all special
-        # characters soon!!
-        
-        my $fgflag=1;
-        if( $call =~ /^(.*)\&\s*$/ )
-        {
-                $call= $1;
-                $fgflag=0;
-        }
-        eval {
-                open(TMPOUT,">-");
-                open(TMPIN,"-");
-                my $pid= open2(">&TMPOUT", "<&TMPIN", $call);
-                my $status=-1;
-                $currently_active=$pid;
-                my @tmp=($call,1);
-                $jobs{$pid}=\@tmp;
-            push(@jobs_order,$pid);
-                if( $fgflag)
-                {
-                        wait_for_system($pid);
-                }
-                else
-                {
-                        my $visindex=$#jobs_order+1;
-                        print_out("[$visindex] Background $pid ".$tmp[0]."\n");
-                }
-        };
-
-
-        print_debug("Status $@\n") if $@;
+	print_debug("Status $@\n") if $@;
 }
 
 
-
 #
-# wait_for_system()
+# void wait_for_system(int PID, [bool QUIET_EXIT])
 #
-# Waits for a program to be stopped/ended
+# Waits for a program to be stopped/ended, prints no message on normal
+# termination if QUIET_EXIT is specified and true.
 #
-
 
 sub wait_for_system {
-        my($pid) = @_;
+	my($pid, $quiet) = @_;
+        if (!defined($quiet)) { $quiet = 0; }
 
+	$currently_active = $pid;
+	
+	my $pid_status = -1;
+	while (1) {
+	  my $returnpid = waitpid($pid, &WUNTRACED);
+	  $pid_status = $?;
+	  if ($returnpid == $pid) { last; }
+	  # TODO: What does $returnpid != $pid mean? Could it in fact
+	  # happen?
+	  print_error("Waiting for $pid, got $returnpid. The most recent author didn't know what that meant. Please fix. \n");
+	}
+	$currently_active=0;
+	handle_wait_status($pid, $pid_status, $quiet);
+      }
 
-        $flag_signal_sent = 0;
+#
+# void handle_wait_status(int PID, int STATUS, bool QUIET_EXIT)
+#
+# Take the appropriate action given that waiting on PID returned
+# STATUS. Normal termination is not reported if QUIET_EXIT is true.
+#
 
-
-        while(1) {
-                if( waitpid( $pid, &WNOHANG)==$pid || $flag_signal_sent) {
-                        $currently_active=0;
-                        if( $flag_signal_sent) {
-                                if( $signal_sent eq "TSTP" ||
-                                        $signal_sent eq "STOP" ) {
-                                        my $tmp= $jobs{$pid};
-                                        @$tmp[1]=0;
-                                        my $visindex= get_job_number($pid);
-                                        print_out( "[$visindex] Stopped $pid ".@$tmp[0]."\n");
-                                        # mark job stopped
-                                } elsif( $signal_sent eq "INT") {
-                                        delete_from_joblist($pid);
-                                }
-                        } else {
-                                delete_from_joblist($pid);
-                        }
-                        last;
-                }
-        }
+sub handle_wait_status {
+  my ($pid, $pid_status, $quiet) = @_;
+  # Have to obtain these before we potentially delete the job
+  my $command = get_job_command($pid);
+  my $visindex= get_job_number($pid);
+  my $verb='';
+  
+  if (&WIFEXITED($pid_status)) {
+    if (!$quiet) { $verb = 'Done'; }
+    delete_from_joblist($pid);
+  } elsif (&WIFSIGNALED($pid_status)) {
+    $verb = 'Terminated (signal ' . WTERMSIG($pid_status) . ')';
+    delete_from_joblist($pid);
+  } elsif (&WIFSTOPPED($pid_status)) {
+    $verb = 'Stopped';
+    record_job_running($pid,0);
+  }
+  if ($verb) {
+    print_out( "[$visindex] $verb $pid $command\n");
+  }
 }
 
 
-
 #
-# reap_children()
+# void reap_children()
 #
 # Checks wether any children we spawned died
 #
 
-
 sub reap_children
 {
-        for($i = 0; $i <= $#jobs_order; $i++) {
-                my $visindex = $i+1;
-                my $pid      = $jobs_order[$i];
-                my $tmp      = $jobs{$pid};
+	for($i = 0; $i <= $#jobs_order; $i++) {
+		my $visindex = $i+1;
+		my $pid      = $jobs_order[$i];
+		my $command  = get_job_command($pid);
 
+	        my $retval = waitpid($pid, &WNOHANG);
 
-                if( waitpid( $pid, &WNOHANG)==$pid) {
-                        delete_from_joblist( $pid);
-                        print_out( "[$visindex] Done $pid ".@$tmp[0]."\n");
-                }
-        }
+    	        if ($retval == $pid) {
+			delete_from_joblist( $pid);
+			print_out( "[$visindex] Done $pid $command\n");
+                } elsif ($retval < 0) { # process no longer exists
+		        delete_from_joblist( $pid);
+                        print_out( "[$visindex] Error, assuming done $pid $command\n");
+		}
+	}
 }
 
 
-
 #
-# delete_from_joblist()
+# void delete_from_joblist(int PID)
 #
-
 
 sub delete_from_joblist
 {
-        my($pid) =@_;
+	my($pid) =@_;
 
+	delete $job_commands{$pid};
+	delete $job_running{$pid};
 
-        delete $jobs{$pid};
+	my $position;
+	my $i;
 
+	for($i=0; $i <= $#jobs_order; $i++) {
+		last if($jobs_order[$i] == $pid);
+	}
 
-        my $position;
-        my $i;
-
-
-        for($i=0; $i <= $#jobs_order; $i++) {
-                last if($jobs_order[$i] == $pid);
-        }
-
-
-        splice(@jobs_order,$i,1);
+	splice(@jobs_order,$i,1);
 }
 
 
-
 #
-# restart_job()
+# void restart_job(bool FOREGROUND, int JOB_INDEX)
 #
-
 
 sub restart_job
 {
-        my ($fg_flag, $job_to_start) = @_;
+	my ($fg_flag, $job_to_start) = @_;
 
+	if ($job_to_start < 0) { # Search for the last job which is not running
+		for ($i = $#jobs_order; $i >= 0; $i--) {
+			my $pid = $jobs_order[$i];
 
-        if ($job_to_start < 0) { # Search for the last job which is not running
-                for ($i = $#jobs_order; $i >= 0; $i--) {
-                        my $pid = $jobs_order[$i];
-                        my $tmp = $jobs{$pid};
+			if(!is_job_running($pid)) {
+				$job_to_start = $i;
+				last;
+			}
+		}
+		
+		if ($job_to_start < 0) { # failing that, just use
+                                         # highest-numbered job
+		  $job_to_start = scalar(@jobs_order) - 1;
+		}
 
+		print_debug("Found job $job_to_start\n");
+	}
 
-                        if(! @$tmp[1]) {
-                                $job_to_start = $i;
-                                last;
-                        }
-                }
+	if ($job_to_start >- 1) {
+		my $pid = $jobs_order[$job_to_start];
+		my $command = get_job_command($pid);
 
+		if ($command) {
+			my $verb = 'Restart';
+			my $qRunning = is_job_running($pid);
+			if ($fg_flag) {
+			  $verb = 'Foreground';
+			} elsif ($qRunning) {
+			  # bg request, and it's already running:
+			  return;
+			}
+			my $visindex = get_job_number($pid);
+			print_out("[$visindex] $verb $pid $command\n");
+			if (!$qRunning) { continue_job($pid); }
 
-                print_debug("Found job $job_to_start\n");
-        }
-
-
-        if ($job_to_start >- 1) {
-                my $pid = $jobs_order[$job_to_start];
-                my $tmp = $jobs{$pid};
-
-
-                if ($tmp) {
-                        my $command = @$tmp[0];
-                        return if(@$tmp[1]);
-                        my $visindex = get_job_number($pid);
-                        print_out("[$visindex] Restart $pid $command\n");
-                        kill 'CONT', $pid;
-                        @$tmp[1]=1;
-
-
-                        if($fg_flag) {
-#                               tcsetpgrp($pid); # TODO: Is this right?
-                                eval { wait_for_system($pid, $command); };
-                        }
-                }
-        }
+			if($fg_flag) {
+#				tcsetpgrp($pid); # TODO: Is this right?
+				eval { wait_for_system($pid, 0); };
+			}
+		}
+	}
 }
-
 
 
 #
@@ -1601,31 +1508,25 @@ sub restart_job
 # Term::ReadLine::Gnu works... hmm
 #
 
-
 sub try_executable_completion
 {
-        my ($cmd, $state) = @_;
+	my ($cmd, $state) = @_;
 
+	if (!$state)
+	{
+		my @path           = split(':', $ENV{PATH});
+		@completion_buffer = ();
 
-        if (!$state)
-        {
-                my @path           = split(':', $ENV{PATH});
-                @completion_buffer = ();
+		foreach my $dir (@path) {
+			chdir abs_path($dir);
+			push( @completion_buffer, grep { -x } glob "$cmd*" );
+		}
 
+		chdir $last_dir;
+	}
 
-                foreach my $dir (@path) {
-                        chdir abs_path($dir);
-                        push( @completion_buffer, grep { -x } glob "$cmd*" );
-                }
-
-
-                chdir $last_dir;
-        }
-
-
-        return shift @completion_buffer;
+	return shift @completion_buffer;
 }
-
 
 
 #
@@ -1634,68 +1535,123 @@ sub try_executable_completion
 # Main completion hook
 #
 
-
 sub custom_completion
 {
-        my ($text, $line, $start, $end) = @_;
-        my $attribs                     = $term->Attribs;
-        my @tmp;
+	my ($text, $line, $start, $end) = @_;
+	my $attribs                     = $term->Attribs;
+	my @tmp;
 
+	if (substr($line, $start, 1) eq "~") {
+		return $term->completion_matches($text,
+								  $attribs->{username_completion_function});
+	}
 
-        if (substr($line, $start, 1) eq "~") {
-                return $term->completion_matches($text,
-                                                                  $attribs->{username_completion_function});
-        }
+	if(substr($line, 0, $start) =~ /^\s*$/) { # First word
+		@tmp = $term->completion_matches($text, \&try_executable_completion);
+		return @tmp if defined @tmp;
+	} # Only return if executable match found something, otherwise try
+	  # filename completion
 
-
-        if(substr($line, 0, $start) =~ /^\s*$/) { # First word
-                @tmp = $term->completion_matches($text, \&try_executable_completion);
-                return @tmp if defined @tmp;
-        } # Only return if executable match found something, otherwise try
-          # filename completion
-
-
-        return $term->completion_matches($text,
-                   $attribs->{filename_completion_function});
+	return $term->completion_matches($text,
+		   $attribs->{filename_completion_function});
 }
 
+# Utility functions for keeping track of jobs.
 
+# It would be nicer to have a little Job class, instead of this loose
+# association of functions which are kind of like the methods of a
+# class. 
 
 #
-# get_job_number()
+# int get_job_number(int PID)
 #
 # Returns the visible number of a job or -1 if theres no such job
 # TODO: Is there an array search function in perl except grep?
 # I don't remember...
 #
 
-
 sub get_job_number
 {
-        my ($pid) = @_;
+	my ($pid) = @_;
 
+	for ($i = 0; $i <= $#jobs_order; $i++) {
+		return $i + 1 if ($jobs_order[$i] == $pid);
+	}
 
-        for ($i = 0; $i <= $#jobs_order; $i++) {
-                return $i + 1 if ($jobs_order[$i] == $pid);
-        }
-
-
-        return -1;
+	return -1;
 }
 
+#
+# bool job_exists(int PID) 
+#
+# Returns true if PID is the pid of a job currently being controlled
+# by psh
+#
 
+sub job_exists {
+  my ($pid) = @_;
+  return exists($job_commands{$pid});
+}
+
+#
+# string get_job_command(int PID) 
+#
+# Returns the command that was used to kick off the job with the given
+# PID, or undef if there is no such job
+#
+
+sub get_job_command {
+  my ($pid) = @_;
+  return $job_commands{$pid};
+}
+
+#
+# bool is_job_running(int PID) 
+#
+# Returns true if the job with the given PID exists and is currently
+# running (as far as psh can tell), false otherwise.
+#
+
+sub is_job_running {
+  my ($pid) = @_;
+  waitpid($pid,&WNOHANG | &WUNTRACED);
+  handle_wait_status($pid,$?);
+  return $job_running{$pid};
+}
+
+#
+# void record_job_running(int PID, bool FLAG)
+#
+# Set the internal record of whether PID is running to FLAG: true
+# means it is running.
+#
+
+sub record_job_running {
+  my ($pid, $flag) = @_;
+  $job_running{$pid} = $flag;
+}
+
+#
+# void continue_job(int PID) 
+#
+# send SIGCONT to PID and record that (we think) it's now running
+#
+
+sub continue_job {
+  my ($pid) = @_;
+  kill 'CONT', $pid;
+  record_job_running($pid, 1);
+}
 
 #
 # MAIN:
 #
 
-
 initialize;
 process_rc;
 
-
 if (@ARGV) {
-        process_args;
+	process_args;
 } else {
   while (1) {
    eval { main_loop; };
@@ -1703,10 +1659,9 @@ if (@ARGV) {
   }
 }
 
-
 exit 0;
-
 
 #
 # End of file.
 #
+
