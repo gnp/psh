@@ -9,8 +9,6 @@ and CHANGES.pod and elsewhere:
     cd psh
     make realclean
     cvs upd -AdP
-    pod2text psh.pod > README
-    pod2text CHANGES.pod > CHANGES
     cvs commit
     perl Makefile.PL PREFIX=~
     make
