@@ -136,7 +136,9 @@ sub decompose
 		    if (defined($restOfQuote)) {
 			    if ($keep) {
 				    $pieces[scalar(@pieces)-1] .= "$prefix$quote$restOfQuote${$quotehash}{$quote}";
-			    } else {
+			    } else { #Not keeping, so remove backslash
+                                     #from backslashed $quote occurrences
+			            $restOfQuote =~ s/\\$quote/$quote/g;
 				    $pieces[scalar(@pieces)-1] .= "$prefix$restOfQuote";
 			    }
 			    $line = $remainder;

@@ -147,11 +147,12 @@ sub variable_expansion
 # The other global variables are private, lexical variables.
 #
 
-use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
+use vars qw($bin $news_file $cmd $prompt $prompt_cont $echo $host $debugging
 	    $perlfunc_expand_arguments $executable_expand_arguments
 		$VERSION $term @absed_path $readline_saves_history
 	    $history_file $save_history $history_length $joblist
 	    $eval_preamble $currently_active $handle_segfaults
+            $result_array
 	    @val @wday @mon @strategies @bookmarks @netprograms
 		%text %perl_builtins %perl_builtins_noexpand
 	    %prompt_vars %strategy_which %built_ins %strategy_eval);
@@ -165,7 +166,7 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 #
 
 my $default_prompt         = '\s\$ ';
-my @default_strategies     = qw(comment bang built_in executable fallback_builtin eval);
+my @default_strategies     = qw(comment bang brace built_in executable fallback_builtin eval);
 my $input;
 
 ##############################################################################
@@ -345,7 +346,7 @@ sub signal_description {
 	'bang'     => sub { if (${$_[1]}[0] =~ m/^!/)  { return 'system';  } return ''; },
 
 	'comment'  => sub { if (${$_[1]}[0] =~ m/^\#/) { return 'comment'; } return ''; },
-
+        'brace' => sub { if (${$_[1]}[0] =~ m/^\{/) { return 'perl evaluation'; } return ''; },
 	'built_in' => sub {
 	     my $fnname = ${$_[1]}[0];
          no strict 'refs';
@@ -658,7 +659,7 @@ sub signal_description {
 	#
 
 	'eval'     => sub { return protected_eval(${$_[0]}, 'eval'); },
-
+	'brace'    => sub { return protected_eval(${$_[0]}, 'eval'); },
 	'perlfunc' => sub { return protected_eval($_[2],    'eval'); }
 );
 
@@ -748,7 +749,7 @@ sub evl
 
 
 #
-# string read_until(string TERMINATOR, subr GET)
+# string read_until(PROMPT_TEMPL, string TERMINATOR, subr GET)
 #
 # Get successive lines via calls to GET until one of those
 # entire lines matches the patterm TERMINATOR. Used to implement
@@ -759,14 +760,14 @@ sub evl
 
 sub read_until
 {
-	my ($terminator, $get) = @_;
+	my ($prompt_templ, $terminator, $get) = @_;
 	my $input;
 	my $temp;
 
 	$input = '';
 
 	while (1) {
-		$temp = &$get();
+		$temp = &$get(prompt_string($prompt_templ));
 		last unless defined($temp);
 		last if $temp =~ m/^$terminator$/;
 		$input .= $temp;
@@ -775,22 +776,22 @@ sub read_until
 	return $input;
 }
 
-# string read_until_complete(string SO_FAR, subr GET)
+# string read_until_complete(PROMPT_TEMPL, string SO_FAR, subr GET)
 #
 # Get successive lines via calls to GET until the cumulative input so
 # far is not an incomplete expression according to
-# incomplete_expr. 
+# incomplete_expr. Prompting is done with PROMPT_TEMPL.
 #
 # TODO: Undo any side effects of, e.g., m//.
 #
 
 sub read_until_complete
 {
-	my ($sofar, $get) = @_;
+	my ($prompt_templ, $sofar, $get) = @_;
 	my $temp;
 
 	while (1) {
-		$temp = &$get();
+		$temp = &$get(prompt_string($prompt_templ));
 		if (!defined($temp)) {
 		       print_error("End of input during incomplete expression $sofar");
 			   last;
@@ -804,7 +805,7 @@ sub read_until_complete
 
 
 #
-# void process(bool PROMPT, subr GET)
+# void process(bool Q_PROMPT, subr GET)
 #
 # Process lines produced by the subroutine reference GET until it
 # returns undef. GET must be a reference to a subroutine which takes a
@@ -813,7 +814,7 @@ sub read_until_complete
 #
 # Any output generated is handled by the various print_xxx routines
 #
-# The prompt is printed only if the PROMPT argument is true.  When
+# The prompt is printed only if the Q_PROMPT argument is true.  When
 # sourcing files (like .pshrc), it is important to not print the
 # prompt string, but for interactive use, it is important to print it.
 #
@@ -822,12 +823,16 @@ sub read_until_complete
 
 sub process
 {
-	my ($prompt, $get) = @_;
+	my ($q_prompt, $get) = @_;
 	local $cmd;
 
+        my $last_result_array = '';
+        my $result_array_ref = \@Psh::val;
+	my $result_array_name = 'Psh::val';
+
 	while (1) {
-		if ($prompt) {
-			$input = &$get(prompt_string());
+		if ($q_prompt) {
+			$input = &$get(prompt_string($Psh::prompt));
 		} else {
 			$input = &$get();
 		}
@@ -839,12 +844,13 @@ sub process
 		last unless defined($input);
 
 		if ($input =~ m/^\s*$/) { next; }
+		my $continuation = $q_prompt ? $Psh::prompt_cont : '';
 		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
 			my $terminator = $1;
-			$input .= read_until($terminator, $get);
+			$input .= read_until($continuation, $terminator, $get);
 			$input .= "$terminator\n";
 		} elsif (Psh::Parser::incomplete_expr($input) > 0) {
-			$input = read_until_complete($input, $get);
+			$input = read_until_complete($continuation, $input, $get);
 		}
 
 		chomp $input;
@@ -856,26 +862,70 @@ sub process
 		if (ref($echo) eq 'CODE') {
 			$qEcho = &$echo(@result);
 		} elsif (ref($echo)) {
-			print_warning("$bin: WARNING: \$Psh::echo is neither a SCALAR nor a CODE reference.\n");
+			print_warning("$bin: WARNING: \$Psh::echo is not a CODE reference or an ordinary scalar.\n");
 		} else {
 			if ($echo) { $qEcho = defined_and_nonempty(@result); }
 		}
 
 		if ($qEcho) {
+		        # Figure out where we'll save the result:
+                        if ($last_result_array ne $Psh::result_array) {
+			        $last_result_array = $Psh::result_array;
+				my $what = ref($last_result_array);
+				if ($what eq 'ARRAY') {
+				        $result_array_ref = $last_result_array;
+					$result_array_name = 
+					  find_array_name($result_array_ref);
+					if (!defined($result_array_name)) {
+					        $result_array_name = 'anonymous';
+					}
+				} elsif ($what) {
+				        print_warning("$bin: WARNING: \$Psh::result_array is neither an ARRAY reference or a string.\n");
+					$result_array_ref = \@Psh::val;
+					$result_array_name = 'Psh::val';
+				} else { # Ordinary string
+					$result_array_name = $last_result_array;				        
+					$result_array_name =~ s/^\@//;
+				        $result_array_ref = (protected_eval("\\\@$result_array_name"))[0];
+
+				}
+			}
 			if (scalar(@result) > 1) {
-				my $n = scalar(@val);
-				push @val, \@result;
-				print_out("\$Psh::val[$n] <- [", join(',',@result), "]\n");
+				my $n = scalar(@{$result_array_ref});
+				push @{$result_array_ref}, \@result;
+				print_out("\$$result_array_name\[$n] <- [", join(',',@result), "]\n");
 			} else {
-				my $n = scalar(@val);
+				my $n = scalar(@{$result_array_ref});
 				my $res = $result[0];
-				push @val, $res;
-				print_out("\$Psh::val[$n] <- $res\n");
+				push @{$result_array_ref}, $res;
+				print_out("\$$result_array_name\[$n] <- $res\n");
 			}
 		}
 	}
 }
 
+# string find_array_name ( arrayref REF, string PACKAGE )
+#
+# If REF is a reference to an array variable in the given PACKAGE or
+# any of its subpackages, find the name of that variable and return
+# it. PACKAGE defaults to main.
+
+sub find_array_name {
+        my ($arref, $pack) = @_;
+	if (!defined($pack)) { $pack = "::"; }
+	my @otherpacks = ();
+	for my $symb ( keys %{$pack} ) {
+	        if ($symb =~ m/::$/) { 
+	                push @otherpacks, $symb unless ($pack eq 'main::' and $symb eq 'main::');
+	        }	     
+                elsif (\@{"$pack$symb"} eq $arref) { return "$pack$symb"; }
+        }
+        for my $subpack (@otherpacks) {
+                my $ans = find_array_name($arref,"$pack$subpack");
+                if (defined($ans)) { return $ans; }
+        }
+        return undef;
+}
 
 #
 # bool defined_and_nonempty(args)
@@ -932,9 +982,9 @@ sub process_file
 
 
 #
-# string prompt_string()
+# string prompt_string(TEMPLATE)
 #
-# Construct a prompt string.
+# Construct a prompt string from TEMPLATE.
 #
 # TODO: Should we have an entry for '\'?
 #
@@ -970,19 +1020,20 @@ sub process_file
 
 sub prompt_string
 {
+        my $prompt_templ = shift;
 	my $temp;
 
 	#
 	# First, get the prompt string from a subroutine or from the default:
 	#
 
-	if (ref($prompt) eq 'CODE') { # If it is a subroutine,
-		$temp = &$prompt();
-	} elsif (ref($prompt)) {      # If it isn't a scalar
+	if (ref($prompt_templ) eq 'CODE') { # If it is a subroutine,
+		$temp = &$prompt_templ();
+	} elsif (ref($prompt_templ)) {      # If it isn't a scalar
 		print_warning("$bin: Warning: \$Psh::prompt is neither a SCALAR nor a CODE reference.\n");
 		$temp = $default_prompt;
 	} else {
-		$temp = $prompt;
+		$temp = $prompt_templ;
 	}
 
 	#
@@ -1072,7 +1123,7 @@ sub iget
 			# the second case
 		} else {
 			eval {
-				print $prompt;
+				print $prompt if $prompt;
 				$line = <STDIN>;
 			}
 		}
@@ -1142,6 +1193,7 @@ sub minimal_initialize
     @strategies                  = @default_strategies;
 	$eval_preamble               = 'package main;';
     $currently_active            = 0;
+	$result_array                = '';
 	$perlfunc_expand_arguments   = 0;
 	$executable_expand_arguments = 0;
 	$cmd                         = 1;
@@ -1160,6 +1212,7 @@ sub minimal_initialize
 	# The following accessible variables are undef during the
 	# .pshrc file:
 	undef $prompt;
+	undef $prompt_cont;
 	undef $save_history;
 	undef $history_length;
 	undef $longhost;
@@ -1185,6 +1238,7 @@ sub finish_initialize
 	Psh::OS::setup_sigsegv_handler if $Psh::handle_segfaults;
 
 	$prompt          = $default_prompt if !defined($prompt);
+	$prompt_cont     = '> '            if !defined($prompt_cont);
 	$save_history    = 1               if !defined($save_history);
 	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);
 
