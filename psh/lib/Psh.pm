@@ -1004,20 +1004,6 @@ sub prompt_string
 	return $temp;
 }
 
-
-#
-# readline_handler()
-#
-# Readline ^C handler.
-#
-
-sub readline_handler
-{
-	my $sig= shift;
-    die "SECRET $bin: Signal $sig\n"; # changed to SECRET... just in case
-}
-
-
 #
 # string iget(string PROMPT)
 #
