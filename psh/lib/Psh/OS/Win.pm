@@ -22,7 +22,7 @@ sub fork_process {
 	local( $Psh::code, $Psh::fgflag, $Psh::string) = @_;
 	local $Psh::pid;
 
-	print_error_i18n('no_jobcontrol') unless $fgflag;
+	print_error_i18n('no_jobcontrol') unless $Psh::fgflag;
 
 	if( ref($Psh::code) eq 'CODE') {
 		&{$Psh::code};
@@ -33,18 +33,32 @@ sub fork_process {
 
 sub has_job_control { return 0; }
 
-
 sub glob {
 	my @result= glob(shift);
 	return @result;
 }
 
+sub PATH_SEPARATOR { return ';'; }
+sub FILE_SEPARATOR { return "\\"; }
 sub get_all_users { return (); }
 sub restart_job { }
 sub remove_signal_handlers {}
 sub setup_signal_handlers {}
 sub setup_sigsegv_handler {}
 sub setup_readline_handler {}
+sub get_home_dir {}
+
+sub is_path_absolute {
+	my $path= shift;
+
+	return substr($path,0,1) eq "\\" ||
+		$path=~ /^[a-zA-Z]\:\\/;
+}
+
+sub get_path_extension {
+	my $pathext=$ENV{PATHEXT}||".cmd;.bat;.com;.exe";
+	return split (';',$pathext);
+}
 
 1;
 

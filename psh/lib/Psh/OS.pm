@@ -12,7 +12,7 @@ $ospackage="Psh::OS::Mac" if( $^O eq "MacOS");
 $ospackage="Psh::OS::Win" if( $^O eq "MSWin32");
 
 eval "use $ospackage";
-die "Could not find OS specific package $ospackage" if( $@);
+die "Could not find OS specific package $ospackage: $@" if( $@);
 
 sub AUTOLOAD {
 	$AUTOLOAD=~ s/.*:://;
