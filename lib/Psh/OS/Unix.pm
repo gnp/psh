@@ -39,13 +39,29 @@ sub getcwd_psh {
 #
 sub get_known_hosts {
 	my $hosts_file = "/etc/hosts"; # TODO: shouldn't be hard-coded?
+	my @result=();
 	if (open(F_KNOWNHOST,"< $hosts_file")) {
 		my $hosts_text = join ('', <F_KNOWNHOST>);
 		close(F_KNOWNHOST);
-		return Psh::Util::parse_hosts_file($hosts_text);
-	} else {
-		return ("localhost");
+		push @result,Psh::Util::parse_hosts_file($hosts_text);
 	}
+	my $tmp=File::Spec->catfile(Psh::OS::get_home_dir(),
+								 '.ssh','known_hosts');
+	if (-r $tmp) {
+		if (open(F_KNOWNHOST, "< $tmp")) {
+			while (<F_KNOWNHOST>) {
+				chomp;
+				next unless $_;
+				if (/^([a-zA-Z].*?)\,/) {
+					push @result, $1;
+				}
+			}
+		}
+	}
+	if (!@result) {
+		push @result,'localhost';
+	}
+	return @result;
 }
 
 #
