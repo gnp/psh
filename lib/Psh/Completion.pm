@@ -118,6 +118,9 @@ sub cmpl_executable
 	my $old_cwd= $ENV{PWD};
 	my @result = ();
 
+	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_alias_commands();
+	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_builtin_commands();
+	
 	local $^W= 0;
 
 	which($cmd);
@@ -285,14 +288,28 @@ sub completion
 		}
 		@tmp= cmpl_filenames($file);
 	}
+	if( grep { $_ eq $startword } Psh::Builtins::get_builtin_commands() ) {
+		$starttext =~ /\s(\S*)$/;
+		my @tmp2= eval "Psh::Builtins::cmpl_$startword('$text','$1','$starttext')";
+		if( @tmp2 && $tmp2[0]) {
+			shift(@tmp2);
+			@tmp= @tmp2;
+		} else {
+			shift(@tmp2);
+			push @tmp, @tmp2;
+		}
+	}
+
 	if( $custom_completions{$startword}) {
 		$starttext =~ /\s(\S*)$/;
-		@custom=cmpl_custom($text,$1,$startword);
-		if( @custom && $custom[0]) {
-			shift(@custom);
+		my @tmp2=cmpl_custom($text,$1,$startword,$starttext);
+		if( @tmp2 && $tmp2[0]) {
+			shift(@tmp2);
+			push @custom, @tmp2;
 			@tmp= @custom;
 		} else {
-			shift(@custom);
+			shift(@tmp2);
+			push @custom, @tmp2;
 			push @tmp, @custom;
 		}
 	}

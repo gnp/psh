@@ -102,9 +102,8 @@ sub print_list
             print_out(sprintf("%-$ {maxwidth}s", $list[$index]));
         }
         print_out($list[$index]) if $index <= $#list;
-        print_out("\n\r");
+        print_out("\n");
     }
-	print_out("\n");
 }
 
 
