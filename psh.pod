@@ -16,6 +16,19 @@ They can both be turned on via a command-line flag; or setting
 C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
 (almost) do the usual thing if called by the user (see LIMITATIONS, below).
 
+=head1 OPTIONS
+
+The following command line options are available:
+
+=over 4
+
+=item * C<-w> Enables Perl's warning mode
+
+=item * C<-d> Enables psh's debugging mode
+
+=item * C<-c string> If the -c flag is present, then commands are read from C<string>
+
+=item * C<-r file> If the -r flag is present, initialization commands are not read from the user's .pshrc file but from the specified file
 
 =head1 DESCRIPTION
 
