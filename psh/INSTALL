@@ -1,14 +1,10 @@
 REQUIREMENTS
 ------------
 
-Currently, psh works on any modern Unix system with perl5.
-It has been most extensively tested on GNU/Linux systems
-with perl 5.005, and also works with perl 5.004. Earlier
-versions of perl will probably cause psh to fail.
-
-You may have success with psh on a Win32 system. However,
-installation and usage is considerably more complicated, so
-for now it is recommended only for developers.
+Currently, psh works on any modern Unix system with perl5. It has been
+most extensively tested on GNU/Linux systems with perl 5.005, and also
+works with perl 5.004. Earlier versions of perl will probably cause psh to
+fail.
 
 
 INSTALLING psh
@@ -27,42 +23,26 @@ Copy pshrc to ~/.pshrc.
 WITHOUT root ACCESS
 -------------------
 
-If you don't have root access you'll have to move the files
-manually. You can make your own modules directory and put
-something like alias perl="perl -I~/.pm" in your shell's
-startup dotfile, and copy the modules there. Then copy psh
-wherever you want it, such as ~/bin.
+If you don't have root access you'll have to move the files manually. You
+can make your own modules directory and put something like alias
+perl="perl -I~/.pm" in your shell's startup dotfile, and copy the modules
+there. Then copy psh wherever you want it, such as ~/bin.
 
 
 MAKING psh YOUR LOGIN SHELL
 ---------------------------
 
-If you'd like to make psh your login shell, you'll need to
-change your entry in /etc/passwd. Here's an example for a
-Linux distribution with bash:
+If you'd like to make psh your login shell, you'll need to change your
+entry in /etc/passwd. Here's an example for a Linux distribution with
+bash:
 	chsh -s `which psh`
-Depending on your setup, you may need to add the full path
-to psh to another file, such as /etc/shells.
+Depending on your setup, you may need to add the full path to psh to
+another file, such as /etc/shells.
 
-It's possible that if you don't have root access, your Unix
-flavor won't allow you to change your login shell. You can
-try to work around this by putting something like
+It's possible that if you don't have root access, your Unix flavor won't
+allow you to change your login shell. You can try to work around this by
+putting something like
 	exec psh
-in your shell's startup dotfile. Be careful that this file
-isn't executed by a shebang (#!) invocation of the shell, or
-shell scripts written for that shell may mysteriously fail.
-
-
-WIN32
------
-
-These instructions are temporary; they allow you to run psh,
-but not make it run when you open a terminal window.
-
-Assuming perl is in your %PATH% and you are in the directory
-containing the psh script, try
-	perl -Ilib psh
-
-You can manually move the modules into your lib directory.
-You might also have success imitating the Unix instructions
-with nmake.
+in your shell's startup dotfile. Be careful that this file isn't executed
+by a shebang (#!) invocation of the shell, or shell scripts written for
+that shell may mysteriously fail.
