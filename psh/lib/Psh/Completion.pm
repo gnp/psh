@@ -1,12 +1,23 @@
 package Psh::Completion;
 
+#
+# The completion package is under heavy work right now so
+# please do not complain... especially ReadLine::Perl
+# support wasn't even started yet...
+# I looked at the ReadLine::Perl code today and plainly said,
+# it sucks.. well.. we'll have to see
+#
+# We on the other hand need to support ReadLine::Perl as
+# ReadLine::Gnu causes lots of crashes on Linux...
+#
+
 use strict;
 use vars qw($VERSION);
 
 use Cwd;
 use Cwd 'chdir';
 
-$VERSION = '0.02';
+$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 my $term;
 my $absed_path;
@@ -97,12 +108,12 @@ sub cmpl_perl
 }
 
 #
-# custom_completion()
+# custom_completion_gnu(text,line,start,end)
 #
-# Main completion hook
+# Completion function for Term::ReadLine::Gnu
 #
 
-sub custom_completion
+sub custom_completion_gnu
 {
 	my ($text, $line, $start, $end) = @_;
 	my $attribs                     = $term->Attribs;
@@ -143,6 +154,18 @@ sub custom_completion
 
 	return $term->completion_matches($text,
 		   $attribs->{filename_completion_function});
+}
+
+#
+# custom_completion_perl(text,line,start)
+#
+# Completion function for Term::ReadLine::Perl
+#
+sub custom_completion_perl {
+	my ($text, $line, $start) = @_;
+
+	
+	return $term->rl_filename_list($text,$line,$start);
 }
 
 

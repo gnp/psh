@@ -236,7 +236,11 @@ if ($@) {
 		$readline_saves_history = 1;
 		$term->StifleHistory($history_length); # Limit history
 		$term->Attribs->{attempted_completion_function} =
-			\&Psh::Completion::custom_completion;
+			\&Psh::Completion::custom_completion_gnu;
+	} elsif( $term->ReadLine() eq "Term::ReadLine::Perl") {
+		&Psh::Completion::init($term, \@absed_path);
+		$term->Attribs->{completion_function} =
+			\&Psh::Completion::custom_completion_perl;
 	}
 }
 
@@ -1869,7 +1873,7 @@ sub print_i18n
 	$text= $psh::text{$text};
 	for( my $i=0; $i<=$#rest; $i++)
 	{
-		$text=~ s/\%1/$rest[$i]/go;
+		$text=~ s/\%$i/$rest[$i]/go;
 	}
 	print $stream $text;
 }

@@ -6,7 +6,7 @@ use locale;
 
 use POSIX qw(strftime);
 
-$VERSION = '0.01';
+$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
 my %alias_table= (
 				  "de_de"   => "German",
