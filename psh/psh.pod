@@ -1,20 +1,33 @@
 =head1 NAME
 
-psh - Perl Shell
+psh - Perl SHell
 
 
 =head1 SYNOPSIS
 
-B<psh> is a perl program which executes a read-eval loop with enough
+B<psh> [options] [file]
+
+
+=head1 COPYRIGHT
+
+Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
+This script is free software. It may be copied or modified according
+to the same terms as Perl itself.
+
+
+=head1 DESCRIPTION
+
+B<psh> is a Perl program which executes a read-eval loop with enough
 options so that general behavior reasonably similar to more
-traditional shells like 'sh' or 'bash' can be achieved, while still
+traditional shells like 'B<sh>' or 'B<bash>' can be achieved, while still
 allowing arbitrary perl expressions to be evaluated.
 
-By default within B<psh>, the C<-w> flag and 'C<use strict>' are not
+By default within B<psh>, the Perl B<-w> flag and 'C<use strict>' are not
 employed so that the user is not bound by their stipulations. 
 They can both be turned on via a command-line flag; or setting
 C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
 (almost) do the usual thing if called by the user (see LIMITATIONS, below).
+
 
 =head1 OPTIONS
 
@@ -22,23 +35,35 @@ The following command line options are available:
 
 =over 4
 
-=item * C<-w> Enables Perl's warning mode
+=item * B<-w>
 
-=item * C<-d> Enables psh's debugging mode
+Enables Perl's warning mode.
 
-=item * C<-c string> If the -c flag is present, then commands are read from C<string>
+=item * B<-d>
 
-=item * C<-r file> If the -r flag is present, initialization commands are not read from the user's .pshrc file but from the specified file
+Enables B<psh>'s debugging mode.
+
+=item * B<-c> I<string>
+
+If the B<-c> flag is present, then commands are read from C<string>.
+
+=item * B<-r> I<file>
+
+If the B<-r> flag is present, initialization commands are not read from
+the user's F<.pshrc> file but from the specified file.
+
+=back
+
 
 =head1 DESCRIPTION
 
 Each line of input is read. B<psh> knows a number of possible
-strategies for evaluating the line, such as "send it to system() if it
-starts with the name of an executable visible in $ENV{PATH}". (See
+strategies for evaluating the line, such as "send it to C<system()> if it
+starts with the name of an executable visible in C<$ENV{PATH}>". (See
 below for a complete list.)
 Each strategy in turn (from a user-definable
 list) examines the command line to see if it can apply, and the first
-matching strategy evaluates the line. There is a psh configuration
+matching strategy evaluates the line. There is a B<psh> configuration
 variable (see below) which controls whether the perl value of the
 evaluation is saved and printed after each command.
 
@@ -71,7 +96,8 @@ B<psh> includes the following evaluation strategies:
 
 =item * C<comment>
 
-If the first word of the input line begins with a '#' character, ignore it.
+If the first word of the input line begins with a '#' character, ignore
+the line.
 
 =item * C<bang>
 
@@ -89,7 +115,7 @@ input line exactly as entered.
 
 If the first word of the input line matches either a built-in Perl
 function, or a defined subroutine in the main:: package, pass the line
-to eval. If $psh::perlfunc_expand_arguments is true and the line
+to eval. If C<$psh::perlfunc_expand_arguments> is true and the line
 contains no parens, or braces or commas (except for {a,b,c} as in
 shell brace-expansion), then this strategy tries to
 interpret the arguments on the command line in a "shell-like" manner:
@@ -105,20 +131,21 @@ interpret it like one, even if the first word is a Perl subroutine."
 
 =item * C<perlscript>
 
-If the first word of the input line matches the name of a file the
-path $ENV{PATH} which starts with #!/.../perl, and that perl is the
-same as the Perl under which psh is running, psh will fork and run
+If (1) the first word of the input line matches the name of a file found in
+one of the directories listed in the path (C<$ENV{PATH}>), and (2) that file
+starts with C<#!/.../perl>, and (3) that C<perl> is the
+same as the Perl under which B<psh> is running, B<psh> will fork and run
 the script using the already-loaded Perl interpreter. The idea is to
 save the exec half of the fork-exec that the executable strategy would 
 do; typically the exec is more expensive. Right now this strategy can
-only handle the B<-w> command-line switch on the #! line.
+only handle the B<-w> command-line switch on the C<#!> line.
 
 =item * C<executable>
 
 If the first word of the input line matches the name of an executable
-file in the path given by $ENV{PATH}, then pass the line to
+file in the path given by C<$ENV{PATH}>, then pass the line to
 system. Perl variable substitution will be done on the line first if
-the $psh::executable_expand_arguments configuration variable is
+the C<$psh::executable_expand_arguments> configuration variable is
 true. 
 
 =item * C<eval>
@@ -129,19 +156,20 @@ strategy; strategies placed after it will never be triggered.
 =back
 
 The list of evaluation strategies to try is kept in the configuration
-variable $psh::strategies, which defaults to
+variable C<@psh::strategies>, which defaults to
 C<qw(comment bang built_in perlfunc executable eval)>. 
+
 
 =head2 BUILT-IN FUNCTIONS
 
 The following functions are provided as built-in functions of
-C<psh>. You can add an additional built-in called 'foo' by setting the
-hash $psh::built_ins{foo} to a reference to a subroutine. When a line
-like "foo bar $baz" is then evaluated by the 'built_in' strategy, the
-string 'bar $baz' will be passed to your subroutine as its only
-argument. This is precisely the difference between making 'foo' a
-built-in as opposed to simply defining a procedure main::foo and
-letting the eval strategy call foo: the built-in subroutine will get
+C<psh>. You can add an additional built-in called 'C<foo>' by setting the
+hash C<$psh::built_ins{foo}> to a reference to a subroutine. When a line
+like "C<foo bar $baz>" is then evaluated by the 'C<built_in>' strategy, the
+string 'C<bar $baz>' will be passed to your subroutine as its only
+argument. This is precisely the difference between making 'C<foo>' a
+built-in as opposed to simply defining a procedure C<main::foo> and
+letting the C<eval> strategy call C<foo>: the built-in subroutine will get
 the precise input string entered, whereas the ordinary procedure will
 of course get arguments that have already been evaluated by the Perl
 evaluator. Which you want depends on the nature of the function being
@@ -149,14 +177,14 @@ defined.
 
 =over 4
 
-=item * C<. FILE> [or C<source FILE>]
+=item * C<source FILE> [or C<. FILE>]
 
-Read and process the contents of the given file as a sequence of psh
+Read and process the contents of the given file as a sequence of B<psh>
 commands.
 
 =item * C<alias [NAME [=] REPLACEMENT]> 
 
-Add NAME as a built-in so that NAME <REST_OF_LINE> will execute
+Add C<I<NAME>> as a built-in so that NAME <REST_OF_LINE> will execute
 exactly as if REPLACEMENT <REST_OF_LINE> had been entered. For
 example, one can execute C<alias ls ls -F> to always supply the B<-F>
 option to "ls". Note the built-in is defined to avoid recursion
@@ -186,9 +214,9 @@ Exit out of the shell.
 Just like setenv, below, except that it also ties the variable (in the
 Perl sense) so that subsequent changes to the variable automatically
 affect the environment. Variables who are lists and appear in
-%psh::array_exports will also by tied to the array of the same name.
+C<%psh::array_exports> will also by tied to the array of the same name.
 Note that the variable must be specified without any Perl specifier
-like $ or @
+like C<$> or C<@>.
 
 =item * C<fg JOB>
 
@@ -216,8 +244,8 @@ Sets the environment variable NAME to VALUE.
 
 =item * C<which COMMAND-LINE>
 
-Describe how psh will execute the given COMMAND-LINE, under the
-current setting of $psh::strategies.
+Describe how B<psh> will execute the given COMMAND-LINE, under the
+current setting of C<$psh::strategies>.
 
 =back
 
@@ -231,24 +259,25 @@ The B<-w> switch runs perl with the C<"-w"> switch and "use strict;".
 The B<-d> option puts B<psh> into "debugging" mode, which prints
 diagnostic output, including primarily the result of the "which"
 builtin before every execution. Note that you can also enter/leave this
-debugging mode in a running psh via the $psh::debugging variable.
+debugging mode in a running B<psh> via the C<$psh::debugging> variable.
 
 The B<-r> option specifies a file of commands to be read in and
 evaluated before processing begins. If it is not set, and
-C<$ENV{HOME}> is set, and the file C<$ENV{HOME}/.pshrc> is present, it
+C<$ENV{HOME}> is set, and the file F<$ENV{HOME}/.pshrc> is present, it
 will be used. If B<-r> is not specified and the current directory is
 different from C<$ENV{HOME}> and it contains a F<.pshrc> file, that
 file will be read and executed in addition to
-C<$ENV{HOME}/.pshrc>. 
+F<$ENV{HOME}/.pshrc>. 
 
 If any FILE1 ... arguments are specified on the command line, they
-will be read and executed and then psh will exit. Otherwise, B<psh>
+will be read and executed and then B<psh> will exit. Otherwise, B<psh>
 will enter an interactive command loop.
 
-=head2 PSH VARIABLES and FUNCTIONS
+
+=head2 PSH SCALAR VARIABLES
 
 B<psh> makes a number of variables and functions accessible to the
-user in the psh:: package for configuration or utility
+user in the C<psh::> package for configuration or utility
 purposes. Their default values are given in parentheses below. If the
 variable is also marked "[late]", then it is undefined at the start of 
 the F<.pshrc> file, but any value given to it during that file will be 
@@ -256,25 +285,25 @@ used instead of the default setting.
 
 =over 4
 
-=item $psh::bin (the basename of the file B<psh> was invoked by)
+=item C<$psh::bin> (the basename of the file B<psh> was invoked by)
 
 The name of the current shell.
 
-=item $psh::cmd
+=item C<$psh::cmd>
 
 The command serial number in the currently-executing processing loop.
 
-=item $psh::currently_active (0)
+=item C<$psh::currently_active> (0)
 
 The pid of the process B<psh> will currently forward signals to, or 0
 if B<psh> will handle the signals internally. Usually
 0 unless B<psh> is waiting for a process in the "foreground".
 
-=item $psh::debugging (1 if -d option specified, 0 if not)
+=item C<$psh::debugging> (1 if B<-d> option specified, 0 if not)
 
 Whether B<psh>'s internal debugging output should be produced.
 
-=item $psh::echo (0)
+=item C<$psh::echo> (0)
 
 Controls whether the processing loop saves and displays the Perl value 
 of executing a line of input. Three cases are distinguished: a false
@@ -284,18 +313,18 @@ multiple arguments if the eval returned an array) and should return
 true to display, false to not; or a true (scalar) value, in which case 
 any non-undef, non-empty value is displayed.
 
-In addition to displaying the value, it is pushed onto @psh::val.
+In addition to displaying the value, it is pushed onto C<@psh::val>.
 Note that scalar values are
-pushed directly onto @psh::val, but array values are pushed by
+pushed directly onto C<@psh::val>, but array values are pushed by
 reference. 
 
-=item $psh::eval_preamble ("package main;")
+=item C<$psh::eval_preamble> ("package main;")
 
-Every Perl expression that psh evaluates as part of its read-eval loop
+Every Perl expression that B<psh> evaluates as part of its read-eval loop
 is prepended with this string, intended primarily to set the expected
 package context.
 
-=item $psh::executable_expand_arguments (0)
+=item C<$psh::executable_expand_arguments> (0)
 
 If this variable is true, then the following
 procedure is applied to each argument ARG of the command line before
@@ -312,28 +341,28 @@ in a way similar to shells such as bash. For example, if
  'ls @files' will expand to 'ls file1 file2 file3', whereas
  'echo "@files"' will expand to 'echo "file1 file2 file3"'.
 
-=item $psh::history_file ("$ENV{HOME}/.${bin}_history") [late]
+=item C<$psh::history_file> ("F<$ENV{HOME}/.${bin}_history>") [late]
 
 The filename B<psh> will use to save the command history in from one
-invocation to the next, if $psh::save_history is true.
+invocation to the next, if C<$psh::save_history> is true.
 
-=item $psh::history_length (50) [late]
+=item C<$psh::history_length> (50) [late]
 
 The number of lines of command history to keep.
 
-=item $psh::host (the output of "hostname -s") [late]
+=item C<$psh::host> (the output of "C<hostname -s>") [late]
 
-The short host name of the machine psh is currently running on.
+The short host name of the machine B<psh> is currently running on.
 
-=item $psh::longhost (the output of "hostname") [late]
+=item C<$psh::longhost> (the output of "C<hostname>") [late]
 
-The fully qualified host name of the machine psh is running on.
+The fully qualified host name of the machine B<psh> is running on.
 
-=item $psh::news_file ("$psh::bin.NEWS")
+=item C<$psh::news_file> ("F<$psh::bin.NEWS>")
 
 A file giving news for the shell.
 
-=item $psh::perlfunc_expand_arguments (0)
+=item C<$psh::perlfunc_expand_arguments> (0)
 
 If this variable is true, then command lines interpreted by the
 perlfunc strategy which contain no parens, or  braces or commas except 
@@ -344,81 +373,102 @@ undergo globbing, brace expansion, and variable expansion, and the
 resulting array of words is passed to the specified function as its
 arguments. 
 
-=item $psh::prompt ('\s\$') [late]
+=item C<$psh::prompt> ('\s\$') [late]
 
 Controls the prompt string in interactive use, see below.
 
-=item $psh::save_history (1) [late]
+=item C<$psh::save_history> (1) [late]
 
-If this is true, the command history is saved in $psh::history_file
+If this is true, the command history is saved in C<$psh::history_file>
 from one invocation of B<psh> to the next.
 
-=item $psh::handle_segfaults (0)
+=item C<$psh::handle_segfaults> (0)
 
-If set to true, psh will ignore all segfaults and attempt to
+If set to true, B<psh> will ignore all segfaults and attempt to
 continue.
 
-=item @psh::netprograms ( ping, ftp, ncftp, lynx etc. )
+=back
+
+
+=head2 PSH ARRAY VARIABLES
+
+=over 4
+
+=item C<@psh::netprograms> ( B<ping>, B<ftp>, B<ncftp>, B<lynx>, etc. )
 
 Contains names of a number of net based programs for enabling
 TAB completion of hostnames/bookmarks
 
-=item @psh::bookmarks ( 'http://', 'ftp://' )
+=item C<@psh::bookmarks> ( 'http://', 'ftp://' )
 
 Supposed to contain your most used IP numbers, hostnames or URLs.
 Those will be eligible for TAB completion if you use one of the
-programs in @psh::netprograms. Default only contains 'http://' and
+programs in C<@psh::netprograms>. Default only contains 'http://' and
 'ftp://'.
 
-=item @psh::mon ( Jan, Feb, etc. )
+=item C<@psh::mon> ( Jan, Feb, etc. )
 
 An array of month names used in printing dates, for example in prompt
 strings.
 
-=item @psh::strategies ( comment, bang, built_in, executable, eval)
+=item C<@psh::strategies> ( comment, bang, built_in, executable, eval)
 
 The list of strategies for executing a line, tried in order.
 
-=item @psh::val 
+=item C<@psh::val>
 
-Stores away the results of executing lines, as described in $psh::echo
+Stores away the results of executing lines, as described in C<$psh::echo>
 above. 
 
-=item @psh::wday ( Mon, Tue, Wed, Thu, Fri, Sat)
+=item C<@psh::wday> ( Mon, Tue, Wed, Thu, Fri, Sat)
 
 An array of the weekday names used in printing dates, for example in
 prompt strings.
 
-=item %psh::built_ins
+=back
+
+
+=head2 PSH HASH VARIABLES
+
+=over 4
+
+=item C<%psh::built_ins>
 
 The keys are command names, the values are subroutine references which
 are called with the remainder of the line exactly as input.
 
-=item %psh::prompt_vars
+=item C<%psh::prompt_vars>
 
 The keys of this hash are single characters, and the values are
 subroutine references that implement the given escape character in
 prompt strings. (See L<PROMPT STRINGS> below.)
 
-=item %psh::strategy_which
+=item C<%psh::strategy_which>
 
-=item %psh::strategy_eval
+=item C<%psh::strategy_eval>
 
 These hashes implement the named strategies used in B<psh>'s
 evaluation of input lines. It is possible to add new strategies, see below.
 
-=item %psh::array_exports
+=item C<%psh::array_exports>
 
 Contains a list of environment variables which should be tied
 to arrays. The key of the hash is the name of the variable, the
 value is the delimiter of the list (e.g. ':' in PATH)
 
-=item &psh::evl
+=back
+
+
+=head2 PSH FUNCTIONS
+
+=over 4
+
+=item C<&psh::evl>
 
 This function takes a string, evaluates it as if it were a line of
 B<psh> input, and returns the value. Useful in loops like:
  
- psh$ C<for $file (glob $pat) { psh::evl("ls -ld $file"); }>
+ C<psh$ for $file (glob $pat) { psh::evl("ls -ld $file"); }>
 
 =item &psh::is_number
 
@@ -491,14 +541,15 @@ Custom prompting variables may be added by adding entries to the array
 C<%psh::prompt_vars> keyed by the single character code. The entries
 should be subroutine references that return the replacement string.
 
+
 =head2 DEFINING EVALUATION STRATEGIES
 
-There are two hashes, %psh::strategy_which and %psh::strategy_eval.
-An evaluation strategy called "foo" is implemented by putting a
+There are two hashes, C<%psh::strategy_which> and C<%psh::strategy_eval>.
+An evaluation strategy called "C<foo>" is implemented by putting a
 subroutine object in each of these hashes keyed by "foo". The first
 subroutine should accept a reference to a string (the exact input
 line) and a reference to an array of strings (the array of "words" in
-the input line produced by &psh::decompose, provided as a convenience
+the input line produced by C<&psh::decompose>, provided as a convenience
 so that each individual strategy doesn't have to recompute this). It
 should return a string, which should be empty if the strategy does not
 apply to that input line, and otherwise should be an arbitrary
@@ -512,6 +563,7 @@ and a third argument, which is the string returned by
 $strategy_which{foo}. It should do the evaluation, and return the
 result. Note that the $strategy_eval function will be evaluated in
 an array context. 
+
 
 =head1 LIMITATIONS
 
@@ -528,7 +580,7 @@ this is not the case.
 
 The "exit status" of programs invoked in the foreground by the
 "executable" strategy (or even the "bang" strategy) isn't available
-from within psh.
+from within B<psh>.
 
 Note that since expressions like 'use foo' return undef when sent to
 eval(), it is not possible to use that return value as indication of
@@ -541,6 +593,7 @@ Not exactly a C<psh> limitation: Term::ReadLine::Gnu seems to be rather
 buggy on Linux systems and leads to continous crashes of C<psh>.
 Use Term::ReadLine::Perl instead ( set PERL_RL to Perl to disable
 Term::ReadLine::Gnu)
+
 
 =head1 REQUIREMENTS
 
@@ -558,6 +611,7 @@ environment variables LINES and COLUMNS when the terminal window size
 changes while running as standard shell
 
 =back
+
 
 =head1 OTHER PERL SHELLS
 
@@ -581,11 +635,12 @@ inside some other program via C<PSH::prompt();>, but a small file
 F<psh.pl> is also included that uses PSH to provide a standalone
 shell. Perhaps some merger of these efforts would be beneficial to all?
 
+
 =head1 FILES
 
-C<psh> - The Perl Shell executable script.
+F<psh> - The Perl Shell executable script.
 
-C<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
+F<.pshrc> - The user's Perl Shell `profile'. May be in C<$HOME> or the
 current directory; if both are present, both will be read in the order
 mentioned.
 
@@ -607,7 +662,7 @@ Markus Peter E<lt>F<warp@spin.de><E<gt> added job and signal handling and filena
 completion. He also made some updates to history handling.
 
 Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
-strategies, improved interrupt/job handling, &psh::evl, $psh::echo,
+strategies, improved interrupt/job handling, C<&psh::evl>, C<$psh::echo>,
 more extensive documentation, and other more minor features.
 
 =item ReadLine Support
@@ -637,11 +692,5 @@ generated documentation.
 
 =back
 
-
-=head1 COPYRIGHT
-
-Copyright (C) 1999 Gregor N. Purdy. All rights reserved.
-This script is free software. It may be copied or modified according
-to the same terms as Perl itself.
 
 =cut
