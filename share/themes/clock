@@ -1,0 +1,17 @@
+#!psh
+# Adapted from bashish
+
+package themes;
+
+$blue="\\[\\E[0;34m\\]"
+$red="\\[\\E[0;31m\\]"
+$light_red= "\\[\\E[1;31m\\]"
+$white= "\\[\\E[1;37m\\]"
+$no_color= "\\[\\E[0m\\]"
+
+option ps2='> '
+option window_title='\u@\h:\w'
+
+Psh::Options::set_option('ps1',"\\[\\E[s\\E[1;\$(print \$ENV\{COLUMNS\}-5)H\\]\n$blue\[$light_red\$(date +%H%M)$blue]\\[\\E[u\\E[1A\\]\n$blue\[$light_red\\u\@\\h;\\w$blue]\n$white\$$no_color ");
+
+package main;
