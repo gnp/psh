@@ -135,9 +135,13 @@ sub _wait_for_system
 
 	my $job= $Psh::joblist->get_job($pid);
 
+	die "No JOB!!" if ! $job;
+
+	my $term_pid= $job->{pgrp_leader}||$pid;
+
 	while (1) {
-#		print_debug("[[About to give the terminal to $pid.]]\n");
-		_give_terminal_to($pid);
+#		print_debug("[[About to give the terminal to $term_pid.]]\n");
+		_give_terminal_to($term_pid);
 		if (!$job->{running}) { $job->continue; }
 		my $returnpid;
 		{
@@ -245,6 +249,7 @@ sub execute_complex_command {
 	}
 	if( $pid) {
 		my $job= $Psh::joblist->create_job($pid,$string);
+		$job->{pgrp_leader}=$pgrp_leader;
 		if( !$fgflag) {
 			my $visindex= $Psh::joblist->get_job_number($job->{pid});
 			Psh::Util::print_out("[$visindex] Background $pgrp_leader $string\n");
@@ -419,6 +424,7 @@ sub backtick {
 my %special_handlers= (
 					   'CHLD' => \&_ignore_handler,
 					   'CLD'  => \&_ignore_handler,
+					   'TTOU' => \&_ttou_handler,
 					   'SEGV' => 0,
 					   'WINCH'=> 0,
 					   'ZERO' => 0,
@@ -513,6 +519,11 @@ sub _readline_handler
 	my $sig= shift;
 	setup_readline_handler();
     die "SECRET $Psh::bin: Signal $sig\n"; # changed to SECRET... just in case
+}
+
+sub _ttou_handler
+{
+	_give_terminal_to($$);
 }
 
 #
