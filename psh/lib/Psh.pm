@@ -41,8 +41,7 @@ use vars qw($bin $cmd $echo $host $debugging
 			$result_array $which_regexp $ignore_die $old_shell
 		    $login_shell $window_title
             $interactive
-			@val @history
-			%text %perl_builtins %perl_builtins_noexpand);
+			@val @history %text );
 
 #
 # Private, Lexical Variables:

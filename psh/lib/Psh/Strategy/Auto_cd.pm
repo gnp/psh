@@ -7,24 +7,37 @@ it will be handled as an implicit cd.
 
 =cut
 
-$Psh::strategy_which{auto_cd}= sub {
-	my $fnname= ${$_[1]}[0];
+require Psh::Strategy;
+require Psh::Builtins::Cd;
 
-    if( -d $fnname) {
-	    return "(auto-cd $fnname)";
-	}
+use vars qw(@ISA);
+@ISA=('Psh::Strategy');
+
+
+sub new { Psh::Strategy::new(@_) }
+
+
+sub consumes {
+	return Psh::Strategy::CONSUME_TOKENS;
+}
+
+sub applies {
+	my $dir= ${$_[1]}[0];
+	return "auto-cd $dir" if -d $dir;
     return '';
-};
+}
 
-$Psh::strategy_eval{auto_cd}=sub {
-	my $fnname= ${$_[1]}[0];
-    Psh::Builtins::bi_cd($fnname);
-    return undef;
-};
+sub execute {
+	my $dir= ${$_[1]}[0];
+	Psh::Builtins::Cd::bi_cd($dir);
+	return undef;
+}
+
+sub runs_before {
+	return qw(perlscript executable);
+}
 
 # Turn on directory completion for first words in line
 $Psh::Completion::complete_first_word_dirs=1;
-
-@always_insert_before= qw( perlscript executable);
 
 1;

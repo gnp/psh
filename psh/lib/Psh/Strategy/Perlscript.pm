@@ -1,5 +1,6 @@
 package Psh::Strategy::Perlscript;
 
+require Psh::Strategy;
 require Psh::Util;
 require Config;
 
@@ -20,6 +21,21 @@ Note this strategy only makes sense before the
 never trigger.
 
 =cut
+
+
+use vars qw(@ISA);
+
+@ISA=('Psh::Strategy');
+
+sub new { Psh::Strategy::new(@_) }
+
+sub consumes {
+	return Psh::Strategy::CONSUME_TOKENS;
+}
+
+sub runs_before {
+	return qw(executable);
+}
 
 #
 # bool matches_perl_binary(string FILENAME)
@@ -56,100 +72,96 @@ sub matches_perl_binary
 	return 0;
 }
 
-$Psh::strategy_which{perlscript}=
-	sub {
-		my $script = Psh::Util::which(${$_[1]}[0]);
+sub applies {
+	my $script = Psh::Util::which(@{$_[2]}->[0]);
+	return '' unless $script;
 
-		if (defined($script) and -r $script) {
+	#
+	# let's see if it really looks like a perl script
+	#
+	my $firstline;
+	if (open(FILE,"< $script")) {
+		$firstline= <FILE>;
+		close(FILE);
+	}
+	else {
+		return;
+	}
+	chomp $firstline;
+
+	my $filename;
+	my $switches;
+
+	if (($filename,$switches) =
+		($firstline =~ m|^\#!\s*(/.*perl)(\s+.+)?$|go)
+		and matches_perl_binary($filename)) {
+		my $possibleMatch = $script;
+		my %bangLineOptions = ();
+
+		if( $switches) {
+			$switches=~ s/^\s+//go;
+			local @ARGV = split(' ', $switches);
+
 			#
-			# let's see if it really looks like a perl script
+			# All perl command-line options that take aruments as of
+			# Perl 5.00503:
 			#
-			my $firstline;
-			if (open(FILE,"< $script")) {
-				$firstline= <FILE>;
-				close(FILE);
-			}
-			else {
-				return;
-			}
-			chomp $firstline;
 
-			my $filename;
-			my $switches;
-
-			if (($filename,$switches) =
-				($firstline =~ m|^\#!\s*(/.*perl)(\s+.+)?$|go)
-				and matches_perl_binary($filename)) {
-				my $possibleMatch = $script;
-				my %bangLineOptions = ();
-
-				if( $switches) {
-					$switches=~ s/^\s+//go;
-					local @ARGV = split(' ', $switches);
-
-					#
-					# All perl command-line options that take aruments as of
-					# Perl 5.00503:
-					#
-
-					getopt('DeiFlimMx', \%bangLineOptions);
-				}
-
-				if ($bangLineOptions{w}) {
-					$possibleMatch .= " warnings";
-					delete $bangLineOptions{w};
-				}
-
-				#
-				# TODO: We could handle more options. [There are some we
-				# can't. -d, -n and -p are popular ones that would be tough.]
-				#
-
-				if (scalar(keys %bangLineOptions) > 0) {
-					print_debug("[[perlscript: skip $script, options $switches.]]\n");
-					return '';
-				}
-
-				return $possibleMatch;
-			}
+			require Getopt::Std;
+			getopt('DeiFlimMx', \%bangLineOptions);
 		}
 
-		return '';
-};
-
-
-$Psh::strategy_eval{perlscript} = sub {
-		my ($script, @options) = split(' ',$_[2]);
-		my @arglist = @{$_[1]};
-
-		shift @arglist; # Get rid of script name
-		my $fgflag = 1;
-
-		if (scalar(@arglist) > 0) {
-			my $lastarg = pop @arglist;
-
-			if ($lastarg =~ m/\&$/) {
-				$fgflag = 0;
-				$lastarg =~ s/\&$//;
-			}
-
-			if ($lastarg) { push @arglist, $lastarg; }
+		if ($bangLineOptions{w}) {
+			$possibleMatch .= " warnings";
+			delete $bangLineOptions{w};
 		}
 
-		print_debug("[[perlscript $script, options @options, args @arglist.]]\n");
+		#
+		# TODO: We could handle more options. [There are some we
+		# can't. -d, -n and -p are popular ones that would be tough.]
+		#
 
-		my $pid;
+		if (scalar(keys %bangLineOptions) > 0) {
+			print_debug("[[perlscript: skip $script, options $switches.]]\n");
+			return '';
+		}
+		return $possibleMatch;
+	}
+	return '';
+}
 
-		my %opts = ();
-		foreach (@options) { $opts{$_} = 1; }
+
+sub execute {
+	my ($script, @options) = split(' ',$_[3]);
+	my @arglist = @{$_[2]};
+
+	shift @arglist; # Get rid of script name
+	my $fgflag = 1;
+
+	if (scalar(@arglist) > 0) {
+		my $lastarg = pop @arglist;
+
+		if ($lastarg =~ m/\&$/) {
+			$fgflag = 0;
+			$lastarg =~ s/\&$//;
+		}
+
+		if ($lastarg) { push @arglist, $lastarg; }
+	}
+
+	print_debug("[[perlscript $script, options @options, args @arglist.]]\n");
+
+	my $pid;
+
+	my %opts = ();
+	foreach (@options) { $opts{$_} = 1; }
 
 
-		return (sub {
-			package main;
-			# TODO: Is it possible/desirable to put main in the pristine
-			# state that it typically is in when a script starts up,
-			# i.e. undefine all routines and variables that the user has set?
-
+	return (sub {
+				package main;
+				# TODO: Is it possible/desirable to put main in the pristine
+				# state that it typically is in when a script starts up,
+				# i.e. undefine all routines and variables that the user has set?
 			local @ARGV = @arglist;
 			local $^W;
 
@@ -160,8 +172,6 @@ $Psh::strategy_eval{perlscript} = sub {
 
 			CORE::exit 0;
 		}, [], 1, undef);
-};
-
-@always_insert_before= qw( executable);
+}
 
 1;

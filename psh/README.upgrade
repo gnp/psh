@@ -11,7 +11,10 @@ Upgrading from version 0.009 or earlier:
 
 - %Psh::strategy_which, %Psh::strategy_eval, @Psh::strategies,
   @Psh::unparsed_strategies do not exist anymore.
-  Please use the strategy built in.
+  Please use the strategy builtin.
+
+- %Psh::built_ins and %Psh::fallback_builtin were removed.
+
 
 Upgrading from version 0.007 or earlier:
 

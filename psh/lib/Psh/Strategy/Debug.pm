@@ -7,16 +7,31 @@ way Perl Shell processes the input
 
 =cut
 
-$Psh::strategy_which{debug}= sub {
+require Psh::Strategy;
+
+use vars qw(@ISA);
+@ISA=('Psh::Strategy');
+
+sub new { Psh::Strategy::new(@_) }
+
+sub consumes {
+	return Psh::Strategy::CONSUME_LINE;
+}
+
+sub runs_before {
+	return qw(executable auto_cd built_in);
+}
+
+sub applies {
 	my $fnname= ${$_[0]};
 
 	if ($fnname=~/^\?/) {
-		return "(debug $fnname)";
+		return "debug $fnname";
 	}
     return '';
-};
+}
 
-$Psh::strategy_eval{debug}=sub {
+sub execute {
 	my $fnname= ${$_[0]};
 	eval "use Data::Dumper";
 	if ($@) {
@@ -27,8 +42,6 @@ $Psh::strategy_eval{debug}=sub {
 		print STDERR Dumper(\@tmp);
 	}
     return undef;
-};
-
-@always_insert_before= qw( executable);
+}
 
 1;

@@ -1,11 +1,5 @@
 package Psh::Strategy::Perlfunc;
 
-use vars qw($builtins $packages $expand_arguments);
-
-$builtins=0;
-$packages=1;
-
-
 =item * C<perlfunc>
 
 Tries to detect perl builtins - this is helpful if you e.g. have
@@ -13,6 +7,25 @@ a print command on your system.
 
 =cut
 
+require Psh::Strategy;
+
+use vars qw($builtins $packages $expand_arguments @ISA);
+
+$builtins=0;
+$packages=1;
+
+@ISA=('Psh::Strategy');
+
+
+sub new { Psh::Strategy::new(@_) }
+
+sub consumes {
+	return Psh::Strategy::CONSUME_TOKENS;
+}
+
+sub runs_before {
+	return qw(perlscript auto_resume executable);
+}
 
 #
 # TODO: Is there a better way to detect Perl built-in-functions and
@@ -68,8 +81,10 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
 %perl_builtins_noexpand = qw( continue 1 do 1 for 1 foreach 1 goto 1 if 1 last 1 local 1 my 1 next 1 package 1 redo 1 sub 1 until 1 use 1 while 1);
 
 
-$Psh::strategy_which{perlfunc}= sub {
-		my $firstword = ${$_[1]}[0];
+sub applies {
+	my $firstword = @{$_[2]}->[0];
+	my $copy = ${$_[1]};
+
 		my $fnname = $firstword;
 		my $parenthesized = 0;
 		# catch "join(':',@foo)" here as well:
@@ -83,7 +98,7 @@ $Psh::strategy_which{perlfunc}= sub {
 			my $needArgs = $perl_builtins{$fnname};
 			if ($needArgs > 0
 			    and ($parenthesized
-					 or scalar(@{$_[1]}) >= $needArgs)) {
+					 or scalar(@{$_[2]}) >= $needArgs)) {
 				$qPerlFunc = 1;
 			}
         } elsif( $packages &&
@@ -91,7 +106,7 @@ $Psh::strategy_which{perlfunc}= sub {
 			if( $1 eq 'CORE') {
 				my $needArgs = $perl_builtins{$2};
 				if ($needArgs > 0
-					and ($parenthesized or scalar(@{$_[1]}) >= $needArgs)) {
+					and ($parenthesized or scalar(@{$_[2]}) >= $needArgs)) {
 					$qPerlFunc = 1;
 				}
             } else {
@@ -101,7 +116,6 @@ $Psh::strategy_which{perlfunc}= sub {
 			$qPerlFunc = (Psh::PerlEval::protected_eval("defined(&{'$fnname'})"))[0];
 		}
 		if ( $qPerlFunc ) {
-			my $copy = ${$_[0]};
 
 			#
 			# remove braces containing no whitespace
@@ -115,22 +129,22 @@ $Psh::strategy_which{perlfunc}= sub {
 				or exists($perl_builtins_noexpand{$fnname})
 			        or $fnname ne $firstword
 				or $copy =~ m/[(){},]/) {
-				return ${$_[0]};
+				return ${$_[1]};
 			} else {                     # no parens, braces, or commas, so  do expansion
 				my $ampersand = '';
-				my $lastword  = pop @{$_[1]};
+				my $lastword  = pop @{$_[2]};
 
 				if ($lastword eq '&') { $ampersand = '&';         }
-				else                  { push @{$_[1]}, $lastword; }
+				else                  { push @{$_[2]}, $lastword; }
 
-				shift @{$_[1]};          # OK to destroy command line since we matched
+				shift @{$_[2]};          # OK to destroy command line since we matched
 
 				#
 				# No need to do variable expansion, because the whole thing
 				# will be evaluated later.
 				#
 
-				my @args = Psh::Parser::glob_expansion($_[1]);
+				my @args = Psh::Parser::glob_expansion($_[2]);
 
 				#
 				# But we will quote barewords, expressions involving
@@ -182,16 +196,13 @@ $Psh::strategy_which{perlfunc}= sub {
 		}
 
  		return '';
-};
+}
 
-
-$Psh::strategy_eval{perlfunc}= sub {
-	my $todo= $_[2];
+sub execute {
+	my $todo= $_[3];
 	return (sub {
 		return Psh::PerlEval::protected_eval($todo,'eval');
 	}, [], 0, undef);
-};
-
-@always_insert_before= qw( perlscript auto_resume executable);
+}
 
 1;
