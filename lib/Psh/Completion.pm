@@ -45,6 +45,12 @@ sub init
 
 }
 
+sub cmpl_bookmarks
+{
+	my $text= shift;
+	return grep { starts_with($_,$text) } @psh::bookmarks;
+}
+
 
 # Returns a list of possible file completions
 sub cmpl_filenames
@@ -53,8 +59,9 @@ sub cmpl_filenames
 	my @result= glob "$text*";
 	$ac='/' if(@result==1 && -d $result[0]);
 	foreach (@result) {
-		/\/([^\/]*$)/;
-		$_=$1;
+		if( /\/([^\/]+$)/ ) {
+			$_=$1;
+		}
 	}
 	return @result;
 }
@@ -154,7 +161,7 @@ sub custom_completion
 {
 	my ($text, $line, $start) = @_;
 	my $attribs               = $term->Attribs;
-	my (@tmp, $startchar, $starttext);
+	my (@tmp, $startchar, $starttext,$tmp);
 
 	$startchar= substr($line, $start, 1);
 	$starttext= substr($line, 0, $start);
@@ -176,6 +183,11 @@ sub custom_completion
 		# we have the first word in the line or a pipe sign/backtick in front
 		# of the current item, so we try to complete executables
 		@tmp= cmpl_executable($text);
+	} elsif( @psh::netprograms && 
+			 $starttext =~ /^\s*(\S+)\s+/ && ($tmp=$1) &&
+			 grep { $_ eq $tmp } @psh::netprograms)
+	{
+		@tmp= cmpl_bookmarks($text);
 	} else {
 		if( $GNU) { # faster....
 			@tmp= $term->completion_matches($text,
