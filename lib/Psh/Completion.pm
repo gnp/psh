@@ -536,9 +536,10 @@ sub completion
 
 sub display_match_list {
     my($matches, $num_matches, $max_length) = @_;
-	shift @$matches;
+	my @matches= @$matches; # make a copy, otherwise there's memory managment trouble
+	shift @matches;
 
-    map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@{$matches});
+    map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@matches);
 	my $col='01;34';
 	if ($ENV{LS_COLORS}) {
 		my @tmp= split /:/, $ENV{LS_COLORS};
@@ -549,9 +550,9 @@ sub display_match_list {
 			}
 		}
 	}
-	map { $_ =~ s/^([^\/]+)\/$/\001\e[${col}m\002$1\001\e[00m\002\//; } (@{$matches});
+	map { $_ =~ s/^([^\/]+)\/$/\001\e[${col}m\002$1\001\e[00m\002\//; } (@matches);
 	print STDOUT "\n";
-	Psh::Util::print_list($matches,$max_length);
+	Psh::Util::print_list(\@matches,$max_length);
 #	eval {
 #		local $^W=0;
 #		$Psh::term->display_match_list($matches);
