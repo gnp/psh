@@ -1,7 +1,53 @@
 1999-12-13
 
   * When we say 'foo' at it, and there is no executable in the path,
-    and no perl function, psh really should complain at us.
+    and no Perl function, psh really should complain at us.
+    [GNP]
+
+  * Get rid of calls to system() and mentions of it in the documentation,
+    since a shell should not be dependent upon an underlying shell. We
+    need to implement system()'s functionality in terms of fork and
+    exec on our own.
+    [GNP]
+
+  * Make a new strategy: '? ...', that shows information about how psh
+    is processing the line. For example, show it after alias expansion,
+    etc. Perhaps ? ... could be short-form (just alias and var subst)
+    and ?? ... could be long form.
+    [GNP]
+
+  * How about this:
+      * 'cd dir' means go do dir (called explicit)
+      * 'cd'     means 'cd ~' (counts as explicit)
+      * 'cd -1'  means back one in list of explicit cd's (like on a web browser)
+      * 'cd %0'  means go to last explicit cd
+      * 'cd +1'  means forward one directory (like on a web browser)
+      * 'cd -'   means 'cd +0' unless at head, in which case it means 'cd -1'
+    And/or, maybe borrow the %N notation for jobs for absolute references.
+    The idea here is that maybe pushd/popd/dirs can be unified with cd so
+    that pushd and popd are just aliases for cd variants...
+    [GNP]
+
+  * Support bash's $OLDPWD environment variable. Also, $CDPATH?
+    [GNP]
+
+  * What is the effect of bash's ':', and should we do the same thing?
+    The manpage makes it sound uninteresting, and unnecessary, and
+    trying it doesn't make it appear to do anything useful. Have I
+    missed the point?
+    [GNP]
+
+  * Add a help command, that leverages info from the pod file. Extracting
+    parts of the pod file might require POD::Parser.
+    [GNP]
+
+  * ulimit.
+    [GNP]
+
+  * On my system, nohup is a /bin/sh script. Perhaps we should make
+    this a builtin so that we don't need to call out.
+    [GNP]
+
 
 1999-11-01
 
@@ -9,11 +55,12 @@
     uses XML for its display. Find out if there is anything that can
     be done in psh to make interaction via XML Shell especially nice.
 	(I lost the URL. Please patch this file if you find it...).
+    [GNP]
 
   * Along those same lines, create a mode whereby the shell intercepts
     all command output (rather than letting it stream to its own STDOUT)
     and produces an output stream that uses a period on a separate line
-    to indicate the end of a multiline region (with appropriate escaping).
+    to indicate the end of a multi-line region (with appropriate escaping).
     A GUI could then use this information to to put up a nice display with
     a divider line between commands, the ability to collapse the output of
     a command, etc. Think of the Mathematica notebook interface. Here's an
@@ -41,6 +88,7 @@
     the W3C recommendations for synchronized media would be in order here?
     (iv) Handling the "visual" case mentioned above might cause some trouble
     in dealing with ReadLine-style command-line editing by the user.
+    [GNP]
 
   * Implement an underlying module that can be used to construct shells.
     This module (named "Mantle" after the part of a mollusk that creates
@@ -84,8 +132,10 @@
             'quux.stdin'  => 'foo.stderr',
             'splee.stdin' => 'quux.stdout'
         );
+    [GNP]
 
   * Use this underlying support module to provide background jobs and pipelines
     from within this shell. Also, create simple shells similar to other shells
     using it (for testing and demonstration purposes).
+    [GNP]
 
