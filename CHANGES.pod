@@ -13,6 +13,31 @@
 ###############################################################################
 ###############################################################################
 
+=head1 CVS
+
+=head2 New Features
+
+=over 4
+
+=item * Extended Completion code for Perl (supports $#foo, $foo->{key,
+$foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
+[2000-03-11]
+
+=item * Executable completion now even after initial '!' for shell escape
+
+=item * Some minimal status code testing
+
+=item * Understands environment variable IGNOREEOF
+
+=back
+
+=head2 Bugfixes
+
+=over 4
+
+=item * Fixed some small problems with globbing code [2000-03-09]
+
+=back
 
 =head1 0.007 [2000-02-14]
 

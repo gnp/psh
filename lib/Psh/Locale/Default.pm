@@ -92,6 +92,7 @@ terminated=terminated\
 stopped=stopped\
 restart=restart\
 foreground=foreground\
+error=error\
 
 # Readline
 readline_interrupted}=\nInterrupted!

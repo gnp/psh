@@ -37,6 +37,10 @@ sub init
 	$attribs->{special_prefixes}= "\$\%\@\~\&";
 	$attribs->{word_break_characters}= $word_break;
 	$attribs->{completer_word_break_characters}= $word_break ;
+
+	# Only ::Gnu understand it, and ::Perl ignores it silently.
+	$attribs->{completion_display_matches_hook}
+	    = \&perl_symbol_display_match_list;
 }
 
 sub cmpl_bookmarks
@@ -72,6 +76,16 @@ sub cmpl_custom
 sub cmpl_filenames
 {
 	my $text= shift;
+	my $executable_only= shift||0;
+
+	my $exclam=0;
+
+	if ( $executable_only) {
+		if ($text=~s/^\!//) {
+			$exclam=1;
+		}
+	}
+
 	my $globtext= $text;
 	my $prepend= '';
 
@@ -91,6 +105,10 @@ sub cmpl_filenames
 		} @result;
 	}
 
+	if ( $executable_only) {
+		@result= grep { -x $_ || -d $_ } @result;
+	}
+
 	if(@result==1) {
 		if( -d $result[0]) {
 			$ac='/'.$prepend;
@@ -104,6 +122,7 @@ sub cmpl_filenames
 			$_=$1;
 		}
 	}
+
 	return @result;
 }
 
@@ -154,6 +173,11 @@ sub cmpl_executable
 {
 	my $cmd= shift;
 	my @result = ();
+	my $exclam=0;
+
+	if ($cmd=~s/^\!//) {
+		$exclam=1;
+	}
 
 	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_alias_commands();
 	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_builtin_commands();
@@ -165,7 +189,8 @@ sub cmpl_executable
 	# set up absed_path if not already set and check
 	
 	foreach my $dir (@Psh::absed_path) {
-		push( @result, grep { -x $dir.'/'.$_&& ! -d } Psh::OS::glob("$cmd*",$dir) );
+		push( @result, map { $exclam?'!'.$_:$_ }
+			  grep { -x $dir.'/'.$_&& ! -d } Psh::OS::glob("$cmd*",$dir) );
 	}
 	return @result;
 }
@@ -175,96 +200,196 @@ sub cmpl_executable
 # Completes perl symbols
 #
 # TODO: Also complete package variables and package names
+#	by managing $CWP in top command loop or by buildin `package' command.
 #
-sub cmpl_symbol
+
+# $CWP : Current Working Package (not implemented yet)
+use vars qw($CWP);
+BEGIN { $CWP = 'main' }
+
 {
-	my $text= shift;
-	my @result=();
+	my %type;
 
-	local $^W= 0;
-
-	return () if ! $text=~ /^[\$\%\&\@][a-zA-Z0-9_\:]*$/go;
-
-	my $package= 'main::';
-	my $strip_package= 1;
-
-	if( $text=~ /^([\$\%\&\@])([a-zA-Z0-9_\:]+\:\:)([a-zA-Z0-9_]*)$/) {
-		$package= $2;
-		$strip_package= 0;
-		$text= $1.$3;
+	BEGIN {
+		%type = ('$' => 'SCALAR', '*' => 'SCALAR',
+			 '@' => 'ARRAY', '$#' => 'ARRAY',
+			 '%' => 'HASH',
+			 '&' => 'CODE');
 	}
 
-	my (@tmp, @sym);
-	{
-		no strict qw(refs);
-		@sym = keys %{*{$package}};
-	}
+	sub cmpl_symbol {
+		my ($text, $line, $start) = @_;
 	
-	for my $sym (@sym) {
-		next unless $sym =~ m/^[a-zA-Z]/; # Skip some special variables
-		next if     $sym =~ m/::$/ && length($text)==1;
-            # Skip all package hashes if only $, %, @ etc. was
-		    # specified because we do not want to display all package names
-		{
+		my ($prefix, $pre, $pkg, $sym);
 			no strict qw(refs);
-			push @tmp, "\$$sym" if
-				ref *{"$package$sym"}{SCALAR} eq 'SCALAR';
-			push @tmp,  "\@$sym" if
-				ref *{"$package$sym"}{ARRAY}  eq 'ARRAY';
-			push @tmp,  "\%$sym" if
-				ref *{"$package$sym"}{HASH}   eq 'HASH';
-			push @tmp,   "\&$sym" if
-				ref *{"$package$sym"}{CODE}   eq 'CODE';
-		}
-	}
-	foreach my $tmp (@tmp) {
-		my $firstchar=substr($tmp,0,1);
-		my $rest=substr($tmp,1);
-
-		if( starts_with($tmp,$text)) {
-			# Hack Alert ;-)
-			next if(! eval "defined($firstchar$package$rest)" &&
-					! eval "tied($firstchar$package$rest)" &&
-					! eval "\%$package$rest" &&
-					$rest ne "ENV" && $rest ne "INC" && $rest ne "SIG" &&
-					$rest ne "ARGV" && !($rest=~ /::$/) );
-		    if($firstchar eq "\$" && eval "\%$package$rest" &&
-			   !($rest=~ /::$/)) {
-				$ac='{';
-			} elsif( $firstchar eq '&') {
-				$ac='(';
+		($prefix, $pre, $pkg) = ($text =~ m/^((\$#|[\@\$%&])(.*::)?)/);
+		my @packages = grep /::$/, $pkg ? keys %$pkg : keys %::;
+		$pkg = ($CWP eq 'main' ? '::' : $CWP . '::') unless $pkg;
+		
+		my @symbols;
+		if ($pre eq '$') {
+			no strict 'vars'; # make `eval' quiet
+			# I cannot use `defined *$sym{SCALAR}',
+			# since it is always true.
+			@symbols = grep (/^\w+$/
+					 && (eval "defined $prefix$_"
+					     || ($sym = $pkg . $_,
+						 defined *$sym{ARRAY}
+						 || defined *$sym{HASH})),
+					     keys %$pkg);
 			} else {
-				$ac='';
-			}
-			if( $strip_package) {
-				push @result, $firstchar.$rest;
-			} else {
-				push @result, $firstchar.$package.$rest;
-			}
+			@symbols = grep (/^\w+$/
+					 && ($sym = $pkg . $_,
+					     defined *$sym{$type{$pre}}),
+					 keys %$pkg);
 		}
+		# Do we need a user customizable variable to ignore @packages?
+		return grep(/^\Q$text/,
+			    map($prefix . $_, @packages, @symbols));
 	}
-	return sort @result;
 }
 
 #
 # Completes key names for Perl hashes
 #
 sub cmpl_hashkeys {
-	my( $varname, $keystart)= @_;
-	my $package='main::';
-	if( $varname=~ /^[\$]([a-zA-Z0-9_\:]+\:\:)([a-zA-Z0-9_]*)$/) {
-		$package= $2;
-		$varname= $3;
+	my ($text, $line, $start) = @_;
+
+	my ($var,$arrow) = (substr($line, 0, $start)
+			    =~ m/\$([\w:]+)\s*(->)?\s*{\s*['"]?$/); # });
+	no strict qw(refs);
+	$var = "${CWP}::$var" unless ($var =~ m/::/);
+	if ($arrow) {
+		my $hashref = eval "\$$var";
+		return grep(/^\Q$text/, keys %$hashref);
+	} else {
+		return grep(/^\Q$text/, keys %$var);
 	}
-	{
+}
+
+sub _search_ISA ($) {
+	my ($mypkg) = @_;
 		no strict 'refs';
-		if( eval "\%$package$varname") {
-			my $var= *{"$package$varname"}{HASH};
-			$ac='} ';
-			return sort grep { starts_with($_,$keystart) } keys %$var;
+	my $isa = "${mypkg}::ISA";
+	return $mypkg, map _search_ISA($_), @$isa;
+}
+
+sub cmpl_method {
+	my ($text, $line, $start) = @_;
+	
+	my ($var, $pkg, $sym, $pk);
+	$var = (substr($line, 0, $start)
+		=~ m/\$([\w:]+)\s*->\s*$/)[0];
+	$pkg = ref eval (($var =~ m/::/) ? "\$$var" : "\$${CWP}::$var");
+	no strict qw(refs);
+	return grep(/^$text/,
+		    map { $pk = $_ . '::';
+			  grep (/^\w+$/
+				&& ($sym = "${pk}$_", defined *$sym{CODE}),
+				keys %$pk);
+		  } _search_ISA($pkg));
+}
+
+{
+	my @keyword;
+
+	# complete perl bare words (Perl function, subroutines, filehandle)
+	sub cmpl_perl_function ($) {
+		my ($text) = @_;
+
+		my ($prefix, $pkg, $sym);
+		no strict qw(refs);
+		($prefix, $pkg) = ($text =~ m/^((.*::)?)/);
+		my @packages = grep /::$/, $pkg ? keys %$pkg : keys %::;
+		$pkg = ($CWP eq 'main' ? '::' : $CWP . '::') unless $pkg;
+		
+		my @subs = grep (/^\w+$/
+				 && ($sym = $pkg . $_,
+				     defined *$sym{CODE}
+				     || defined *$sym{FILEHANDLE}),
+				 keys %$pkg);
+		# Do we need a user customizable variable to ignore @packages?
+		return grep(/^\Q$text/,
+			    !$prefix && @keyword,
+			    map($prefix . $_, @packages, @subs));
 		}
+
+	BEGIN {
+		# from perl5.004_02 perlfunc
+		@keyword = qw(
+		    chomp chop chr crypt hex index lc lcfirst
+		    length oct ord pack q qq
+		    reverse rindex sprintf substr tr uc ucfirst
+		    y
+		    
+		    m pos quotemeta s split study qr
+
+		    abs atan2 cos exp hex int log oct rand sin
+		    sqrt srand
+
+		    pop push shift splice unshift
+
+		    grep join map qw reverse sort unpack
+		    
+		    delete each exists keys values
+		    
+		    binmode close closedir dbmclose dbmopen die
+		    eof fileno flock format getc print printf
+		    read readdir rewinddir seek seekdir select
+		    syscall sysread sysseek syswrite tell telldir
+		    truncate warn write
+		    
+		    pack read syscall sysread syswrite unpack vec
+		    
+		    chdir chmod chown chroot fcntl glob ioctl
+		    link lstat mkdir open opendir readlink rename
+		    rmdir stat symlink umask unlink utime
+		    
+		    caller continue die do dump eval exit goto
+		    last next redo return sub wantarray
+		    
+		    caller import local my package use
+		    
+		    defined dump eval formline local my reset
+		    scalar undef wantarray
+		    
+		    alarm exec fork getpgrp getppid getpriority
+		    kill pipe qx setpgrp setpriority sleep
+		    system times wait waitpid
+		    
+		    do import no package require use
+		    
+		    bless dbmclose dbmopen package ref tie tied
+		    untie use
+		    
+		    accept bind connect getpeername getsockname
+		    getsockopt listen recv send setsockopt shutdown
+		    socket socketpair
+		    
+		    msgctl msgget msgrcv msgsnd semctl semget
+		    semop shmctl shmget shmread shmwrite
+		    
+		    endgrent endhostent endnetent endpwent getgrent
+		    getgrgid getgrnam getlogin getpwent getpwnam
+		    getpwuid setgrent setpwent
+		    
+		    endprotoent endservent gethostbyaddr
+		    gethostbyname gethostent getnetbyaddr
+		    getnetbyname getnetent getprotobyname
+		    getprotobynumber getprotoent getservbyname
+		    getservbyport getservent sethostent setnetent
+		    setprotoent setservent
+		    
+		    gmtime localtime time times
+		    
+		    abs bless chomp chr exists formline glob
+		    import lc lcfirst map my no prototype qx qw
+		    readline readpipe ref sub sysopen tie tied
+		    uc ucfirst untie use
+		    
+		    dbmclose dbmopen
+		   );
 	}
-	return ();
 }
 
 #
@@ -297,28 +422,40 @@ sub completion
 		$startword= $1;
 	}
 
-	$ac=' ';
+	my $firstflag= $starttext !~/\s/;
 
+	$ac=' ';
 	if ($startchar eq '~' &&
 	    !($text=~/\//)) {
 		# after ~ try username completion
 		@tmp= cmpl_usernames($text);
 		$ac="/" if @tmp;
-	} elsif( $startchar eq "\$" || $startchar eq "\@" ||
-			 $startchar eq "\%" || $startchar eq "\&" ) {
-		# probably a perl variable/function ?
-		@tmp= cmpl_symbol($text);
-	} elsif( ($starttext =~ /^\$([a-zA-Z0-9_\:]+)\{$/) ||
-			 ($starttext =~ /\s\$([a-zA-Z0-9_\:]+)\{$/)) {
-		# a construct like: "$ENV{"
-		@tmp= cmpl_hashkeys($1,$text);
-	} elsif( ($starttext =~ /^\s*$/ ||
-			  $starttext =~ /[\|\`]\s*$/ ) &&
-			 !( $text =~ /\/|\.\.@/)) {
+	} elsif ($starttext =~ m/\$([\w:]+)\s*(->)?\s*{\s*['"]?$/) {
+		# $foo{key, $foo->{key
+		@tmp= cmpl_hashkeys($text, $line, $start);
+		$ac = '}';
+	} elsif ($starttext =~ m/\$([\w:]+)\s*->\s*['"]?$/) {
+		# $foo->method
+		@tmp= cmpl_method($text, $line, $start);
+		$ac = ' ';
+	} elsif ( $text =~ /^\$#|[\@\$\%\&]/) {
+	        # $foo, @foo, $#foo, %foo, &foo
+		@tmp= cmpl_symbol($text, $line, $start);
+		$ac = '';
+	} elsif( $firstflag || $starttext =~ /[\|\`]\s*$/) {
 		# we have the first word in the line or a pipe sign/backtick in front
 		# of the current item, so we try to complete executables
-		@tmp= cmpl_executable($text);
-	} elsif( @netprograms &&
+
+		if ($pretext=~m/\//) {
+			@tmp= cmpl_filenames($pretext.$text,1)
+		} else {
+			@tmp= cmpl_executable($text);
+		}
+		unless ($pretext) {
+			# Afterwards we add possible matches for perl barewords
+			push @tmp, cmpl_perl_function($text);
+		}
+	} elsif( !$firstflag && @netprograms &&
 			 grep { $_ eq $startword } @netprograms)
 	{
 		@tmp= cmpl_bookmarks($text,$pretext);
@@ -361,6 +498,13 @@ sub completion
 	return @tmp;
 }
 
+sub perl_symbol_display_match_list ($$$) {
+    my($matches, $num_matches, $max_length) = @_;
+    map { $_ =~ s/^((\$#|[\@\$%&])?).*::(.+)/$3/; }(@{$matches});
+    $Psh::term->display_match_list($matches);
+    $Psh::term->forced_update_display;
+}
+
 1;
 __END__
 
@@ -378,6 +522,7 @@ Currently works with Term::ReadLine::Gnu and Term::ReadLine::Perl.
 =head1 AUTHOR
 
 Markus Peter, warp@spin.de
+Hiroo Hayashi, hayasi@fb3.so-net-ne.jp
 
 =head1 SEE ALSO
 
