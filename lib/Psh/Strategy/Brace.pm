@@ -13,7 +13,7 @@ sub consumes {
 }
 
 sub runs_before {
-	return qw(builtin);
+	return qw(buil_tin);
 }
 
 sub applies {
