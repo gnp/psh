@@ -115,7 +115,6 @@ sub cmpl_usernames
 sub cmpl_executable
 {
 	my $cmd= shift;
-	my $old_cwd= $ENV{PWD};
 	my @result = ();
 
 	push @result, grep { starts_with($_,$cmd) } Psh::Builtins::get_alias_commands();
@@ -127,10 +126,8 @@ sub cmpl_executable
 	# set up absed_path if not already set and check
 	
 	foreach my $dir (@Psh::absed_path) {
-		CORE::chdir $dir;
-		push( @result, grep { -x && ! -d } Psh::OS::glob("$cmd*") );
-	}	
-	CORE::chdir $old_cwd;
+		push( @result, grep { -x $dir.'/'.$_&& ! -d } Psh::OS::glob("$cmd*",$dir) );
+	}
 	return @result;
 }
 

@@ -1148,8 +1148,17 @@ sub prompt_string
 sub iget
 {
 	my $prompt = shift;
+	my $prompt_pre= '';
 	my $line;
 	my $sigint = 0;
+
+	# Additional newline handling for prompts as Term::ReadLine::Perl
+	# cannot use them properly
+	if( $term->ReadLine eq 'Term::ReadLine::Perl' &&
+		$prompt=~ /^(.*\n)([^\n]+)$/) {
+		$prompt_pre=$1;
+		$prompt=$2;
+	}
 
 	Psh::OS::setup_readline_handler;
  
@@ -1161,6 +1170,7 @@ sub iget
 		# Trap ^C in an eval.  The sighandler will die which will be
 		# trapped.  Then we reprompt
 		if ($term) {
+			print $prompt_pre if $prompt_pre;
 			eval { $line = $term->readline($prompt); };
 			handle_message( $@, 'main_loop') if( $@);
 			# Either the user pressed ^C or the Completion module
@@ -1168,6 +1178,7 @@ sub iget
 			# the second case
 		} else {
 			eval {
+				print $prompt_pre if $prompt_pre;
 				print $prompt if $prompt;
 				$line = <STDIN>;
 			}
@@ -1244,14 +1255,16 @@ sub minimal_initialize
 	$which_regexp                = '^[-a-zA-Z0-9_.~+]*$';
 	$cmd                         = 1;
 
-	# I think that the "SHELL" environment variable is supposed to
-	# be the login shell (at least no other shell I tried set it), so
-	# let's set some other variable:
-	$ENV{CURRENT_SHELL}                  = $0; # Avoids problems with ReadLine::Gnu :-)
 	$bin                         = $0;
 	$bin                         =~ s/.*\///;
 
 	$news_file                   = "$bin.NEWS";
+
+	# I think that the "SHELL" environment variable is supposed to
+	# be the login shell (at least no other shell I tried set it), so
+	# let's set some other variable:
+	$ENV{CURRENT_SHELL} = $0;
+	$ENV{PWD} = cwd;
 
 	Psh::OS::setup_signal_handlers();
 

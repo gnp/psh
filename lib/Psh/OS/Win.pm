@@ -70,7 +70,17 @@ sub system {
 sub has_job_control { return 0; }
 
 sub glob {
+	my $pattern= shift;
+	my $path= shift;
+	my $old;
+	if( $path) {
+		$old=cwd;
+		chdir abs_path($path);
+	}
 	my @result= glob(shift);
+	if( $old) {
+		chdir $old;
+	}
 	return @result;
 }
 
