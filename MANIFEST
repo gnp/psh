@@ -1,11 +1,12 @@
 psh2
-CHANGES.pod
+NEWS.pod
 COPYRIGHT
 MANIFEST
 README
 RELEASE
 INSTALL
 TODO
+ChangeLog
 Makefile.PL
 docs/README
 docs/othershells
