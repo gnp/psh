@@ -23,7 +23,7 @@ my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
 my $def_quoteexp;
 my %def_qhash;
 my $def_metaexp= '[\[\]{}()``]';
-my $def_tokenizer='(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)';
+my $def_tokenizer='(\s+|\||;|\&|[1-2]?>>|[1-2]?>|<|\\|=)';
 my $nevermatches = "(?!a)a";
 
 %def_qhash = %perlq_hash;
@@ -366,7 +366,7 @@ sub make_tokens {
 					last if( $file !~ /^\s+$/);
 					$file='';
 				}
-				if( !$file) {
+				if( !$file or substr($file,0,1) eq '&') {
 					Psh::Util::print_error_i18n('redirect_file_missing',
 												$tmp,$Psh::bin);
 					return undef;
@@ -390,7 +390,7 @@ sub make_tokens {
 					last if( $file !~ /^\s+$/);
 					$file='';
 				}
-				if( !$file) {
+				if( !$file or substr($file,0,1) eq '&') {
 					Psh::Util::print_error_i18n('redirect_file_missing',
 												$tmp,$Psh::bin);
 					return undef;
