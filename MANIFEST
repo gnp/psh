@@ -27,6 +27,7 @@ lib/Psh/Locale/German.pm
 lib/Psh/Locale/Italian.pm
 lib/Psh/Locale/Portuguese.pm
 lib/Psh/Locale/Spanish.pm
+lib/Psh/PCompletion.pm
 lib/Psh/Parser.pm
 lib/Psh/PerlEval.pm
 lib/Psh/Prompt.pm
@@ -42,6 +43,7 @@ lib/Psh/Builtins/Fallback/Ls.pm
 lib/Psh/Builtins/Fallback/Env.pm
 lib/Psh/Builtins/Bg.pm
 lib/Psh/Builtins/Builtin.pm
+lib/Psh/Builtins/Complete.pm
 lib/Psh/Builtins/Exit.pm
 lib/Psh/Builtins/Fg.pm
 lib/Psh/Builtins/Firsttime.pm
@@ -65,3 +67,4 @@ t/locale.t
 t/parser.t
 t/unix.psh
 t/win32.psh
+examples/complete-examples

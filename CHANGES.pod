@@ -52,6 +52,8 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * New builtin 'firsttime' which is a firsttime user setup utility for the .pshrc file. It cannot do a lot currently but will grow in future - warp [2000-03-14]
 
+=item * New builtin 'complete' which adds a mightier and bash compatible way to define custom completions - Hiroo Hayashi [2000-04-11]
+
 =back
 
 =head2 Bugfixes

@@ -1,15 +1,15 @@
 package Psh::Completion;
 
 use strict;
-use vars qw($VERSION %custom_completions @bookmarks @netprograms $ac $complete_first_word_dirs);
+use vars qw($VERSION %custom_completions @bookmarks @netprograms @user_completions $ac $complete_first_word_dirs);
 
 use Cwd qw(:DEFAULT chdir);
 use Psh::Util qw(:all starts_with ends_with);
 use Psh::OS;
+use Psh::PCompletion;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
-my @user_completions;
 my $APPEND="not_implemented";
 my $GNU=0;
 
@@ -255,7 +255,7 @@ BEGIN { $CWP = 'main' }
 sub cmpl_hashkeys {
 	my ($text, $line, $start) = @_;
 
-	my ($var,$arrow) = (substr($line, 0, $start)
+	my ($var,$arrow) = (substr($line, 0, $start + 1)
 			    =~ m/\$([\w:]+)\s*(->)?\s*{\s*['"]?$/); # });
 	no strict qw(refs);
 	$var = "${CWP}::$var" unless ($var =~ m/::/);
@@ -269,7 +269,7 @@ sub cmpl_hashkeys {
 
 sub _search_ISA ($) {
 	my ($mypkg) = @_;
-		no strict 'refs';
+		no strict qw(refs);
 	my $isa = "${mypkg}::ISA";
 	return $mypkg, map _search_ISA($_), @$isa;
 }
@@ -278,11 +278,11 @@ sub cmpl_method {
 	my ($text, $line, $start) = @_;
 	
 	my ($var, $pkg, $sym, $pk);
-	$var = (substr($line, 0, $start)
+	$var = (substr($line, 0, $start + 1)
 		=~ m/\$([\w:]+)\s*->\s*$/)[0];
 	$pkg = ref eval (($var =~ m/::/) ? "\$$var" : "\$${CWP}::$var");
 	no strict qw(refs);
-	return grep(/^$text/,
+	return grep(/^\Q$text/,
 		    map { $pk = $_ . '::';
 			  grep (/^\w+$/
 				&& ($sym = "${pk}$_", defined *$sym{CODE}),
@@ -404,7 +404,6 @@ sub completion
 	my $attribs               = $Psh::term->Attribs;
 
 	my @tmp=();
-	my @custom=();
 
 	my $startchar= substr($line, $start, 1);
 	my $starttext= substr($line, 0, $start);
@@ -425,8 +424,25 @@ sub completion
 	my $firstflag= $starttext !~/\s/;
 
 	$ac=' ';
-	if ($startchar eq '~' &&
-	    !($text=~/\//)) {
+
+	# Check completion-spec is defined or not.
+	my ($dir, $base) = $line =~ m|^\s*(\S*/)?(\S*)|;
+	my $cmd;
+	my $cs = $Psh::PCompletion::COMPSPEC{$cmd = $dir . $base}
+	    || $Psh::PCompletion::COMPSPEC{$cmd = $base};
+
+	# Do programmable completion if completion-spec is defined.
+	# This is done here to keep the compatibility with bash.
+	if (defined $cs) {
+		# remove prefix string if it is already prefixed.
+		$text =~ s/^\Q$cs->{prefix}//
+		    if (defined $cs->{prefix});
+		@tmp = Psh::PCompletion::pcomp_list($cs, $text, $line, $start, $cmd);
+		$attribs->{$APPEND}=$ac;
+		return @tmp;
+	}
+
+	if ($startchar eq '~' && !($text=~/\//)) {
 		# after ~ try username completion
 		@tmp= cmpl_usernames($text);
 		$ac="/" if @tmp;
@@ -438,7 +454,7 @@ sub completion
 		# $foo->method
 		@tmp= cmpl_method($text, $line, $start);
 		$ac = ' ';
-	} elsif ( $text =~ /^\$#|[\@\$\%\&]/) {
+	} elsif ( $text =~ /^\$#|[\@\$%&]/) {
 	        # $foo, @foo, $#foo, %foo, &foo
 		@tmp= cmpl_symbol($text, $line, $start);
 		$ac = '';
@@ -447,7 +463,7 @@ sub completion
 		# of the current item, so we try to complete executables
 
 		if ($pretext=~m/\//) {
-			@tmp= cmpl_filenames($pretext.$text,1)
+			@tmp = cmpl_filenames($pretext.$text,1)
 		} else {
 			@tmp= cmpl_executable($text);
 		}
@@ -455,12 +471,12 @@ sub completion
 			# Afterwards we add possible matches for perl barewords
 			push @tmp, cmpl_perl_function($text);
 		}
-	} elsif( !$firstflag && @netprograms &&
-			 grep { $_ eq $startword } @netprograms)
-	{
-		@tmp= cmpl_bookmarks($text,$pretext);
-	} else {
-		@tmp= cmpl_filenames($pretext.$text);
+  	} elsif( !$firstflag && @netprograms &&
+  			 grep { $_ eq $startword } @netprograms)
+  	{
+  		@tmp= cmpl_bookmarks($text,$pretext);
+  	} else {
+		@tmp = cmpl_filenames($pretext.$text);
 	}
 
 	if( grep { $_ eq $startword } Psh::Builtins::get_builtin_commands() ) {
@@ -479,6 +495,7 @@ sub completion
 		}
 	}
 
+	my @custom=();
 	if( $custom_completions{$startword}) {
 		$starttext =~ /\s(\S*)$/;
 		my @tmp2=cmpl_custom($text,$1,$startword,$starttext);
@@ -522,9 +539,13 @@ Currently works with Term::ReadLine::Gnu and Term::ReadLine::Perl.
 =head1 AUTHOR
 
 Markus Peter, warp@spin.de
-Hiroo Hayashi, hayasi@fb3.so-net-ne.jp
+Hiroo Hayashi, hiroo.hayashi@computer.org
 
 =head1 SEE ALSO
 
 
 =cut
+
+# Local Variables:
+# cperl-indent-level:8
+# End:
