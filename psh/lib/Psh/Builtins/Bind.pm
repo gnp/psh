@@ -208,7 +208,7 @@ sub bi_bind {
             }
         }
     } elsif (defined($Psh::term) and ref($Psh::term)) {
-        print_out("bind requires a more capable readline then ".ref($Psh::term)."\n");
+        print_out("bind requires a more capable readline than ".ref($Psh::term)."\n");
         $status = 1;
     } else {
         print_out("bind: No effect in non-interactive terminal\n");
