@@ -23,7 +23,9 @@ sub AUTOLOAD {
 	$name="Psh::OS::fb_$AUTOLOAD" unless ref *{$name}{CODE} eq 'CODE';
 	unless (ref *{$name}{CODE} eq 'CODE') {
 		require Carp;
-		Carp::croak "Function `$AUTOLOAD' in Psh::OS does not exist.";
+		eval {
+			Carp::croak("Function `$AUTOLOAD' in Psh::OS does not exist.");
+		};
 	}
 	*$AUTOLOAD=  *$name;
 	goto &$AUTOLOAD;
