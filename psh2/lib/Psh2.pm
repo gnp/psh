@@ -2,8 +2,8 @@ package Psh2;
 
 use strict;
 
+require POSIX;
 require Psh2::Parser;
-require Psh2::Jobs;
 
 if ($^O eq 'MSWin32') {
     require Psh2::Windows;
@@ -53,11 +53,12 @@ sub new {
 }
 
 sub _eval {
+    my $self= shift;
     my $lines= shift;
     while (my $element= shift @$lines) {
 	my $type= shift @$element;
 	if ($type == Psh2::Parser::T_EXECUTE()) {
-	    Psh2::Jobs::start_job($element);
+	    $self->start_job($element);
 	}
 	elsif ($type == Psh2::Parser::T_OR()) {
 	}
@@ -78,12 +79,14 @@ sub process {
 	unless (defined $input) {
 	    last;
 	}
+	$self->reap_children();
+
 	my $tmp= eval { Psh2::Parser::parse_line($input, $self); };
 	# Todo: Error handling
 	print STDERR $@ if $@;
 
 	if ($tmp and @$tmp) {
-	    _eval($tmp)
+	    _eval($self, $tmp);
 	}
     }
 }
@@ -103,6 +106,19 @@ sub process_args {
 	    $self->process_file($arg);
 	}
     }
+}
+
+sub process_variable {
+    my $self= shift;
+    my $var= shift;
+    local $self->{interactive}= 0;
+    my @lines;
+    if (ref $var eq 'ARRAY') {
+	@lines= @$var;
+    } else {
+	@lines= split /\n/, $var;
+    }
+    $self->process(sub { shift @lines });
 }
 
 sub process_rc {
@@ -255,8 +271,7 @@ sub printdebug {
 
 
     my $tmp= quotemeta(file_separator());
-    my $re1= qr/$tmp/;
-    my $re2= qr/^(.*)$tmp([^$tmp]+)$/;
+    my $re= qr/^(.*)$tmp([^$tmp]+)$/;
     my %command_hash= ();
     my $last_path_cwd;
     my @absed_path;
@@ -265,8 +280,8 @@ sub printdebug {
 	my ($self, $command, $all_flag)= @_;
 	return undef unless $command;
 
-	if ($command =~ $re1) {
-	    $command=~ $re2;
+	if (index($command, file_separator())>-1) {
+	    $command=~ $re;
 	    my $path_element= $1 || '';
 	    my $cmd_element = $2 || '';
 	    return undef unless $path_element and $cmd_element;
@@ -331,28 +346,24 @@ sub printdebug {
 
 # recursive glob function used for **/anything glob
 sub _recursive_glob {
-	my( $pattern, $dir)= @_;
-	opendir( DIR, $dir) || return ();
-	my @files= readdir(DIR);
-	closedir( DIR);
-	my @result= map { catdir($dir,$_) }
-	  grep { /^$pattern$/ } @files;
-	foreach my $tmp (@files) {
-		my $tmpdir= catdir($dir,$tmp);
-		next if ! -d $tmpdir || !no_upwards($tmp);
-		push @result, _recursive_glob($pattern, $tmpdir);
-	}
-	return @result;
+    my( $pattern, $dir)= @_;
+    opendir( DIR, $dir) || return ();
+    my @files= readdir(DIR);
+    closedir( DIR);
+    my @result= map { catdir($dir,$_) }
+      grep { /^$pattern$/ } @files;
+    foreach my $tmp (@files) {
+	my $tmpdir= catdir($dir,$tmp);
+	next if ! -d $tmpdir || !no_upwards($tmp);
+	push @result, _recursive_glob($pattern, $tmpdir);
+    }
+    return @result;
 }
 
 sub _escape {
-	my $text= shift;
-	if ($] >= 5.005) {
-		$text=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
-	} else {
-		# TODO: no escaping yet
-	}
-	return $text;
+    my $text= shift;
+    $text=~s/(?<!\\)([^a-zA-Z0-9\*\?])/\\$1/g;
+    return $text;
 }
 
 #
@@ -361,7 +372,7 @@ sub _escape {
 # is faster
 #
 sub glob {
-    my( $pattern, $dir, $already_absed) = @_;
+    my( $self, $pattern, $dir, $already_absed) = @_;
 
     return () unless $pattern;
 
@@ -550,7 +561,7 @@ sub list_option {
 	foreach my $tmp (@INC) {
 	    my $tmpdir= catdir( $tmp, 'Psh2', 'Builtins');
 	    if (-r $tmpdir) {
-		my @files= Psh2::glob('*.pm', $tmpdir, 1);
+		my @files= Psh2->glob('*.pm', $tmpdir, 1);
 		foreach (@files) {
 		    s/\.pm$//;
 		    $_= lc($_);
@@ -558,6 +569,184 @@ sub list_option {
 		}
 	    }
 	}
+    }
+}
+
+############################################################################
+##
+## Jobs
+##
+############################################################################
+
+{
+    my @order= ();
+    my %list= ();
+    my $current_job=0;
+
+    sub start_job {
+	my $self= shift;
+	my $array= shift;
+	my $fgflag= shift @$array;
+
+	my $visline= '';
+	my ($read, $chainout, $chainin, $pgrp_leader);
+	my $tmplen= @$array- 1;
+	my @pids= ();
+	my $success;
+	for (my $i=0; $i<@$array; $i++) {
+	    # [ $strategy, $how, $options, $words, $line, $opt ]
+	    my ($strategy, $how, $options, $words, $text, $opt)= @{$array->[$i]};
+
+	    my $fork= 0;
+	    if ($i<$tmplen or !$fgflag or
+		($strategy ne 'builtin' and
+		 ($strategy ne 'language' or !$how->internal()))) {
+		$fork= 1;
+	    }
+
+	    if ($tmplen) {
+		($read, $chainout)= POSIX::pipe();
+	    }
+	    foreach (@$options) {
+		if ($_->[0] == Psh2::Parser::T_REDIRECT() and
+		    ($_->[1] eq '<&' or $_->[1] eq '>&')) {
+		    if ($_->[3] eq 'chainin') {
+			$_->[3]= $chainin;
+		    } elsif ($_->[3] eq 'chainout') {
+			$_->[3]= $chainout;
+		    }
+		}
+	    }
+	    my $termflag= !($i==$tmplen);
+	    my $pid= 0;
+	    if ($^O eq 'MSWin32') {
+	    } else {
+		if ($fork) {
+		    ($pid)= $self->fork($array->[$i], $pgrp_leader, $fgflag,
+					$termflag);
+		} else {
+		    ($success)= $self->execute($array->[$i]);
+		}
+	    }
+	    if (!$i and !$pgrp_leader and $pid) {
+		$pgrp_leader= $pid;
+	    }
+	    if ($i<$tmplen and $tmplen) {
+		POSIX::close($chainout);
+		$chainin= $read;
+	    }
+	    $visline.='|' if $i>0;
+	    $visline.= $text;
+	    push @pids, $pid if $pid;
+	}
+	if (@pids) {
+	    my $job;
+	    if ($^O eq 'MSWin32') {
+	    } else {
+		$job= Psh2::Unix::Job->new( pgrp_leader => $pgrp_leader,
+					    pids => \@pids,
+					    desc => $visline,
+					    psh  => $self,);
+		$list{$pgrp_leader}= $job;
+		push @order, $job;
+		$current_job= $#order;
+		if ($fgflag) {
+		    $success= $job->wait_for_finish(1);
+		} else {
+		    my $visindex= @order;
+		    my $verb= $self->gt('background');
+		    $self->print("[$visindex] \u$verb $pgrp_leader $visline\n");
+		}
+	    }
+	}
+	return $success;
+    }
+
+    sub delete_job {
+	my $self= shift;
+	my ($pid) = @_;
+
+	my $job= $list{$pid};
+	return unless defined $job;
+
+	delete $list{$pid};
+	my $i;
+	for ($i=0; $i <= $#order; $i++) {
+	    last if( $order[$i]==$job);
+	}
+
+	splice( @order, $i, 1);
+    }
+
+    sub get_current_job {
+	return $order[$current_job];
+    }
+
+    sub set_current_job {
+	my $self= shift;
+	$current_job= shift();
+    }
+
+    sub job_exists {
+	my $self= shift;
+	my $pid= shift;
+	return exists $list{$pid};
+    }
+
+    sub get_job {
+	my $self= shift;
+	my $pid= shift;
+	return $list{$pid};
+    }
+
+    sub list_jobs {
+	return wantarray?@order:\@order;
+    }
+
+    sub find_job {
+	my $self= shift;
+	my $job_to_start= shift;
+
+	return $order[$job_to_start] if defined( $job_to_start);
+
+	for (my $i = $#order; $i >= 0; $i--) {
+	    my $job = $order[$i];
+	    if (!$job->{running}) {
+		return $job;
+	    }
+	}
+	return undef;
+    }
+
+
+    sub find_last_with_name {
+	my ($self, $name, $runningflag) = @_;
+	my $i= $#order;
+	while (--$i) {
+	    my $job= $order[$i];
+	    next if $runningflag and $job->{running};
+	    my $desc= $job->{desc};
+	    if ($desc=~ m:([^/\s]+)\s*: ) {
+		$desc= $1;
+	    } elsif ( $desc=~ m:/([^/\s]+)\s+.*$: ) {
+		$desc= $1;
+	    } elsif ( $desc=~ m:^([^/\s]+): ) {
+		$desc= $1;
+	    }
+	    if ($desc eq $name) {
+		return $job;
+	    }
+	}
+	return undef;
+    }
+
+    sub get_job_number {
+	my ($self, $pid)= @_;
+
+	for ( my $i=0; $i<=$#order; $i++) {
+	    return $i+1 if( $order[$i]->{pgrp_leader}==$pid);
+	}
+	return -1;
     }
 }
 

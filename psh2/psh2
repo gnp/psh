@@ -2,8 +2,7 @@
 
 $Psh2::VERSION='0.001';
 
-use strict;
-use Psh2;
+require Psh2;
 
 my $psh= new Psh2();
 my %opt=();
@@ -18,7 +17,7 @@ $psh->process_rc($opt{'f'}) unless $opt{'F'} or $opt{'c'};
 $psh->init_finish();
 
 if ($opt{'c'}) {
-    # process command
+    $psh->process_variable($opt{'c'});
     exit 0;
 }
 
