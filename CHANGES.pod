@@ -138,6 +138,13 @@ The parser parsed '&&' as if the user entered '& &&'.
 
 C<@_> and C<$_> are saved between input lines.
 
+=item *
+
+If you're redirecting perl code, a new fork will be created. You'll therefore
+lose all variable changes etc. in redirected perl code. That's not as bad as
+it seems, as before the change, psh segfaulted most of the time you tried
+redirecting perl code.
+
 =back
 
 =head2 Cleanups
