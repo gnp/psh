@@ -410,6 +410,7 @@ sub _setup_redirects {
 			} elsif ($option->[1] eq '>>') {
 				my $tmpfd= POSIX::open( $option->[3], &POSIX::O_WRONLY |
 									   &POSIX::O_CREAT);
+				POSIX::lseek($tmpfd,0, &POSIX::SEEK_END);
 				POSIX::dup2($tmpfd, $type);
 				POSIX::close($tmpfd);
 			}
