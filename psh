@@ -17,7 +17,7 @@
 package psh;
 
 use vars qw($VERSION);
-$VERSION   = '0.00202';
+$VERSION   = '0.00203';
 
 use Cwd;
 use Cwd 'chdir';
@@ -264,7 +264,7 @@ sub prompt_string
 			$sub =~ s/^.*\///;
 		} elsif ($2 eq '#') {
 			$sub = $cmd;
-		} elsif ($2 eq '#') {
+		} elsif ($2 eq '$') {
 			$sub = $> ? '$' : '#';
 		} else {
 			print "psh: Warning: $psh::prompt (`$temp') contains unknown escape sequence `\\$2'.\n";
