@@ -14,12 +14,13 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 # call is the name of the executed command
 #
 sub new {
-	my ( $class, $pid, $call ) = @_;
+	my ( $class, $pid, $call, $assoc_obj ) = @_;
 	my $self = {};
 	bless $self, $class;
 	$self->{pid}=$pid;
 	$self->{call}=$call;
 	$self->{running}=1;
+	$self->{assoc_obj}=$assoc_obj;
 	return $self;
 }
 
@@ -32,8 +33,7 @@ sub continue {
 
 	# minus sign to wake up the whole group of the child:
 	if( Psh::OS::has_job_control()) {
-		kill 'CONT', -$self->{pid};
-		kill 'CONT', -$self->{pgrp_leader} if $self->{pgrp_leader};
+		Psh::OS::resume_job($self);
 	}
 	$self->{running}=1;
 }

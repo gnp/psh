@@ -45,7 +45,7 @@ use vars qw($bin $cmd $echo $host $debugging
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
-		    $login_shell $change_title $window_title
+		    $login_shell $window_title
             $interactive
 			@val @wday @mon @strategies @unparsed_strategies @history
             @executable_noexpand
@@ -744,11 +744,6 @@ sub finish_initialize
 
 	$save_history    = 1               if !defined($save_history);
 	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);
-	$change_title    = 1               if !defined($change_title);
-
-	if( $change_title) {
-		$ENV{PSH_TITLE}= cwd;
-	}
 
 	if (!defined($longhost)) {
 		$longhost                    = Psh::OS::get_hostname();

@@ -19,11 +19,11 @@ sub new {
 }
 
 sub create_job {
-	my ($self, $pid, $call) = @_;
+	my ($self, $pid, $call, $assoc_obj) = @_;
 	my $jobs_order= $self->{jobs_order};
 	my $jobs_list= $self->{jobs_list};
 
-	my $job = new Psh::Job( $pid, $call);
+	my $job = new Psh::Job( $pid, $call, $assoc_obj);
 	$jobs_list->{$pid}=$job;
 	push(@$jobs_order,$job);
 	return $job;

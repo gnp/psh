@@ -10,12 +10,16 @@ use DirHandle;
 eval {
 	use Win32;
 	use Win32::TieRegistry 0.20;
+	use Win32::Process;
+	use Win32::Console;
 };
 
 if ($@) {
 	print_error_i18n('no_libwin32');
 	die "\n";
 }
+
+my $console= new Win32::Console();
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -28,6 +32,11 @@ $Psh::OS::FILE_SEPARATOR='\\';
 
 $Psh::rc_file = "pshrc";
 $Psh::history_file = "psh_history";
+
+sub set_window_title {
+	my $title=shift;
+	$console->Title($title);
+}
 
 sub get_hostname {
 	my $name_from_reg = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\ComputerName\\ComputerName\\ComputerName"};
@@ -98,6 +107,7 @@ sub execute_complex_command {
 		return ();
 	}
 
+	my $obj;
 	for( my $i=0; $i<@array; $i++) {
 		my ($coderef, $how, $options, $words, $strat, $text)= @{$array[$i]};
 		my $line= join(' ',@$words);
@@ -105,28 +115,82 @@ sub execute_complex_command {
 		my @tmp;
 
 		if( defined($eval_thingie)) {
-			@tmp= fork_process($eval_thingie,$fgflag,$text);
+			($obj,@tmp)= _fork_process($eval_thingie,$fgflag,$text,undef,$words);
 		}
 		if( @return_val < 1 ||
 			!defined($return_val[0])) {
 			@return_val= @tmp;
 		}
 	}
+	if ($obj) {
+		my $pid=$obj->GetProcessID();
+		my $job=$Psh::joblist->create_job($pid,$string,$obj);
+		if( $fgflag) {
+			_wait_for_system($obj, 1);
+		} else {
+			my $visindex= $Psh::joblist->get_job_number($pid);
+			Psh::Util::print_out("[$visindex] Background $pid $string\n");
+		}
+	}
 	return @return_val;
 }
 
-sub fork_process {
-	local( $Psh::code, $Psh::fgflag, $Psh::string) = @_;
+sub _fork_process {
+	local( $Psh::code, $Psh::fgflag, $Psh::string, $Psh::options,
+		   $Psh::words) = @_;
 	local $Psh::pid;
 
 	# TODO: perhaps we should use Win32::Process?
-	print_error_i18n('no_jobcontrol') unless $Psh::fgflag;
+	# hmm - won't help alot :-( - warp
+	# print_error_i18n('no_jobcontrol') unless $Psh::fgflag;
 
 	if( ref($Psh::code) eq 'CODE') {
-		return &{$Psh::code};
+		return (0,&{$Psh::code});
 	} else {
-		system($Psh::code);
+		if ($Psh::words) {
+			my $obj;
+			Win32::Process::Create($obj,
+								   @$Psh::words->[0],
+								   $Psh::string,
+								   0,
+								   NORMAL_PRIORITY_CLASS,
+								   ".");
+			return ($obj,0);
+			# We are passing around objects instead of pid because
+			# Win32::Process currently only allows me to create objects,
+			# not look them up via pid
+		} else {
+			return (0,system($Psh::code));
+		}
 	}
+}
+
+sub _wait_for_system {
+	my ($obj, $quiet)=@_;
+
+	return unless $obj;
+	$obj->Wait(INFINITE);
+	_handle_wait_status($obj,$quiet)
+}
+
+sub _handle_wait_status {
+	my ($obj,$quiet)=@_;
+
+	return '' unless $obj;
+	my $pid= $obj->GetProcessID();
+	my $job= $Psh::joblist->get_job($obj->GetProcessID());
+	my $command = $job->{call};
+	my $visindex= $Psh::joblist->get_job_number($pid);
+	my $verb='';
+
+	Psh::Util::print_out("[$visindex] \u$Psh::text{done} $pid $command\n") unless $quiet;
+	$Psh::joblist->delete_job($pid);
+	return '';
+}
+
+sub fork_process {
+	_fork_process(@_);
+	return undef;
 }
 
 sub get_all_users {
@@ -145,8 +209,47 @@ sub get_all_users {
 }
 
 
-sub has_job_control { return 0; }
-sub restart_job {1}
+sub has_job_control { return 1; }
+
+sub resume_job {
+	my $job= shift;
+	$job->{assoc_obj}->Resume();
+}
+
+#
+# void restart_job(bool FOREGROUND, int JOB_INDEX)
+#
+sub restart_job
+{
+	my ($fg_flag, $job_to_start) = @_;
+
+	my $job= $Psh::joblist->find_job($job_to_start);
+
+	if(defined($job)) {
+		my $pid = $job->{pid};
+		my $command = $job->{call};
+
+		if ($command) {
+			my $verb = "\u$Psh::text{restart}";
+			my $qRunning = $job->{running};
+			if ($fg_flag) {
+			  $verb = "\u$Psh::text{foreground}";
+			} elsif ($qRunning) {
+			  # bg request, and it's already running:
+			  return;
+			}
+			my $visindex = $Psh::joblist->get_job_number($pid);
+			Psh::Util::print_out("[$visindex] $verb $pid $command\n");
+
+			if($fg_flag) {
+				eval { _wait_for_system($job->{assoc_obj}, 0); };
+			} elsif( !$qRunning) {
+				$job->continue;
+			}
+		}
+	}
+}
+
 sub remove_signal_handlers {1}
 sub setup_signal_handlers {1}
 sub setup_sigsegv_handler {1}
@@ -155,8 +258,11 @@ sub reinstall_resize_handler {1}
 
 sub get_home_dir {
 	my $user= shift;
-	return $ENV{HOME} if( ! $user && $ENV{HOME} );
-	return "\\";
+	my $home;
+	if (!$user) {
+		$home=$ENV{HOME}||$ENV{HOMEDRIVE}.$ENV{HOMEPATH};
+	}
+	return $home||"\\";
 } # we really should return something (profile?)
 
 

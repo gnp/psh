@@ -43,7 +43,8 @@ my $default_prompt = '\s% ';
 			my $dir = cwd;
 			my $home = Psh::OS::get_home_dir();
 			return $dir unless (length($home) > length($Psh::OS::FILE_SEPARATOR));	# in case the home dir is the root dir
-			$dir =~ s/^${home}/\~/ if $home;
+            $dir =~ s/\\/\\\\/g;
+			$dir =~ s/^\Q$home\E/\~/ if $home;
 			return $dir;
 		},
 	'W' => sub {
@@ -162,10 +163,7 @@ sub change_title {
 	$title= $ENV{PSH_TITLE} unless defined $title;
 	return if !$title;
 	$title= prompt_string($title);
-	my $term= $ENV{TERM};
-	if( $term=~ /^(rxvt.*)|(xterm.*)|(.*xterm)|(kterm)|(aixterm)|(dtterm)/) {
-		print "\017\033]2;$title\007";
-	}
+	Psh::OS::set_window_title($title);
 }
 
 1;
