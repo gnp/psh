@@ -33,3 +33,4 @@ the later.
 - Syntax extensions for manipulating env vars (substrings, arithmetics)?
 Should maybe better be done in Perl I think.
 
+- We do not actually support variables (e.g. "variable=value command"). There's only builtin support for modifying and interpolating env variables.
