@@ -210,9 +210,9 @@ sub recalc_absed_path {
 
 	my $last_path_cwd = '';
 	my $FS=$Psh::OS::FILE_SEPARATOR;
-
-	my $re1="\Q$FS\E";
-	my $re2="^(.*)\Q$FS\E([^\Q$FS\E]+)\$";
+	my $tmp= quotemeta($FS);
+	my $re1="$tmp";
+	my $re2="^(.*)$tmp([^$tmp]+)\$";
 
 	if ($]>=5.005) {
 		eval {
