@@ -315,6 +315,7 @@ sub execute_complex_command {
 	my $string='';
 	my @tmp;
 
+	my ($read,$write,$input);
 	for( my $i=0; $i<@array; $i++) {
 		# ([ $strat, $how, \@options, \@words, $line]);
 		my ($strategy, $how, $options, $words, $text, $opt)= @{$array[$i]};
@@ -329,13 +330,13 @@ sub execute_complex_command {
 
 		if( defined($eval_thingie)) {
 			if( $#array) {
-				pipe READ,WRITE;
+				($read,$write)= POSIX::pipe();
 			}
 			if( $i>0) {
-				unshift(@$options,[Psh::Parser::T_REDIRECT(),'<&',0,'INPUT']);
+				unshift(@$options,[Psh::Parser::T_REDIRECT(),'<&',0,$input]);
 			}
 			if( $i<$#array) {
-				unshift(@$options,[Psh::Parser::T_REDIRECT(),'>&',1,'WRITE']);
+				unshift(@$options,[Psh::Parser::T_REDIRECT(),'>&',1,$write]);
 			}
 			my $termflag=!($i==$#array);
 
@@ -349,8 +350,8 @@ sub execute_complex_command {
 			}
 
 			if( $i<$#array && $#array) {
-				close(WRITE);
-				open(INPUT,"<&READ");
+				POSIX::close($write);
+				POSIX::dup2($read,$input);
 			}
 			if( @return_val < 1 ||
 				!defined($return_val[0])) {
@@ -383,36 +384,30 @@ sub _setup_redirects {
 	my @cache=();
 	foreach my $option (@$options) {
 		if( $option->[0] == Psh::Parser::T_REDIRECT()) {
-			my $file= $option->[1].$option->[3];
 			my $type= $option->[2];
+			my $cachefileno;
 
-			if( $type==0) {
-				no warnings; # Don't complain about 'Name ... used only once'
-				open(OLDIN,"<&STDIN") if $save;
-				close(STDIN);
-				open(STDIN,$file);
-				select(STDIN);
-				$|=1;
-				if( $file eq '<&INPUT') {
-					close(INPUT);
-					# Just to get rid of the warning
-				}
-			} elsif( $type==1) {
-				no warnings; # Don't complain about 'Name ... used only once'
-				open(OLDOUT,">&OLDOUT") if $save;
-				close(STDOUT);
-				open(STDOUT,$file);
-				select(STDOUT);
-				$|=1;
-			} elsif( $type==2) {
-				no warnings; # Don't complain about 'Name ... used only once'
-				open(OLDERR,">&OLDERR") if $save;
-				close(STDERR);
-				open(STDERR,$file);
-				select(STDERR);
-				$|=1;
+			if ($option->[1] eq '<&') {
+				POSIX::dup2($option->[3], $type);
+			} elsif ($option->[1] eq '>&') {
+				POSIX::dup2($option->[3], $type);
+			} elsif ($option->[1] eq '<') {
+				my $tmpfd= POSIX::open( $option->[3], &POSIX::O_RDONLY);
+				POSIX::dup2($tmpfd, $type);
+				POSIX::close($tmpfd);
+			} elsif ($option->[1] eq '>') {
+				my $tmpfd= POSIX::open( $option->[3], &POSIX::O_WRONLY |
+										&POSIX::O_TRUNC | &POSIX::O_CREAT );
+				print STDERR "tmpfd=$tmpfd\n";
+				print STDERR "errno=".POSIX::errno()."\n";
+				POSIX::dup2($tmpfd, $type);
+				POSIX::close($tmpfd);
+			} elsif ($option->[1] eq '>>') {
+				my $tmpfd= POSIX::open( $option->[3], &POSIX::O_WRONLY |
+									   &POSIX::O_CREAT);
+				POSIX::dup2($tmpfd, $type);
+				POSIX::close($tmpfd);
 			}
-			push @cache,$type if $save;
 		}
 	}
 	select(STDOUT);
@@ -427,23 +422,6 @@ sub _has_redirects {
 		return 1 if( $option->[0] == Psh::Parser::T_REDIRECT());
 	}
 	return 0;
-}
-
-sub _remove_redirects {
-	my $cache= shift;
-
-	foreach my $type (@$cache) {
-		if( $type==0) {
-			close(STDIN);
-			open(STDIN,"<&OLDIN");
-		} elsif( $type==1) {
-			close(STDOUT);
-			open(STDOUT,">&OLDOUT");
-		} elsif( $type==2) {
-			close(STDERR);
-			open(STDERR,">&OLDERR");
-		}
-	}
 }
 
 #
