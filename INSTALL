@@ -51,3 +51,18 @@ try to work around this by putting something like
 in your shell's startup dotfile. Be careful that this file
 isn't executed by a shebang (#!) invocation of the shell, or
 shell scripts written for that shell may mysteriously fail.
+
+
+WIN32
+-----
+
+These instructions are temporary; they allow you to run psh,
+but not make it run when you open a terminal window.
+
+Assuming perl is in your %PATH% and you are in the directory
+containing the psh script, try
+	perl -Ilib psh
+
+You can manually move the modules into your lib directory.
+You might also have success imitating the Unix instructions
+with nmake.
