@@ -1,0 +1,4 @@
+
+TITLE='SYS$SYSDEVICE:[$(print $ENV{PWD}|tr [:lower:] [:upper:]|cut -c2-255|tr "/" ",").]'
+PS1="$ "
+PS2="$ "
