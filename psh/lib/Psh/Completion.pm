@@ -47,8 +47,10 @@ sub init
 
 sub cmpl_bookmarks
 {
-	my $text= shift;
-	return grep { starts_with($_,$text) } @psh::bookmarks;
+	my ($text, $prefix)= @_;
+	my $length=length($prefix);
+	return map { substr($_,$length) }
+	         grep { starts_with($_,$prefix.$text) } @psh::bookmarks;
 }
 
 
@@ -188,7 +190,8 @@ sub custom_completion
 			 $starttext =~ /^\s*(\S+)\s+/ && ($tmp=$1) &&
 			 grep { $_ eq $tmp } @psh::netprograms)
 	{
-		@tmp= cmpl_bookmarks($text);
+		$starttext =~ /\s(\S*)$/;
+		@tmp= cmpl_bookmarks($text,$1);
 	} else {
 		if( $GNU) { # faster....
 			@tmp= $term->completion_matches($text,
