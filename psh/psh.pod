@@ -766,12 +766,12 @@ Larry Wall exhibits the simple Perl shell C<while (E<lt>E<gt>) { eval; print $@;
 page 161 of the Camel Book (2nd Edition).
 
 
-=head2 Lee Eakin's Perl Shell
+=head2 lpsh
 
 Lee Eakin E<lt>F<leakin@dfw.nostrum.com>E<gt> has written the Fancy Poor Man's Perl SHell
-(fpmpsh), a simple Perl shell that he has used for a number of years now (it is derived from
-Larry Wall's Perl Shell).  He has added some numeric conversion functions because he often
-uses it as a calculator.
+(called lpsh for Lee's Perl Shell), a simple Perl shell that he has used for a number of
+years now (it is derived from Larry Wall's Perl Shell).  He has added some numeric
+conversion functions because he often uses it as a calculator.
 
 He has placed it on the web at C<http://www.dfw.nostrum.com/~leakin/psh> (for the
 code) and C<http://www.dfw.nostrum.com/~leakin/psh.README> for a short explanation
@@ -854,7 +854,7 @@ brief table indicating whether or not each has certain features.
     Shell Name         PE    SHE   CLE   JC    PL
  psh (this one)         *     *     *     *     *            
  Larry Wall shell       *     -     -     -     -
- fpmpsh                 *     -     *     -     -
+ lpsh                   *     -     *     -     -
  Perl debugger shell    *     -     *     -     -
  perlsh                 *     -     *     -     -
  Krynicky PSH.pm        *     *     ?     -     ?
