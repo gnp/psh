@@ -28,7 +28,7 @@ $foo->method, subroutine without &, perl reserved symbol) - Hiroo Hayashi
 
 =item * Executable completion now even after initial '!' for shell escape - warp [2000-03-11]
 
-=item * Some minimal status code testing - warp [2000-03-11]
+=item * Some minimal status code testing and error handling for user input - warp [2000-03-11]
 
 =item * Understands environment variable IGNOREEOF - warp [2000-03-11]
 

@@ -48,6 +48,7 @@ __DATA__
 # Misc texts
 exec_failed=Error - Could not exec %1.
 fork_failed=Error - Could not fork.
+no_command=Command not found or syntax wrong: %1
 simulate_perl_w=Simulating -w switch and strict
 no_r_flag=If you intended to use a different rc file, please now use the -f switch.\n -r is now reserved for 'restricted mode'.
 perm_denied=%2: %1: Permission denied.
