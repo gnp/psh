@@ -34,6 +34,8 @@ each character denotes a certain class of debug messages.
 
 =item C<e> - enables printing of otherwise suppressed error messages
 
+=item C<c> - enables printing of debug messages for completion
+
 =back
 
 =head2 SPEED

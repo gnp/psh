@@ -404,6 +404,13 @@ sub completion
 	my ($text, $line, $start) = @_;
 	my $attribs               = $Psh::term->Attribs;
 
+	if ($Psh::debugging and
+		($Psh::debugging eq '1' or
+		 $Psh::Debugging =~ /c/)) {
+		Psh::Util::print_debug_class('c',"\n");
+		Psh::Util::print_debug_class('c',"Completion: text=$text, line=$line, start=$start\n");
+	}
+
 	my @tmp=();
 
 	my $startchar= substr($line, $start, 1);
