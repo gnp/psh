@@ -60,6 +60,12 @@ sub cmpl_filenames
 
 	my $exclam=0;
 
+	# HACK HACK HACK - this needs to be fixed some other way -
+	# the completion code is severly messed I fear
+	$text= Psh::Parser::unquote($text);
+	$text=~ s/\\//g;
+	# HACK END
+
 	if ( $executable_only) {
 		if ($text=~s/^\!//) {
 			$exclam=1;
@@ -404,17 +410,21 @@ sub completion
 	my ($text, $line, $start) = @_;
 	my $attribs               = $Psh::term->Attribs;
 
-	if ($Psh::debugging and
-		($Psh::debugging eq '1' or
-		 $Psh::Debugging =~ /c/)) {
-		Psh::Util::print_debug_class('c',"\n");
-		Psh::Util::print_debug_class('c',"Completion: text=$text, line=$line, start=$start\n");
-	}
 
 	my @tmp=();
+	my $cut= 0;
+	my $starttext= substr($line, 0, $start);
+
+	if ($starttext =~ /((?:\S|\\\s)+\\\s)$/) {
+		$text= $1.$text;
+		$cut= length($1);
+		$start-= $cut;
+		$starttext= substr($line, 0, $start);
+	}
+
 
 	my $startchar= substr($line, $start, 1);
-	my $starttext= substr($line, 0, $start);
+
 	$starttext =~ /^\s*(\S+)\s+/;
 	my $command= $1 || '';
 
@@ -430,11 +440,20 @@ sub completion
 		$command= $1;
 	}
 
-	my $firstflag= $starttext !~/\s/;
+	my $firstflag= $starttext !~/\s/ || 0;
 
 	$Psh::Completion::ac=' ';
 
 	$command =~ m|^\s*(\S*/)?(\S*)|;
+
+	if ($Psh::debugging and
+		($Psh::debugging eq '1' or
+		 $Psh::debugging =~ /c/)) {
+		Psh::Util::print_debug_class('c',"\n");
+		Psh::Util::print_debug_class('c',"Completion: text=$text, line=$line, start=$start, starttext=$starttext, command=$command, first=$firstflag\n");
+	}
+
+
 	my $dir=$1||'';
 	my $base=$2||'';
 	my $cmd;
@@ -522,6 +541,10 @@ sub completion
 	}
 
 	$attribs->{$APPEND}=$Psh::Completion::ac;
+
+	if ($cut) {
+		@tmp= map { substr($_, $cut)} @tmp;
+	}
 	return @tmp;
 }
 
