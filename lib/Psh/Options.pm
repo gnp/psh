@@ -1,6 +1,8 @@
 package Psh::Options;
 
+require Psh;
 require Psh::OS;
+require File::Spec;
 
 # externally stored options
 my %env_options= qw( cdpath 1 fignore 1 histsize 1 ignoreeof 1
@@ -20,6 +22,8 @@ my %options=(
 			 'globbing'  => 1,
 			 'window_title' => '\w',
 			 'save_history' => 1,
+			 'history_file' => File::Spec->catfile(Psh::OS::get_home_dir(),
+												   '.'.$Psh::bin.'_history'),
 			);
 
 # setup defaults for ENV variables

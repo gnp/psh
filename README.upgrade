@@ -21,6 +21,7 @@ Upgrading from version 0.009 or earlier:
   $Psh::prompt,
   $Psh::prompt_cont,
   $Psh::history_length,
+  $Psh::handle_segfault,
   $Psh::save_history,
   were removed. Please use the new option builtin.
 

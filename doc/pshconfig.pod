@@ -21,22 +21,61 @@ the C<strategy> builtin, or by setting options, using the C<option> builtin.
 All options marked as (ENV) inherit their settings from the current
 environment.
 
+All options marked as (EARLY) must be set in the pshrc file or earlier to
+be evaluated.
+
 =over 4
+
+=item * B<array_exports>
+
+Contains a list of environment variables which should be tied
+to arrays. The key of the hash is the name of the variable, the
+value is the delimiter of the list (e.g. ':' in PATH). The
+default value for array_exports currently contains PATH, CLASSPATH,
+LD_LIBRARY_PATH, FIGNORE and CDPATH.
 
 =item * B<cdpath> (ENV)
 
 A list of paths of directories in which the C<cd> builtin
 should search for its argument. Defaults to ".".
 
+=item * B<echo>
+
+Controls whether the processing loop saves and displays the Perl value 
+of executing a line of input. Three cases are distinguished: a false
+value, in which case no results are displayed; a subroutine reference, 
+in which case the subroutine is called with the results (this may be
+multiple arguments if the eval returned an array) and should return
+true to display, false to not; or a true (scalar) value, in which case 
+any non-undef, non-empty value is displayed.
+
+In addition to displaying the value, it is pushed onto the array
+determined by C<$Psh::result_array>.
+Note that scalar values are pushed directly onto this array, but array
+values are pushed by reference. 
+
 =item * B<fignore> (ENV)
 
 A list (separated by the path separator) of file endings to
 ignore when performing TAB completion. No default.
 
-=item * B<histsize> (ENV)
+=item * B<history_file> 
+
+The filename B<psh> will use to save the command history in from one
+invocation to the next, if B<save_history> is set.
+
+Default is "F<$ENV{HOME}/.${bin}_history>".
+
+
+=item * B<histsize> (ENV) (EARLY)
 
 The maximum number of lines to save in the history file.
 Defaults to 50.
+
+=item * B<ignoredie>
+
+If set, B<psh> will attempt to continue after internal
+errors.
 
 =item * B<ignoreeof> (ENV)
 
@@ -45,6 +84,15 @@ sole input.  If set, the value is the number of consecutive EOF characters
 typed as the first characters on an input line before bash exits.
 If the variable exists but does not have a numeric value, the default value
 is 10. If it does not exist, EOF signifies the end of input to the shell.
+
+=item * B<ignoresegfault> (EARLY)
+
+If set, Perl Shell will try to ignore all segementation faults. Use this
+at your own risk!
+
+=item * B<path> (ENV)
+
+A list of directories to search for executables.
 
 =item * B<ps1> (ENV)
 
@@ -55,14 +103,24 @@ Please see below for more information.
 
 This is the continuation prompt.
 
+=item * B<window_title>
+
+Controls the window title in interactive use. See prompt evaluation
+for escape codes.
+
+=item * B<save_history>
+
+If this is true, the command history is saved in file C<$Psh::history_file>
+from one invocation of B<psh> to the next.
+
 =head1 PROMPT STRINGS
 
-Setting the variable I<$Psh::prompt> to a string will cause that string
+Setting the variable I<ps1> to a string will cause that string
 to be used as the prompt-string. Setting it to a subroutine reference
 causes the result of running that subroutine to be used each time.
 For example,
 
-  $Psh::prompt = sub { $i++; "psh [$i]\$ "; }
+  option ps1= sub { $i++; "psh [$i]\$ "; }
 
 will cause the prompt to be C<psh [1]$> followed by C<psh [2]$>, and so on.
 
@@ -140,45 +198,11 @@ this is set to a string to characters, only debug output belonging
 to the classes signified by the characters will be shown. Debug
 classes etc. are in B<pshdevel>
 
-=item I<$Psh::echo> (0)
-
-Controls whether the processing loop saves and displays the Perl value 
-of executing a line of input. Three cases are distinguished: a false
-value, in which case no results are displayed; a subroutine reference, 
-in which case the subroutine is called with the results (this may be
-multiple arguments if the eval returned an array) and should return
-true to display, false to not; or a true (scalar) value, in which case 
-any non-undef, non-empty value is displayed.
-
-In addition to displaying the value, it is pushed onto the array
-determined by C<$Psh::result_array>.
-Note that scalar values are pushed directly onto this array, but array
-values are pushed by reference. 
-
 =item I<$Psh::eval_preamble> ("package main;")
 
 Every Perl expression that B<psh> evaluates as part of its read-eval loop
 is prepended with this string, intended primarily to set the expected
 package context.
-
-=item I<$Psh::handle_segfaults> (0)
-
-If set to true, B<psh> will ignore all segfaults and attempt to
-continue.
-
-=item I<$Psh::ignore_die> (0)
-
-If set to true, B<psh> will attempt to continue after internal
-errors.
-
-=item I<$Psh::history_file> ("F<$ENV{HOME}/.${bin}_history>") [late]
-
-The filename B<psh> will use to save the command history in from one
-invocation to the next, if C<$Psh::save_history> is true.
-
-=item I<$Psh::history_length> (50) [late]
-
-The number of lines of command history to keep.
 
 =item I<$Psh::host> (the output of "C<hostname -s>") [late]
 
@@ -198,57 +222,17 @@ does not apply, set to true unless called from another instance of B<psh>.
 
 The fully qualified host name of the machine B<psh> is running on.
 
-=item I<$Psh::prompt> ('\s\$') [late]
-
-Controls the prompt string in interactive use, see below.
-
-=item I<$Psh::prompt_cont> ('E<gt> ') [late]
-
-Just like I<$Psh::prompt>, but for continuation lines when multi-line
-input is being read.
-
-=item I<$Psh::window_title> ('\w')
-
-Controls the window title in interactive use. See prompt evaluation
-for escape codes.
-
 =item I<$Psh::result_array> ('Psh::val') 
 
 Controls where the results of Perl evaluations saved via C<$Psh::echo> 
 will go. It may be a reference to an array, or the string name of an
 array.
 
-=item I<$Psh::save_history> (1) [late]
-
-If this is true, the command history is saved in C<$Psh::history_file>
-from one invocation of B<psh> to the next.
-
 =item I<$Psh::which_regexp> ('^[-a-zA-Z0-9_~+]*$')
 
 When C<Psh::Util::which> is asked to locate a filename in the current
 PATH, it will only look for filenames which match this regexp. Names
 that do not match this regexp will automatically come back "not found".
-
-=item I<$Psh::Strategy::Perlfunc::builtins> (0)
-
-If this variable is true, the perlfunc evaluation strategy will
-also match those Perl builtins determined by %Psh::perl_builtins
-
-=item I<$Psh::Strategy::Perlfunc::packages> (1)
-
-If this variable is true, the perlfunc evaluation strategy will
-also match functions with full package specification
-
-=item I<$Psh::Strategy::Perlfunc::expand_arguments> (0)
-
-If this variable is true, then command lines interpreted by the
-perlfunc strategy which contain no parens, or  braces or commas except 
-in bash-like brace-expansion expressions, will not
-be simply evaluated. Rather, they will be interpreted much like
-traditional shells do: the line will be spilt into words, which
-undergo globbing, brace expansion, and variable expansion, and the
-resulting array of words is passed to the specified function as its
-arguments. 
 
 =back
 
@@ -274,13 +258,6 @@ filled when the ReadLine module doesn't handle the history file.
 The default array where B<psh> stores away the results of executing
 lines, as described in C<$Psh::echo> above. 
 
-=item I<@Psh::Strategy::Executable::noexpand> ( B<whois>, B<^ezmlm->, etc. )
-
-Contains regular expressions. If $Psh::executable_expand_arguments
-is set commands which match one of these REs won't have perl
-variables expanded. This is especially useful for commands which
-expect email adresses, and therefore an at-sign.
-
 =back
 
 
@@ -288,44 +265,11 @@ expect email adresses, and therefore an at-sign.
 
 =over 4
 
-=item I<%Psh::Strategy::Perlfunc::perl_builtins> (by default, all Perl builtins and keywords)
-
-The perlfunc evaluation strategy uses this hash on the first word of a 
-command line to determine whether it should handle that command
-line. If the first word is present as a key
-in this hash, then the corresponding value determines the treatment: 0 
-means don't handle this line; any positive
-value means do handle the line as long as it has at least that many
-words. (Since the first word counts, a value of '1' will guarantee
-that the perlfunc strategy handles the line.) Useful for example to
-set C<$Psh::perl_builtins{grep} = 0;> if you don't want "grep" to be
-treated as a perl function.
-
-Note that the perlfunc strategy will also handle the line if the first
-word is not present as a key in this hash but a
-Perl subroutine of that name is defined.
-
-=item I<%Psh::Strategy::Perlfunc::perl_builtins_noexpand> (by default, Perl flow-control
-keywords)
-
-The keys of this hash never have their arguments expanded in a
-shell-like fashion, even if $Psh::perlfunc_expand_arguments is true.
-
 =item I<%Psh::Prompt::prompt_vars>
 
 The keys of this hash are single characters, and the values are
 subroutine references that implement the given escape character in
 prompt strings. (See L<PROMPT STRINGS> below.)
-
-=item I<%Psh::Support::Env::array_exports>
-
-Contains a list of environment variables which should be tied
-to arrays. The key of the hash is the name of the variable, the
-value is the delimiter of the list (e.g. ':' in PATH). The
-default value for array_exports currently contains PATH, CLASSPATH,
-LD_LIBRARY_PATH, FIGNORE and CDPATH.
-
-
 
 =back
 
