@@ -395,7 +395,7 @@ sub process
 			if ($control_d_max !~ /^\d$/) {
 				$control_d_max=10;
 			}
-			Psh::OS::exit() if ($control_d_counter>=$control_d_max);
+			Psh::OS::exit_psh() if ($control_d_counter>=$control_d_max);
 			next;
 		}
 		$control_d_counter=0;

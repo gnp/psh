@@ -167,7 +167,7 @@ sub fb_abs_path { undef }
 # MacOS
 #
 sub fb_exit_psh {
-	Psh::Util::print_debug_class('i',"[Psh::OS::exit() called]\n");
+	Psh::Util::print_debug_class('i',"[Psh::OS::exit_psh() called]\n");
 	Psh::save_history();
 	$ENV{SHELL} = $Psh::old_shell if $Psh::old_shell;
 	CORE::exit($_[0]) if $_[0];
