@@ -174,7 +174,7 @@ directory".
 
 	sub bi_cd
 	{
-		my $in_dir = shift;
+		my $in_dir = shift || $ENV{HOME};
 		my $dirpath= $ENV{CDPATH} || '.';
 
 		foreach my $cdbase (split $PS,$dirpath) {
