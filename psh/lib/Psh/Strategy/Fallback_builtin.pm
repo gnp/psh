@@ -31,7 +31,7 @@ sub applies {
 	my $fnname = ${$_[2]}[0];
 	if( $fallback_builtin{$fnname}) {
 		eval 'use Psh::Builtins::Fallback::'.ucfirst($fnname);
-		return "fallback built-in $fnname";
+		return $fnname;
 	}
 	return '';
 }
@@ -40,13 +40,13 @@ sub execute {
 	my $self= shift;
 	my $line= ${shift()};
 	my @words= @{shift()};
-	my $command= shift @words;
+	my $command= shift;
+	shift @words;
 	my $rest= join(' ',@words);
-	{
-		no strict 'refs';
-		$coderef= *{"Psh::Builtins::Fallback::".ucfirst($command)."::bi_$command"};
-		return (sub { &{$coderef}($rest,\@words); },[], 0, undef );
-	}
+
+	no strict 'refs';
+	$coderef= *{"Psh::Builtins::Fallback::".ucfirst($command)."::bi_$command"};
+	return (sub { &{$coderef}($rest,\@words); },[], 0, undef );
 }
 
 1;

@@ -128,7 +128,7 @@ sub print_list
 
 sub abs_path {
 	my $dir= shift;
-	return $path_hash{$dir} if $path_hash{$dir} && $dir ne '.' && $dir ne '..';
+	return $path_hash{$dir} if $path_hash{$dir};
 	my $result= Psh::OS::abs_path($dir);
 	unless ($result) {
 		if ($dir eq '~') {
@@ -146,9 +146,15 @@ sub abs_path {
 			my $tmp= File::Spec->rel2abs($dir,$ENV{PWD});
 
 			my $old= $ENV{PWD};
-			if ( CORE::chdir($tmp)) {
-				$result = Psh::OS::getcwd_psh();
-				CORE::chdir($old) || die "Cannot chdir back to $old: $!";
+			if (-r $tmp) {
+				if (-d $tmp and -x _) {
+					if ( CORE::chdir($tmp)) {
+						$result = Psh::OS::getcwd_psh();
+						CORE::chdir($old) || die "Cannot chdir back to $old: $!";
+					}
+				} else {
+					$result= $tmp;
+				}
 			}
 			unless ($result) {
 				local $^W=0;
@@ -163,7 +169,7 @@ sub abs_path {
 			$result.='/' unless $result=~ m:[/\\]:;  # abs_path strips / from letter: on Win
 		}
 	}
-	$path_hash{$dir}= $result;
+	$path_hash{$dir}= $result if File::Spec->file_name_is_absolute($dir);
 	return $result;
 }
 

@@ -345,10 +345,10 @@ sub defined_and_nonempty
 
 sub process_file
 {
-	my ($path) = @_;
+	my $path= shift;
 
 	print_debug("[PROCESSING FILE $path]\n");
-	$interactive=0;
+	local $interactive=0;
 
 	if (!-r $path) {
 		print_error_i18n('cannot_read_script',$path,$bin);
@@ -375,8 +375,6 @@ sub process_file
 
 	Psh::OS::unlock(*FILE);
 	close(FILE);
-
-	$interactive=1;
 
 	print_debug("[FINISHED PROCESSING FILE $path]\n");
 }

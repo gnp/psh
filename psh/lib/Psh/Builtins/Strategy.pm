@@ -22,7 +22,6 @@ require Psh::Strategy;
 sub bi_strategy
 {
 	my ($line, $words)= @_;
-
 	if( ! $words->[0]) {
 		require Psh::Builtins::Help;
 		Psh::Builtins::Help::bi_help('strategy');
