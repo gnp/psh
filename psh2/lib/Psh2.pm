@@ -43,7 +43,7 @@ sub new {
 		 ld_library_path => path_separator(),
 		 fignore => path_separator(),
 		 cdpath => path_separator(),
-		 ld_colors => ':'
+		 ls_colors => ':'
 	     },
 		frontend => 'readline',
 	    },
@@ -53,6 +53,7 @@ sub new {
 	       dirstack => [],
 	       dirstack_pos => 0,
 	       tmp => {},
+	       status => 0,
 	   };
     bless $self, $class;
     return $self;
@@ -61,14 +62,17 @@ sub new {
 sub _eval {
     my $self= shift;
     my $lines= shift;
+
     while (my $element= shift @$lines) {
 	my $type= shift @$element;
 	if ($type == Psh2::Parser::T_EXECUTE()) {
-	    $self->start_job($element);
+	    $self->{status}= $self->start_job($element);
 	}
 	elsif ($type == Psh2::Parser::T_OR()) {
+	    return 1 if $self->{status};
 	}
 	elsif ($type == Psh2::Parser::T_AND()) {
+	    return 0 unless $self->{status};
 	}
 	else {
 	    # TODO: Error handling
@@ -79,7 +83,8 @@ sub _eval {
 sub process {
     my ($self, $getter)= @_;
 
-    while (1) {
+    my @store=();
+    LINE: while (1) {
 	my $input= &$getter();
 
 	unless (defined $input) {
@@ -87,9 +92,13 @@ sub process {
 	}
 	$self->reap_children();
 
-	my $tmp= eval { Psh2::Parser::parse_line($input, $self); };
-	# Todo: Error handling
+	my $tmp= eval { Psh2::Parser::parse_line(join("\n",@store, $input), $self); };
 	print STDERR $@ if $@;
+	if ($@ =~ /^parse: needmore:/) {
+	    push @store, $input;
+	    next LINE;
+	}
+	@store= ();
 
 	if ($tmp and @$tmp) {
 	    _eval($self, $tmp);
@@ -99,9 +108,10 @@ sub process {
 
 sub process_file {
     my ($self, $file)= @_;
+    local $self->{interactive}= 0;
     local (*FILE);
     open( FILE, "< $file");
-    $self->process( sub { my $txt=<FILE>; $txt});
+    $self->process( sub { my $txt=<FILE>; chomp($txt) if defined $txt; $txt});
     close( FILE);
 }
 
@@ -148,6 +158,7 @@ sub main_loop {
 	$getter= sub { return <STDIN>; };
     }
     $self->process($getter);
+    exit 0;
 }
 
 sub init_minimal {
@@ -277,10 +288,17 @@ sub printdebug {
 	    $result=~ tr:\\:/:;
 	} else {
 	    if ($path eq '~') {
+		$result= $ENV{HOME};
 	    }
 	    elsif ( substr($path, 0, 2) eq '~/') {
+		substr($path,0,1)= $ENV{HOME};
 	    }
 	    elsif ( substr($path, 0, 1) eq '~') {
+		my $fs= file_separator();
+		my ($user)= $path=~ /^\~(.*?)$fs/;
+		if ($user) {
+		    substr($path,0,length($user)+1)= get_home_dir($user);
+		}
 	    }
 	    unless ($result) {
 		my $tmp= rel2abs( $self, $path, $ENV{PWD});
@@ -322,9 +340,10 @@ sub printdebug {
 	    $command=~ $re;
 	    my $path_element= $1 || '';
 	    my $cmd_element = $2 || '';
+
 	    return undef unless $path_element and $cmd_element;
 	    $path_element= abs_path($self, $path_element);
-	    my $try= catfile($path_element, $cmd_element);
+	    my $try= catfile_fast($path_element, $cmd_element);
 	    if (-x $try and ! -d _ ) {
 		return $try;
 	    }
@@ -343,7 +362,7 @@ sub printdebug {
 	my @all= ();
 	foreach my $dir (@absed_path) {
 	    next unless $dir;
-	    my $try= catfile($self, $dir, $command);
+	    my $try= catfile_fast($dir, $command);
 	    foreach my $ext (@$path_ext) {
 		my $tmp= $try.$ext;
 		if (-x $tmp and !-d _) {
@@ -374,6 +393,7 @@ sub printdebug {
 		push @absed_path, $dir;
 	    }
 	};
+	print $@ if $@;
 	# TODO: Error handling
     }
 }
@@ -391,11 +411,11 @@ sub _recursive_glob {
     my @files= readdir(DIR);
     closedir( DIR);
     $pattern= qr{^$pattern$};
-    my @result= map { catdir(undef, $dir,$_) }
+    my @result= map { catdir_fast($dir,$_) }
       grep { $_ =~ $pattern } @files;
     foreach my $tmp (@files) {
 	next if $tmp eq '.' or $tmp eq '..';
-	my $tmpdir= catdir(undef, $dir,$tmp);
+	my $tmpdir= catdir_fast($dir,$tmp);
 	next if ! -d $tmpdir;
 	push @result, _recursive_glob($pattern, $tmpdir);
     }
@@ -417,6 +437,7 @@ sub glob {
     my( $self, $pattern, $dir, $already_absed) = @_;
 
     return () unless $pattern;
+    return $pattern if $pattern !~ /[~*?]/;
 
     my @result;
     if( !$dir) {
@@ -435,15 +456,13 @@ sub glob {
 	$pattern=~ s|^\~([^/]+)|&get_home_dir($self, $1)|e;
     }
 
-    return $pattern if $pattern !~ /[*?\[\]]/;
-
     # Special recursion handling for **/anything globs
     if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
 	my $tlen= length($dir)+1;
 	my $prefix= $1||'';
 	$pattern= $2;
 	$prefix=~ s:/$::;
-	$dir= catdir($self, $dir,$prefix);
+	$dir= catdir_fast($dir, $prefix);
 	$pattern=_escape($pattern);
 	$pattern=~s/\*/[^\/]*/g;
 	$pattern=~s/\?/./g;
@@ -574,16 +593,6 @@ sub del_option {
     }
 }
 
-sub list_option {
-    my $self= shift;
-    my @opts= keys %{$self->{option}};
-    foreach (keys %env_option) {
-	push @opts, lc($_) if exists $ENV{uc($_)};
-    }
-    return @opts;
-}
-
-
 ############################################################################
 ##
 ## Built-Ins
@@ -599,7 +608,7 @@ sub list_option {
     sub is_builtin {
 	my ($self, $com)= @_;
 	$com= $builtin_aliases{$com} if $builtin_aliases{$com};
-	return 1 if exists $builtin{$com};
+	return $com if exists $builtin{$com};
 	return 0;
     }
 
@@ -607,7 +616,7 @@ sub list_option {
 	%builtin= ();
 	my $unshift= '';
 	foreach my $tmp (@INC) {
-	    my $tmpdir= catdir( undef, $tmp, 'Psh2', 'Builtins');
+	    my $tmpdir= catdir_fast( $tmp, 'Psh2', 'Builtins');
 	    if (-r $tmpdir) {
 		my @files= Psh2->glob('*.pm', $tmpdir, 1);
 		foreach (@files) {
@@ -641,6 +650,7 @@ sub list_option {
 	my $visline= '';
 	my ($read, $chainout, $chainin, $pgrp_leader);
 	my $tmplen= @$array- 1;
+	my @visline= ();
 	my @pids= ();
 	my $success;
 	for (my $i=0; $i<@$array; $i++) {
@@ -667,13 +677,13 @@ sub list_option {
 		    }
 		}
 	    }
-	    my $termflag= !($i==$tmplen);
+
 	    my $pid= 0;
 	    if ($^O eq 'MSWin32') {
 	    } else {
 		if ($fork) {
 		    ($pid)= $self->fork($array->[$i], $pgrp_leader, $fgflag,
-					$termflag);
+					($i==$tmplen));
 		} else {
 		    ($success)= $self->execute($array->[$i]);
 		}
@@ -685,12 +695,12 @@ sub list_option {
 		POSIX::close($chainout);
 		$chainin= $read;
 	    }
-	    $visline.='|' if $i>0;
-	    $visline.= $text;
+	    push @visline, $text;
 	    push @pids, $pid if $pid;
 	}
 	if (@pids) {
 	    my $job;
+	    my $visline= join('|',@visline);
 	    if ($^O eq 'MSWin32') {
 	    } else {
 		$job= Psh2::Unix::Job->new( pgrp_leader => $pgrp_leader,
@@ -704,7 +714,7 @@ sub list_option {
 		$current_job= $#order;
 		if ($fgflag) {
 		    $success= $job->wait_for_finish(1);
-		} else {
+		} elsif ($self->{interactive}) {
 		    my $visindex= @order;
 		    my $verb= $self->gt('background');
 		    $self->print("[$visindex] \u$verb $pgrp_leader $visline\n");

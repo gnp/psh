@@ -4,7 +4,7 @@ sub path_separator { ':' }
 sub file_separator { '/' }
 sub getcwd {
     my $cwd;
-    chomp( $cwd = `pwd`);
+    chomp( $cwd = `/bin/pwd`);
     return $cwd;
 }
 
@@ -58,12 +58,11 @@ sub get_home_dir {
 	my $sig= shift;
 	give_terminal_to(undef,$$);
 	print STDERR "Received SIG$sig in $$\n";
-	$SIG{$sig}= \&_default_handler;
+#	$SIG{$sig}= \&_default_handler;
     }
 
     sub _ignore_handler {
-	my $sig= shift;
-	$SIG{$sig}= \&_ignore_handler;
+#	$SIG{$_[0]}= \&_ignore_handler;
     }
     
     sub _term_handler {
@@ -84,7 +83,7 @@ sub reap_children {
 				           POSIX::WUNTRACED())) > 0) {
 	my $job= $self->get_job($returnpid);
 	if (defined $job) {
-	    $job->handle_wait_status($?);
+	    $job->_handle_wait_status($?);
 	}
     }
 }
@@ -108,24 +107,24 @@ sub execute {
 }
 
 sub fork {
-    my ($self, $tmp, $pgrp_leader, $fgflag, $termflag)= @_;
+    my ($self, $tmp, $pgrp_leader, $fgflag, $giveterm)= @_;
     my ($strategy, $how, $options, $words)= @$tmp;
     my $pid;
 
     unless ($pid= fork()) {
 	unless (defined $pid) {
-	    CORE::exit(1)
+	    CORE::exit(2)
 	    # Error handling
 	}
 	_setup_redirects($options);
 	POSIX::setpgid( 0, $pgrp_leader || $$ );
-	give_terminal_to( $self, $pgrp_leader || $$ ) if $fgflag and !$termflag;
+	give_terminal_to( $self, $pgrp_leader || $$ ) if $fgflag and $giveterm;
 	remove_signal_handlers();
 	my @tmp= execute($self, $tmp);
 	CORE::exit($tmp[0]);
     }
     POSIX::setpgid( $pid, $pgrp_leader || $pid);
-    give_terminal_to( $self, $pgrp_leader || $pid) if $fgflag and !$termflag;
+#    give_terminal_to( $self, $pgrp_leader || $pid) if $fgflag and $giveterm;
     return $pid;
 }
 
@@ -133,14 +132,9 @@ sub fork {
     my $terminal_owner= -1;
 
     sub give_terminal_to {
-	my $self= shift;
-	my $pid= shift;
+	my ($self, $pid)= @_;
 	return if $terminal_owner==$pid;
 	$terminal_owner= $pid;
-	local $SIG{TSTP}= 'IGNORE';
-	local $SIG{TTIN}= 'IGNORE';
-	local $SIG{TTOU}= 'IGNORE';
-	local $SIG{CHLD}= 'IGNORE';
 	POSIX::tcsetpgrp( fileno STDIN, $pid);
     }
 }
@@ -193,7 +187,7 @@ sub _setup_redirects {
 
 sub canonpath {
     my ($self, $path) = @_;
-    $path =~ s|/+|/|g unless($^O eq 'cygwin');     # xx////xx  -> xx/xx
+    $path =~ s|/+|/|g unless $^O eq 'cygwin';     # xx////xx  -> xx/xx
     $path =~ s|(/\.)+/|/|g;                        # xx/././xx -> xx/xx
     $path =~ s|^(\./)+||s unless $path eq "./";    # ./xx      -> xx
     $path =~ s|^/(\.\./)+|/|s;                     # /../../xx -> xx
@@ -210,12 +204,15 @@ sub catfile {
     return $dir.$file;
 }
 
+sub catfile_fast { return join('/', @_); }
+sub catdir_fast { return join('/', @_); }
+
 sub catdir {
     my $self= shift;
     my @args = @_;
     foreach (@args) {
         # append a slash to each argument unless it has one there
-        $_ .= "/" if $_ eq '' || substr($_,-1) ne "/";
+        $_ .= "/" if $_ eq '' or substr($_,-1) ne "/";
     }
     return canonpath($self, join('', @args));
 }
@@ -313,14 +310,15 @@ sub wait_for_finish {
     my $self= shift;
     my $quiet= shift;
 
+    my $psh= $self->{psh};
     my $psh_pgrp= CORE::getpgrp();
     my $pid_status= -1;
     my $status= 1;
     my @pids= @{$self->{pids}};
     my $term_pid= $self->{pgrp_leader} || $pids[$#pids];
-    $self->{psh}->give_terminal_to($term_pid);
+    $psh->give_terminal_to($term_pid);
     my $returnpid;
-    my $output='';
+    my @output=();
     while (1) {
 	if (!$self->{running}) {
 	    $self->resume();
@@ -331,45 +329,72 @@ sub wait_for_finish {
 	}
 	last if $returnpid < 1;
 
-	$output.= handle_wait_status($self, $pid_status, $quiet, 1 );
+	if ($psh->{interactive}) {
+	    if ($returnpid == $term_pid) {
+		push @output, _handle_wait_status($self, $pid_status, $quiet, 1 );
+	    } else {
+		my $tmpjob= $psh->get_job($returnpid);
+		push @output, _handle_wait_status($tmpjob, $pid_status, $quiet, 1);
+	    }
+	} else {
+	    if (POSIX::WIFEXITED($pid_status) or
+	        POSIX::WIFSIGNALED($pid_status)) {
+		$psh->delete_job($returnpid);
+	    } elsif (POSIX::WIFSTOPPED($pid_status)) {
+		if ($returnpid == $term_pid) {
+		    $self->{running}= 0;
+		} else {
+		    my $tmpjob= $psh->get_job($returnpid);
+		    $tmpjob->{running}= 0;
+		}
+	    }
+	}
 	if ($returnpid == $pids[$#pids]) {
 	    $status= POSIX::WEXITSTATUS($pid_status);
 	    last;
 	}
     }
-    $self->{psh}->give_terminal_to($psh_pgrp);
-    $self->{psh}->print($output) if $output;
+    $psh->give_terminal_to($psh_pgrp);
+    $psh->print(@output) if @output;
     return $status==0;
 }
 
-sub handle_wait_status {
+sub _handle_wait_status {
     my ($self, $pid_status, $quiet, $collect)= @_;
-    # Have to obtain these before we potentially delete the job
+
     my $psh= $self->{psh};
-    my $command = $self->{desc};
     my $pid= $self->{pgrp_leader};
-    my $visindex= $psh->get_job_number($pid);
     my $verb='';
-    
+    my $visindex;
+
     if (POSIX::WIFEXITED($pid_status)) {
-	my $status= POSIX::WEXITSTATUS($pid_status);
-	if ($status==0) {
-	    $verb= ucfirst($psh->gt('done')) unless $quiet;
-	} else {
-	    $verb= ucfirst($psh->gt('error'));
+	if ($psh->{interactive}) {
+	    my $status= POSIX::WEXITSTATUS($pid_status);
+	    if ($status==0) {
+		$verb= ucfirst($psh->gt('done')) unless $quiet;
+	    } else {
+		$verb= ucfirst($psh->gt('error'));
+	    }
+	    $visindex= $psh->get_job_number($pid);
 	}
 	$psh->delete_job($pid);
     } elsif (POSIX::WIFSIGNALED($pid_status)) {
-	my $tmp= $psh->gt('terminated');
-	$verb = "\u$tmp (SIG" .POSIX::WTERMSIG($pid_status).')';
+	if ($psh->{interactive}) {
+	    my $tmp= $psh->gt('terminated');
+	    $verb = "\u$tmp (SIG" .POSIX::WTERMSIG($pid_status).')';
+	    $visindex= $psh->get_job_number($pid);
+	}
 	$psh->delete_job($pid);
     } elsif (POSIX::WIFSTOPPED($pid_status)) {
-	my $tmp= $psh->gt('stopped');
-	$verb = "\u$tmp (SIG". POSIX::WSTOPSIG($pid_status).')';
 	$self->{running}= 0;
+	if ($psh->{interactive}) {
+	    my $tmp= $psh->gt('stopped');
+	    $verb = "\u$tmp (SIG". POSIX::WSTOPSIG($pid_status).')';
+	    $visindex= $psh->get_job_number($pid);
+	}
     }
-    if ($verb && $visindex>0) {
-	my $line="[$visindex] $verb $pid $command\n";
+    if ($verb and $psh->{interactive} and $visindex>0) {
+	my $line="[$visindex] $verb $pid $self->{desc}\n";
 	return $line if $collect;
 	$psh->print($line);
     }

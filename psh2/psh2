@@ -9,16 +9,34 @@ my %opt=();
 
 if (@ARGV) {
     require Getopt::Std;
-    Getopt::Std::getopts('Ffiwrd:c:', \%opt);
+    Getopt::Std::getopts('VFfhc:', \%opt);
+    if ($opt{'V'}) {
+	print "psh2, version $Psh2::VERSION\nCopyright (c) 1999-2003 psh Core Team\n";
+	exit 1;
+    }
+    if ($opt{'h'}) {
+	print <<ENDOFHELP;
+Usage: psh2 [option] ...
+       psh2 [option] script-file ...
+
+Options:
+       -V  print version and exit         -h  show this help
+       -F  force reading of rc files      -f  skip reading rc files
+       -c  execute command
+
+Use 'man psh' or 'psh2 -c help' for more information.
+ENDOFHELP
+	exit 1;
+    }
 }
 
 $psh->init_minimal();
-$psh->process_rc() unless ($opt{'f'} or $opt{'c'}) and !$opt{'F'};
+$psh->process_rc() unless ($opt{'f'} or $opt{'c'} or @ARGV) and !$opt{'F'};
 $psh->init_finish();
 
 if ($opt{'c'}) {
     $psh->process_variable($opt{'c'});
-    exit 0;
+    exit ($psh->{status}?0:2);
 }
 
 if (@ARGV) {

@@ -28,7 +28,7 @@ sub execute
 	my $command= shift @$words;
 	if ($command eq 'alias' or $command eq 'unalias') {
 	    $psh->printerrln($psh->gt('alias: These commands may not be aliased.'));
-	    return (0, undef);
+	    return 0;
 	}
 	if ($words->[0] and $words->[0] eq '=') {
 	    shift @$words;
@@ -44,7 +44,7 @@ sub execute
 	    $psh->{aliases}{$command}= $text;
 	}
     }
-    return (1,undef);
+    return 1;
 }
 
 

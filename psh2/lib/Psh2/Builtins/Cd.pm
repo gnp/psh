@@ -57,13 +57,13 @@ sub execute {
 	# Don't push the same value again
 	$psh->{dirstack_pos}= 0;
     }
-    my $dirpath='.';
+    my $dirpath='';
 
     if ($ENV{CDPATH} and !$psh->file_name_is_absolute($in_dir)) {
-	$dirpath.=$ENV{CDPATH};
+	$dirpath=$ENV{CDPATH};
     }
 
-    foreach my $cdbase (split $psh->path_separator(),$dirpath) {
+    foreach my $cdbase (split ($psh->path_separator(),$dirpath), '.') {
 	my $dir= $in_dir;
 	if( $cdbase eq '.') {
 	    $dir = $psh->abs_path($dir);
@@ -76,16 +76,16 @@ sub execute {
 		unshift @{$psh->{dirstack}}, $dir if $explicit;
 		CORE::chdir $dir;
 		$ENV{PWD}=$dir;
-		return (1,undef);
+		return 1;
 	    } else {
 		$psh->printerr(sprintf($psh->gt('cd: permission denied: %s'),
 				      $in_dir)."\n");
-		return (0,undef);
+		return 0;
 	    }
 	}
     }
     $psh->printerr(sprintf($psh->gt('cd: no such dir: %s'), $in_dir)."\n");
-    return (0,undef);
+    return 0;
 }
 
 1;

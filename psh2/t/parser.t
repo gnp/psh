@@ -46,3 +46,6 @@ test_decompose q[foo 'foo''bar'], [ 'foo', "'foo''bar'"];
 test_decompose q[foo { a { b } c} {d}], ['foo','{ a { b } c}','{d}'];
 test_decompose qq[foo\nbar], [ 'foo', "\n", 'bar'];
 test_decompose qq[foo { a \n bc \n bar } bla], [ 'foo', "{ a \n bc \n bar }",'bla'];
+test_decompose 'foo bar;', [ 'foo', 'bar', ';'];
+test_decompose 'foo;', [ 'foo', ';'];
+test_decompose "foo\n", [ 'foo', "\n"];
