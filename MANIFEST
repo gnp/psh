@@ -1,0 +1,15 @@
+psh2
+CHANGES.pod
+COPYRIGHT
+MANIFEST
+README
+INSTALL
+TODO
+docs/syntax-notes
+lib/Psh2.pm
+lib/Psh2/Frontend/Readline.pm
+lib/Psh2/Jobs.pm
+lib/Psh2/Parser.pm
+lib/Psh2/Unix.pm
+lib/Psh2/Windows.pm
+t/parser.t
