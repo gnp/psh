@@ -10,6 +10,9 @@ use Psh::Util;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
+my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
+
+
 #
 # array decompose(regexp DELIMITER, string LINE, int PIECES, 
 #                 bool KEEP, hashref QUOTINGPAIRS, regexp METACHARACTERS
@@ -195,13 +198,11 @@ sub std_tokenize
 # also that unmatched stuff in comments WILL fool this function.)
 #
 
-my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
-
 sub incomplete_expr
 {
     my ($line) = @_;
     my $unmatch = 0;
-    my @words = decompose(' ',$line,undef,1,\%perlq_hash,'[]{}()[]', \$unmatch);
+    my @words = decompose(' ',$line,undef,1,\%perlq_hash,'[\[\]{}()]', \$unmatch);
     if ($unmatch) { return 2; }
     my @openstack = (':'); # : is used as a bottom marker here
     my %open_of_close = qw|) ( } { ] [|;
@@ -308,9 +309,29 @@ sub unquote {
 
 sub _make_tokens {
 	my $line= shift;
-	my @parts= decompose('(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)',
-						 $line, undef, 1,
-						 {"'"=>"'","\""=>"\"","{"=>"}"});
+	my @tmpparts= decompose('(\s+|\||;|\&\d*|[1-2]?>>|[1-2]?>|<|\\|=)',
+							$line, undef, 1,\%perlq_hash, '[\[\]{}()]');
+
+	# Walk through parts and combine parenthesized parts properly
+	my @parts=();
+	my $nestlevel=0;
+	my $tmp='';
+	foreach (@tmpparts) {
+		if (/^[\[\(\{]$/) {
+			$nestlevel++;
+		} elsif (/^[\]\)\}]$/) {
+			$nestlevel--;
+		}
+		if ($nestlevel) {
+			$tmp.=$_;
+		} elsif ($tmp) {
+			push @parts,$tmp.$_;
+			$tmp='';
+		} else {
+			push @parts, $_;
+		}
+	}
+
 	my @tokens= ();
 	my $previous_token='';
 	while( my $tmp= shift @parts) {
