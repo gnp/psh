@@ -293,7 +293,7 @@ sub execute_complex_command {
 		my $forcefork;
 		($eval_thingie,$words,$forcefork, @return_val)= &$coderef( \$line, $words,$how,$i>0);
 
-		$forcefork|=$i<$#array;
+		$forcefork||=$i<$#array;
 
 		if( defined($eval_thingie)) {
 			if( $#array) {
