@@ -76,14 +76,14 @@ END {	# try and write the history no matter how we exit
 	if ($Psh::save_history && !$Psh::readline_saves_history) {
 		my $fhist = new FileHandle($Psh::history_file, 'a');
 		if (defined($fhist)) {
-			flock($fhist, LOCK_EX);
+			eval { flock($fhist, LOCK_EX); };
 			if( @Psh::history>$Psh::history_length) {
 				splice(@Psh::history,0,@Psh::history-$Psh::history_length);
 			}
 			foreach (@Psh::history) {
 				$fhist->print("$_\n");
 			}
-			flock($fhist, LOCK_UN);
+			eval { flock($fhist, LOCK_UN); };
 			$fhist->close();
 		}
 	}
