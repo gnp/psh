@@ -1661,7 +1661,7 @@ sub prompt_string
 
 sub readline_handler
 {
-	die; # short but to the point :)
+    die "SECRET $bin: Signal $sig\n";
 }
 
 
@@ -1693,18 +1693,11 @@ sub iget
 	my $line;
 	my $sigint = 0;
 
-	if ($term) {
-		$line = $term->readline($prompt);
-	} else {
-		print_out($prompt);
-		$line = <STDIN>;
-	}
-
-	$SIG{'INT'}=\&readline_handler;
+	local $SIG{'INT'}=\&readline_handler;
  
 	do {
 		if ($sigint) {
-			print "\nInterrupted!\n";
+			print_out("\nInterrupted!\n");
 			$sigint=0;
 		}
 		# Trap ^C in an eval.  The sighandler will die which will be
