@@ -11,6 +11,13 @@
 # replace @netprogram in Completion.pm
 complete -A hostname ping ssh telnet ftp ncftp traceroute
 
+
+#
+# Other nice completions
+#
+
+complete -W '-daystart -depth -follow -help -mount -cnewer -ctime -gid -name -iname -newer -path -regex -type -exec -print' find
+
 #
 # Emulation of bash-2.04-beta5/examples/complete/complete-examples
 #
