@@ -13,8 +13,8 @@ use Psh::PCompletion qw(pcomp_getopts %ACTION %COMPSPEC compgen redir_test);
 Define programmable completion method.
 
 	complete [-abcdefjkvu] [-A ACTION] [-G GLOBPAT] [-W WORDLIST]
-		 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-F FUNCTION]
-		 [-C COMMAND] NAME [NAME] ..
+		 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-x FILTERPAT]
+		 [-F FUNCTION] [-C COMMAND] NAME [NAME] ..
 	complete -pr [NAME ...]
 
 =cut
@@ -22,8 +22,8 @@ Define programmable completion method.
 sub usage_complete {
     print STDERR <<EOM;
 complete [-abcdefjkvu] [-A ACTION] [-G GLOBPAT] [-W WORDLIST]
-	 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-F FUNCTION]
-	 [-C COMMAND] NAME [NAME] ..
+	 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-x FILTERPAT]
+	 [-F FUNCTION] [-C COMMAND] NAME [NAME] ..
 complete -pr [NAME ...]
 EOM
 }
@@ -60,13 +60,14 @@ sub print_compspec ($) {
     foreach (sort keys(%ACTION)) {
 	print " -A $_" if ($cs->{action} & $ACTION{$_});
     }
-    print " -G $cs->{globpat}"	if defined $cs->{globpat};
-    print " -W $cs->{wordlist}"	if defined $cs->{wordlist};
-    print " -C $cs->{command}"	if defined $cs->{command};
-    print " -F $cs->{function}"	if defined $cs->{function};
-    print " -X $cs->{filterpat}"	if defined $cs->{filterpat};
-    print " -P $cs->{prefix}"	if defined $cs->{prefix};
-    print " -S $cs->{suffix}"	if defined $cs->{suffix};
+    print " -G \'$cs->{globpat}\'"	if defined $cs->{globpat};
+    print " -W \'$cs->{wordlist}\'"	if defined $cs->{wordlist};
+    print " -C $cs->{command}"		if defined $cs->{command};
+    print " -F $cs->{function}"		if defined $cs->{function};
+    print " -X \'$cs->{filterpat}\'"	if defined $cs->{filterpat};
+    print " -x \'$cs->{ffilterpat}\'"	if defined $cs->{ffilterpat};
+    print " -P \'$cs->{prefix}\'"	if defined $cs->{prefix};
+    print " -S \'$cs->{suffix}\'"	if defined $cs->{suffix};
     print " $cmd\n";
 }
 

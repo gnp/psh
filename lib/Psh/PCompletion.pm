@@ -137,7 +137,19 @@ sub pcomp_list {
 	push(@l, grep { /^\Q$text/ } keys %ENV);
     }
     if ($cs->{action} & CA_FILE) {
-	push(@l, Psh::Completion::cmpl_filenames($pretext . $text));
+	my @f = Psh::Completion::cmpl_filenames($pretext . $text);
+	if (defined $cs->{ffilterpat}) {
+	    my $pat = $cs->{ffilterpat};
+	    if ($pat =~ /^!/) {
+		$pat = glob2regexp(substr($pat, 1));
+		@f = grep(/$pat/, @f);
+	    } else {
+		$pat = glob2regexp($pat);
+		@f = grep(! /$pat/, @f);
+	    }
+	}
+	push(@l, @f);
+	push(@l, Psh::Completion::cmpl_directories($pretext . $text));
     }
     if ($cs->{action} & CA_HOSTNAME) { # bookmarks: wrong name !!!
 	push(@l, grep { /^\Q$text/ } @Psh::Completion::bookmarks);
@@ -326,6 +338,8 @@ sub pcomp_getopts {
 	    $cs{function}  = unquote(shift @{$ar});
 	} elsif (/^-X/) {
 	    $cs{filterpat} = unquote(shift @{$ar});
+	} elsif (/^-x/) {	# psh specific (at least now)
+	    $cs{ffilterpat} = unquote(shift @{$ar});
 	} elsif (/^-P/) {
 	    $cs{prefix}    = unquote(shift @{$ar});
 	} elsif (/^-S/) {
@@ -371,8 +385,8 @@ sub compgen {
 sub usage_compgen {
     print STDERR <<EOM;
 compgen [-abcdefjkvu] [-A ACTION] [-G GLOBPAT] [-W WORDLIST]
-	[-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-F FUNCTION]
-	[-C COMMAND] [WORD]
+	[-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-x FILTERPAT]
+	[-F FUNCTION] [-C COMMAND] [WORD]
 EOM
 }
 
@@ -524,8 +538,8 @@ matches were generated.
 =item B<complete>
 
 	complete [-abcdefjkvu] [-A ACTION] [-G GLOBPAT] [-W WORDLIST]
-		 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-F FUNCTION]
-		 [-C COMMAND] NAME [NAME ...]
+		 [-P PREFIX] [-S SUFFIX] [-X FILTERPAT] [-x FILTERPAT]
+		 [-F FUNCTION] [-C COMMAND] NAME [NAME ...]
 	complete -pr [NAME ...]
 
 Specify how arguments to each I<NAME> should be completed.  If the
@@ -679,6 +693,11 @@ options and arguments, and each completion matching I<FILTERPAT> is
 removed from the list.  A leading C<!> in I<FILTERPAT> negates the
 pattern; in this case, any completion not matching I<FILTERPAT> is
 removed.
+
+=item B<-x> I<FILTERPAT>
+
+Similar to the B<-X> option above, except it is applied to only
+filenames not to directory names etc.
 
 =item B<-P> I<PREFIX>
 
