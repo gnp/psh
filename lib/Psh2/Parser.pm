@@ -529,9 +529,10 @@ sub _parse_simple {
 	    }
 	}
     }
-    if (exists $psh->{function}{$first}) {
-	return [ 'call', $psh->{function}{$first}[0], \@options, \@words,
-	         $line, $opt, $psh->{function}{$first}[1]];
+    my $full_fun_name= $Psh2::Language::Perl::current_package.'::'.$first;
+    if (exists $psh->{function}{$full_fun_name}) {
+	return [ 'call', $psh->{function}{$full_fun_name}[0], \@options, \@words,
+	         $line, $opt, $psh->{function}{$full_fun_name}[1]];
     }
     die "duh";
 }

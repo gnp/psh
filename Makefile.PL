@@ -29,14 +29,3 @@ WriteMakefile(
 	      MAN1PODS     => $pods,
 	      dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
 	     );
-
-# We override libscan so Emacs backups are excluded
-sub MY::libscan {
-    my( $self, $path) = @_;
-    return $path if $path =~ /psh2$/;
-    return '' if $path =~ m:\b(RCS|CVS|SCCS)\b: or $path=~ m/\~\b/ or
-      $path =~ m/\~$/;
-    return '' if $path !~ m:\.pm\b:;
-    print STDERR "$path\n";
-    $path;
-}

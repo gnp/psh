@@ -75,8 +75,7 @@ sub protected_eval
 
 sub execute {
     my ($psh, $words)= @_;
-    unshift @$words;
-
+    shift @$words;
     return defined protected_eval(Psh2::Parser::ungroup(join(' ',@$words)));
 }
 

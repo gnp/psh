@@ -895,12 +895,17 @@ sub del_option {
 
 sub add_function {
     my ($self, $name, $coderef, $data)= @_;
-    $self->{function}{$name}= [ $coderef, $data];
+    $self->{function}{$Psh2::Language::Perl::current_package.'::'.$name}= [ $coderef, $data];
 }
 
 sub delete_function {
     my ($self, $name)= @_;
-    delete $self->{function}{$name};
+    my $fullname= $Psh2::Language::Perl::current_package.'::'.$name;
+    if (exists $self->{function}{$fullname}) {
+        no strict 'refs';
+        undef *{$Psh2::Language::Perl::current_package.'::'.$name};
+        delete $self->{function}{$fullname};
+    }
 }
 
 1;
