@@ -343,6 +343,18 @@ from one invocation of B<psh> to the next.
 If set to true, psh will ignore all segfaults and attempt to
 continue.
 
+=item @psh::netprograms ( ping, ftp, ncftp, lynx etc. )
+
+Contains names of a number of net based programs for enabling
+TAB completion of hostnames/bookmarks
+
+=item @psh::bookmarks ( 'http://', 'ftp://' )
+
+Supposed to contain your most used IP numbers, hostnames or URLs.
+Those will be eligible for TAB completion if you use one of the
+programs in @psh::netprograms. Default only contains 'http://' and
+'ftp://'.
+
 =item @psh::mon ( Jan, Feb, etc. )
 
 An array of month names used in printing dates, for example in prompt
