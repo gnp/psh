@@ -21,8 +21,9 @@ sub AUTOLOAD {
 	$AUTOLOAD=~ s/.*:://;
 	no strict 'refs';
 	my $name="${ospackage}::$AUTOLOAD";
+	$name="Psh::OS::fb_$AUTOLOAD" unless ref *{$name}{CODE} eq 'CODE';
 	croak "Function `$AUTOLOAD' in Psh::OS does not exist." unless
-		ref *{"${ospackage}::$AUTOLOAD"}{CODE} eq 'CODE';
+		ref *{$name}{CODE} eq 'CODE';
 	*$AUTOLOAD=  *$name;
 	goto &$AUTOLOAD;
 }
@@ -64,7 +65,7 @@ sub _escape {
 # not possible to supply a base directory... so I guess this
 # is faster
 #
-sub glob {
+sub fb_glob {
 	my( $pattern, $dir) = @_;
 	my @result;
 	if( !$dir) {
@@ -118,7 +119,7 @@ sub glob {
 # Looks up the name of a signal
 #
 
-sub signal_name {
+sub fb_signal_name {
 	my $signalnum = shift;
 	my @numbers= split ',',$Config{sig_num};
 	@numbers= split ' ',$Config{sig_num} if( @numbers==1);
@@ -137,7 +138,7 @@ sub signal_name {
 # returns a descriptive name for the POSIX signals
 #
 
-sub signal_description {
+sub fb_signal_description {
 	my $signal_name= signal_name(shift);
 	my $desc= $Psh::text{sig_description}->{$signal_name};
    	if( defined($desc) and $desc) {
@@ -148,10 +149,17 @@ sub signal_description {
 
 # Return a name for a temp file
 
-sub tmpnam {
+sub fb_tmpnam {
 	return POSIX::tmpnam();
 }
 
+sub fb_get_window_size {}
+sub fb_remove_signal_handlers {1}
+sub fb_setup_signal_handlers {1}
+sub fb_setup_sigsegv_handler {1}
+sub fb_setup_readline_handler {1}
+sub fb_reinstall_resize_handler {1}
+sub fb_reap_children {1}
 1;
 
 __END__

@@ -38,6 +38,14 @@ sub set_window_title {
 	$console->Title($title);
 }
 
+
+sub reinstall_resize_handler {
+	# actually we have no 'handlers' here but instead simply do it
+	my ($cols,$rows)=$console->Size();
+	$ENV{COLUMNS}=$cols;
+	$ENV{ROWS}=$rows;
+}
+
 sub get_hostname {
 	my $name_from_reg = $Registry->{"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\ComputerName\\ComputerName\\ComputerName"};
 	return $name_from_reg if $name_from_reg;
@@ -90,8 +98,6 @@ sub inc_shlvl {
 		$ENV{SHLVL}++;
 	}
 }
-
-sub reap_children {1};
 
 sub execute_complex_command {
 	my @array= @{shift()};
@@ -249,12 +255,6 @@ sub restart_job
 		}
 	}
 }
-
-sub remove_signal_handlers {1}
-sub setup_signal_handlers {1}
-sub setup_sigsegv_handler {1}
-sub setup_readline_handler {1}
-sub reinstall_resize_handler {1}
 
 sub get_home_dir {
 	my $user= shift;
