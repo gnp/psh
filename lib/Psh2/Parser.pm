@@ -339,8 +339,6 @@ sub _parse_fileno {
 		    # TODO: Add Perl Filehandle access
 		}
 	    }
-            use Data::Dumper;
-            print STDERR Dumper(\@result);
 	    @$fileno= @result;
 	} else {
 	    unshift @$parts, $tmp;
@@ -406,10 +404,14 @@ sub make_tokens {
 		my @fileno= (1,0);
 		my $bothflag= 0;
 		$bothflag ||= _parse_fileno(\@parts, \@fileno);
-		push @$redirects, [ 3, '>&', $fileno[0], 'chainout'];
+
+                # order is important...
+                my @tmp= ([ 3, '>&', $fileno[0], 'chainout']);
 		if ($bothflag) {
-		    push @$redirects, [ 3, '>&', 2, $fileno[0]];
+		    push @tmp, [ 3, '>&', 2, $fileno[0]];
 		}
+                unshift @$redirects, @tmp;
+
 		$redirects= [ [3, '<&', $fileno[1], 'chainin'] ];
 		$words= [];
 		push @$pipes, $words, $redirects;
@@ -423,17 +425,19 @@ sub make_tokens {
 		my @fileno= (1,0);
 		my $file;
 
+                my @tmp= ();
 		$bothflag ||= _parse_fileno(\@parts, \@fileno);
 		if ($fileno[1]==0) {
 		    $file= shift @parts;
 		    die "parse: redirection >: file missing" unless $file;
-		    push @$redirects, [3, $num==7?'>':'>>', $fileno[0], $file];
+		    push @tmp, [3, $num==7?'>':'>>', $fileno[0], $file];
 		} else {
-		    push @$redirects, [3, '>&', @fileno];
+		    push @tmp, [3, '>&', @fileno];
 		}
 		if ($bothflag) {
-		    push @$redirects, [3, '>&', 2, $fileno[0]];
+		    push @tmp, [3, '>&', 2, $fileno[0]];
 		}
+                unshift @$redirects, @tmp;
 		next;
 	    } elsif ($num==10) {
 		my $file;
@@ -442,9 +446,9 @@ sub make_tokens {
 		if ($fileno[0]==0) {
 		    $file= shift @parts;
 		    die "parse: redirection <: file missing" unless $file;
-		    push @$redirects, [3, '<', $fileno[1], $file];
+		    unshift @$redirects, [3, '<', $fileno[1], $file];
 		} else {
-		    push @$redirects, [3, '<&', $fileno[1], $fileno[0]];
+		    unshift @$redirects, [3, '<&', $fileno[1], $fileno[0]];
 		}
 		next;
 	    } else {
