@@ -3,8 +3,6 @@ package Psh::Locale::Italian;
 use strict;
 use locale;
 
-$VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
-
 BEGIN {
 	my %sig_description = (
 						   'TTOU' => 'uscita del TTY',
