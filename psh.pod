@@ -750,10 +750,14 @@ brief table indicating whether or not each has certain features.
 
 =head1 ENVIRONMENT VARIABLES
 
-B<HISTSIZE> - The maximum number of lines to save in the history file.
+B<CDPATH> - A list of paths of directories in which the C<cd> builtin
+should search for its argument. Defaults to ".".
 
-B<FIGNORE> - A colon (":") separated list of file endings to ignore when
-performing TAB completion.
+B<FIGNORE> - A list (separated by the path separator) of file endings to
+ignore when performing TAB completion. No default.
+
+B<HISTSIZE> - The maximum number of lines to save in the history file.
+Defaults to 50.
 
 
 =head1 FILES
