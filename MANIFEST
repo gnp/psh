@@ -44,6 +44,7 @@ lib/Psh/Builtins/Bg.pm
 lib/Psh/Builtins/Builtin.pm
 lib/Psh/Builtins/Complete.pm
 lib/Psh/Builtins/Exit.pm
+lib/Psh/Builtins/Fc.pm
 lib/Psh/Builtins/Fg.pm
 lib/Psh/Builtins/Firsttime.pm
 lib/Psh/Builtins/Function.pm

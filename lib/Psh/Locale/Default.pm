@@ -86,6 +86,7 @@ bi_jobs_none=No jobs.
 bi_strategy_list=Following strategies are used:
 bi_strategy_wrong_arg=Wrong argument for builtin strategy.
 bi_strategy_notfound=Could not find strategy %1.
+bi_fc_notfound=no command found.
 
 # Stuff for Job handling
 done=done\

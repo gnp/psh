@@ -5,6 +5,7 @@ use vars qw($VERSION $AUTOLOAD $ospackage);
 use Carp 'croak';
 use Config;
 use File::Spec;
+use POSIX;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -72,7 +73,7 @@ sub glob {
 	# Special recursion handling for **/anything globs
 	if( $pattern=~ m:^([^\*]+/)?\*\*/(.*)$: ) {
 		my $tlen= length($dir)+1;
-		my $prefix= $1;
+		my $prefix= $1||'';
 		$pattern= $2;
 		$prefix=~ s:/$::;
 	    $dir= File::Spec->catdir($dir,$prefix);
@@ -135,6 +136,11 @@ sub signal_description {
 	return "signal $signal_name";
 }
 
+# Return a name for a temp file
+
+sub tmpnam {
+	return POSIX::tmpnam();
+}
 
 1;
 
