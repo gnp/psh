@@ -72,6 +72,20 @@ if (@ARGV) {
     }
 }
 
+END {	# try and write the history no matter how we exit
+	if ($Psh::save_history && !$Psh::readline_saves_history) {
+		my $fhist = new FileHandle($Psh::history_file, 'a');
+		if (defined($fhist)) {
+			flock($fhist, LOCK_EX);
+			foreach (@Psh::history) {
+				$fhist->print("$_\n");
+			}
+			flock($fhist, LOCK_UN);
+			$fhist->close();
+		}
+	}
+}
+
 exit 0;
 
 

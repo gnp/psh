@@ -152,10 +152,17 @@ use vars qw($bin $news_file $cmd $prompt $prompt_cont $echo $host $debugging
 			$VERSION $term @absed_path $readline_saves_history
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
-            $result_array $which_regexp $ignore_die
+			$result_array $which_regexp $ignore_die
 			@val @wday @mon @strategies @bookmarks @netprograms
+			@history
 			%text %perl_builtins %perl_builtins_noexpand
 			%prompt_vars %strategy_which %built_ins %strategy_eval);
+
+# These constants are used in flock().
+use constant LOCK_SH => 1; # shared lock (for reading)
+use constant LOCK_EX => 2; # exclusive lock (for writing)
+use constant LOCK_NB => 4; # non-blocking request (don't wait)
+use constant LOCK_UN => 8; # free the lock
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -1008,25 +1015,28 @@ sub defined_and_nonempty
 sub process_file
 {
 	my ($path) = @_;
-
+	
 	print_debug("[[PROCESSING FILE $path]]\n");
-
+	
 	if (!-r $path) {
 		print_error("$bin: Cannot read script `$path'\n");
 		return;
 	}
 	
 	my $pfh = new FileHandle($path,'r');
-
+	
 	if (!$pfh) {
 		print_error("$bin: Cannot open script `$path'\n");
 		return;
 	}
-
+	
+	flock($pfh, LOCK_SH);
+	
 	process(0, sub { return <$pfh>; }); # don't prompt
-
+	
+	flock($pfh, LOCK_UN);
 	$pfh->close();
-
+	
 	print_debug("[[FINISHED PROCESSING FILE $path]]\n");
 }
 
@@ -1247,9 +1257,7 @@ sub iget
 		$term->addhistory($line); 
 
 		if ($save_history && !$readline_saves_history) {
-			my $fhist = new FileHandle($history_file, 'a');
-			$fhist->print("$line\n");
-			$fhist->close();
+			push(@history, $line);
 		}
 	}
 	
@@ -1417,11 +1425,12 @@ sub finish_initialize
 			$term->ReadHistory($history_file);
 		} else {
 			my $fhist = new FileHandle($history_file);
-			if ($fhist) {
+			if (defined($fhist)) {
+				flock($fhist, LOCK_SH);
 				while (<$fhist>) {
-					chomp;
-					$term->addhistory($_);
+					$term->addhistory(chomp($_));
 				}
+				flock($fhist, LOCK_UN);
 				$fhist->close();
 			}
 		}

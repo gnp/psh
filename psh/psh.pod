@@ -387,6 +387,11 @@ Those will be eligible for TAB completion if you use one of the
 programs in C<@Psh::Completion::netprograms>. C<psh> will
 initialize this list with your /etc/hosts file
 
+=item C<@Psh::history>
+
+An array of lines to write to the history file when B<psh> exits, only
+filled when the ReadLine module doesn't handle the history file.
+
 =item C<@Psh::mon> ( Jan, Feb, etc. )
 
 An array of month names used in printing dates, for example in prompt
@@ -764,6 +769,9 @@ environment variables and some more minor updates.
 Glen Whitney E<lt>F<gwhitney@post.harvard.edu>E<gt> added evaluation
 strategies, improved interrupt/job handling, C<&Psh::evl>, C<$Psh::echo>,
 more extensive documentation, and other more minor features.
+
+Omer Shenker E<lt>F<oshenker@iname.com>E<gt> added file locking, Win32
+code, more extensive installation instructions, and other minor updates.
 
 =item ReadLine Support
 
