@@ -27,8 +27,9 @@ minor version, and Z is the patch level.
 Make the distribution materials:
 
     make dist
-    pod2html psh.pod > psh.html
     pod2html CHANGES.pod > CHANGES.html
+    cd doc
+    pod2html psh.pod > psh.html
 
 Archive the *.tar.gz file, and upload it to SourceForge and
 the Focus Research web site. Use the *.html files to provide
