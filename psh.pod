@@ -619,6 +619,13 @@ psh-0.001 announcement on C<http://freshmeat.net>, which contained this
 gem that leverages the Perl debugger: C<perl -d -e 1>;
 
 
+=head2 perlsh
+
+Hiroo Hayashi E<lt>F<hiroo.hayashi@computer.org>E<gt> includes B<perlsh>, a 
+``one-line perl evaluator with line editing function and variable name
+completion function'' as an example with his Term::ReadLine::Gnu Perl module.
+
+
 =head2 PSH.pm
 
 In an example of convergent evolution, at C<http://jenda.krynicky.cz/>
