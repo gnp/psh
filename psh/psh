@@ -25,6 +25,7 @@ use POSIX qw(:sys_wait_h getpid setpgid tcgetpgrp tcsetpgrp);
 
 use Psh::Joblist;
 use Psh::Job;
+use Psh::Completion;
 
 ##############################################################################
 ##############################################################################
@@ -66,7 +67,6 @@ my $input;
 my $readline_saves_history = 0;
 my $last_dir               = '.'; # By default 'cd -' won't change directory at all.
 my $term;                         # Term::ReadLine object.
-my @completion_buffer      = ();
 my %perl_builtins;
 my %perl_builtins_noexpand;
 my @absed_path    = ();
@@ -142,9 +142,11 @@ if ($@) {
 	$term->ornaments(0);
 	print_debug("Using ReadLine: ", $term->ReadLine(), "\n");
 	if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
+	    &Psh::Completion::init($term, \@absed_path);
 		$readline_saves_history = 1;
 		$term->StifleHistory($history_length); # Limit history
-		$term->Attribs->{attempted_completion_function} = \&custom_completion;
+		$term->Attribs->{attempted_completion_function} =
+			\&Psh::Completion::custom_completion;
 	}
 }
 
@@ -1175,15 +1177,15 @@ sub signal_description {
 
 sub remove_signal_handlers
 {
-	$SIG{INT}   = undef;
-	$SIG{QUIT}  = undef;
-	$SIG{CONT}  = undef;
-	$SIG{STOP}  = undef;
-	$SIG{TSTP}  = undef;
-	$SIG{TTIN}  = undef;
-	$SIG{TTOU}  = undef;
-	$SIG{CHLD}  = undef;
-	$SIG{WINCH} = undef;
+	$SIG{INT}   = 'DEFAULT';
+	$SIG{QUIT}  = 'DEFAULT';
+	$SIG{CONT}  = 'DEFAULT';
+	$SIG{STOP}  = 'DEFAULT';
+	$SIG{TSTP}  = 'DEFAULT';
+	$SIG{TTIN}  = 'DEFAULT';
+	$SIG{TTOU}  = 'DEFAULT';
+	$SIG{CHLD}  = 'DEFAULT';
+	$SIG{WINCH} = 'DEFAULT';
 }
 
 
@@ -2244,76 +2246,6 @@ sub restart_job
 			}
 		}
 	}
-}
-
-
-#
-# Tries to find executables for possible completions
-# TODO: This is sloooow... but probably not only because
-# of searching the whole path but also because of the way
-# Term::ReadLine::Gnu works... hmm
-#
-
-sub try_executable_completion
-{
-	my ($cmd, $state) = @_;
-
-	if (!$state)
-	{
-		my $old_cwd        = cwd;
-		@completion_buffer = ();
-
-		my $tmp = which($cmd);
-		push( @completion_buffer, $tmp) if defined($tmp);
-		# set up absed_path if not already set and check
-		# wether we found an executable with exactly that name
-
-		foreach my $dir (@absed_path) {
-			chdir abs_path($dir);
-			push( @completion_buffer, grep { -x && ! -d } glob "$cmd*" );
-		}
-
-		chdir $old_cwd;
-	}
-
-	return shift @completion_buffer;
-}
-
-
-#
-# custom_completion()
-#
-# Main completion hook
-#
-
-sub custom_completion
-{
-	my ($text, $line, $start, $end) = @_;
-	my $attribs                     = $term->Attribs;
-	my @tmp;
-
-	if (substr($line, $start, 1) eq "~") {
-		return $term->completion_matches($text,
-			$attribs->{username_completion_function});
-	}
-
-	#
-	# Only return if executable match found something, otherwise try
-	# filename completion
-	# Only try executable completion if it's the first word or after | and
-	# it does not contain .. or /
-
-	my $start_text= substr( $line, 0, $start);
-
-	if ( ($start_text =~ /^\s*$/ ||
-		  $start_text =~ /\|\s*$/ ) &&
-		!( $text =~ /\/|\.\.@/)) {
-		@tmp = $term->completion_matches($text, \&try_executable_completion);
-		return @tmp if defined @tmp;
-	}
-
-	return $term->completion_matches($text,
-		   $attribs->{filename_completion_function});
 }
 
 ##############################################################################
