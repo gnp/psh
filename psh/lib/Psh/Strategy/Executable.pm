@@ -6,21 +6,13 @@ package Psh::Strategy::Executable;
 This strategy will search for an executable file and execute it
 if possible.
 
-C<$Psh::Strategy::Executable::expand_arguments> is true if this
-strategy should do variable expansion at all.
-
-C<@Psh::Strategy::Executable::noexpand> holds a list of regular
-expressions. If the executable name matches one of those expressions,
-there won't be any variable expansion.
-
 =cut
 
 require Psh::Strategy;
+require Psh::Options;
 
-use vars qw(@ISA @noexpand $expand_arguments);
+use vars qw(@ISA);
 
-$expand_arguments=1;
-@noexpand=('whois','/ezmlm-','/mail$','/mailx$','/pine$');
 @ISA=('Psh::Strategy');
 
 my %built_ins=();
@@ -46,21 +38,13 @@ sub execute {
 	my $tmp= shift @words;
 	my $executable= $_[3];
 
-	if (!$Psh::current_options or !$Psh::current_options->{noexpand}) {
-		if ($expand_arguments) {
-			my $flag=0;
-
-			foreach my $re (@noexpand) {
-				if ($tmp=~ m{$re}) {
-					$flag=1;
-					last;
-				}
-			}
-			@words= Psh::PerlEval::variable_expansion(\@words) unless $flag;
-		}
-		if (!$Psh::current_options or !$Psh::current_options->{noglob}) {
-			@words = Psh::Parser::glob_expansion(\@words);
-		}
+	if (Psh::Options::get_option('expansion') and
+	    (!$Psh::current_options or !$Psh::current_options->{noexpand})) {
+		@words= Psh::PerlEval::variable_expansion(\@words);
+	}
+	if (Psh::Options::get_option('globbing') and
+		(!$Psh::current_options or !$Psh::current_options->{noglob})) {
+		@words = Psh::Parser::glob_expansion(\@words);
 	}
 	@words = map { Psh::Parser::unquote($_)} @words;
 

@@ -3,11 +3,12 @@ package Psh::Support::Builtins;
 my %builtins=();
 my %builtin_aliases= (
 					  '.' => 'source',
+					  'options' => 'option',
 					 );
 
 # Returns a list of builtins
 sub get_builtin_commands {
-	return keys %builtins;
+	return sort keys %builtins;
 }
 
 # Called during initialization

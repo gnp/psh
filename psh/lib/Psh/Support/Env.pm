@@ -1,10 +1,5 @@
 package Psh::Support::Env;
 
-use vars qw(%array_exports);
-
-%array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
-				'FIGNORE'=>$PS,'CDPATH'=>$PS,'LS_COLORS'=>':');
-
 #
 # string do_setenv(string command)
 #

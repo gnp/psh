@@ -25,6 +25,7 @@ lib/Psh/Locale/German.pm
 lib/Psh/Locale/Italian.pm
 lib/Psh/Locale/Portuguese.pm
 lib/Psh/Locale/Spanish.pm
+lib/Psh/Options.pm
 lib/Psh/PCompletion.pm
 lib/Psh/Parser.pm
 lib/Psh/PerlEval.pm
@@ -69,6 +70,7 @@ lib/Psh/Builtins/If.pm
 lib/Psh/Builtins/Jobs.pm
 lib/Psh/Builtins/Kill.pm
 lib/Psh/Builtins/Modules.pm
+lib/Psh/Builtins/Option.pm
 lib/Psh/Builtins/Printenv.pm
 lib/Psh/Builtins/Readline.pm
 lib/Psh/Builtins/Rehash.pm

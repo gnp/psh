@@ -1,6 +1,7 @@
 package Psh::Strategy::Built_in;
 
 require Psh::Strategy;
+require Psh::Options;
 require Psh::Support::Builtins;
 
 use strict;
@@ -38,8 +39,9 @@ sub execute {
 	my @words= @{$_[2]};
 	my $command= $_[3];
 	shift @words;
-	my $rest= join(' ',@words);
 	my $coderef;
+
+	my $rest= join(' ',@words);
 
 	no strict 'refs';
 	$coderef= *{join('','Psh::Builtins::',ucfirst($command),

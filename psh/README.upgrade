@@ -15,10 +15,14 @@ Upgrading from version 0.009 or earlier:
   Psh::Locale::set_text
 
 
-- The config variable @Psh::executable_no_expand is now
-  @Psh::Strategy::Executable::noexpand. The config variable
-  $Psh::executable_expand_arguments is now
-  $Psh::Strategy::Executable::expand_arguments.
+- The config variables
+  @Psh::executable_no_expand,
+  $Psh::executable_expand_arguments,
+  $Psh::prompt,
+  $Psh::prompt_cont,
+  $Psh::history_length,
+  $Psh::save_history,
+  were removed. Please use the new option builtin.
 
 - %Psh::strategy_which, %Psh::strategy_eval, @Psh::strategies,
   @Psh::unparsed_strategies do not exist anymore.
