@@ -176,9 +176,11 @@ sub canonpath {
     my ($self, $path) = @_;
     $path =~ s|/+|/|g unless $^O eq 'cygwin';     # xx////xx  -> xx/xx
     $path =~ s|(/\.)+/|/|g;                        # xx/././xx -> xx/xx
-    $path =~ s|^(\./)+||s unless $path eq "./";    # ./xx      -> xx
+    $path =~ s|^(\./)+||s unless $path eq './';    # ./xx      -> xx
     $path =~ s|^/(\.\./)+|/|s;                     # /../../xx -> xx
-    $path =~ s|/\Z(?!\n)|| unless $path eq "/";          # xx/       -> xx
+    if( $path ne '/' and substr($path,-1) eq '/') {
+	return substr($path,0,-1);
+    }
     return $path;
 }
 
@@ -232,9 +234,9 @@ sub rel2abs {
 
     if (substr($path,0,1) ne '/') {
         if ( !defined $base or $base eq '' ) {
-            $base = getcwd() ;
+            $base = $ENV{PWD};
         }
-        elsif ( substr($path,0,1) ne '/' ) {
+        elsif ( substr($base,0,1) ne '/' ) {
             $base = rel2abs( $self, $base ) ;
         }
 	$path= $base.'/'.$path;

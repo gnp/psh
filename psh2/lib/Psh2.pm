@@ -78,6 +78,7 @@ sub _eval {
 	    # TODO: Error handling
 	}
     }
+    return;
 }
 
 sub process {
@@ -92,11 +93,13 @@ sub process {
 	}
 	$self->reap_children();
 
-	my $tmp= eval { Psh2::Parser::parse_line(join("\n",@store, $input), $self); };
-	print STDERR $@ if $@;
-	if ($@ =~ /^parse: needmore:/) {
-	    push @store, $input;
-	    next LINE;
+	my $tmp= eval { Psh2::Parser::parse_line($self, join("\n",@store, $input)); };
+	if ($@) {
+	    print STDERR $@;
+	    if (substr($@,0,16) eq 'parse: needmore:') {
+		push @store, $input;
+		next LINE;
+	    }
 	}
 	@store= ();
 
@@ -806,7 +809,7 @@ sub del_option {
 	my ($self, $pid)= @_;
 
 	for ( my $i=0; $i<=$#order; $i++) {
-	    return $i+1 if( $order[$i]->{pgrp_leader}==$pid);
+	    return $i+1 if( $order[$i]->{pid}==$pid);
 	}
 	return -1;
     }
