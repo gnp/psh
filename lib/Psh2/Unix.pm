@@ -10,6 +10,11 @@ sub getcwd {
 
 sub get_path_extension() { return ['']; }
 
+sub get_home_dir {
+    my $self= shift;
+    my $user= shift || $ENV{USER};
+    return (CORE::getpwnam($user))[7];
+}
 
 ############################################################################
 ##

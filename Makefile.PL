@@ -24,6 +24,7 @@ WriteMakefile(
 	      PREREQ_PM    => {
 			       'Term::ReadLine' => 0,
 			       'Test::More' => 0,
+			       'File::Glob' => 0,
 			   },
 	      MAN1PODS     => $pods,
 	      dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
