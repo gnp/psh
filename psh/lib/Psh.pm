@@ -841,11 +841,11 @@ sub process_file
 		return;
 	}
 	
-	flock($pfh, LOCK_SH);
+	eval { flock($pfh, LOCK_SH); };
 	
 	process(0, sub { return <$pfh>; }); # don't prompt
 	
-	flock($pfh, LOCK_UN);
+	eval { flock($pfh, LOCK_UN); };
 	$pfh->close();
 	
 	print_debug("[[FINISHED PROCESSING FILE $path]]\n");
@@ -1103,12 +1103,12 @@ sub finish_initialize
 		} else {
 			my $fhist = new FileHandle($history_file,'r');
 			if (defined($fhist)) {
-				flock($fhist, LOCK_SH);
+				eval { flock($fhist, LOCK_SH); };
 				while (<$fhist>) {
 					chomp;
 					$term->addhistory($_);
 				}
-				flock($fhist, LOCK_UN);
+				eval { flock($fhist, LOCK_UN); };
 				$fhist->close();
 			}
 		}
