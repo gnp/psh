@@ -647,7 +647,9 @@ sub list_option {
 					    pids => \@pids,
 					    desc => $visline,
 					    psh  => $self,);
-		$list{$pgrp_leader}= $job;
+		foreach (@pids) {
+		    $list{$_}= $job;
+		}
 		push @order, $job;
 		$current_job= $#order;
 		if ($fgflag) {
