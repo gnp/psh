@@ -169,11 +169,14 @@ directory'.
 
 Exit out of the shell.
 
-=item * C<export>
+=item * C<export VAR [=VALUE]>
 
 Just like setenv, below, except that it also ties the variable (in the
 Perl sense) so that subsequent changes to the variable automatically
-affect the environment.
+affect the environment. Variables who are lists and appear in
+%psh::array_exports will also by tied to the array of the same name.
+Note that the variable must be specified without any Perl specifier
+like $ or @
 
 =item * C<fg JOB>
 
@@ -391,6 +394,12 @@ prompt strings. (See L<PROMPT STRINGS> below.)
 
 These hashes implement the named strategies used in B<psh>'s
 evaluation of input lines. It is possible to add new strategies, see below.
+
+=item %psh::array_exports
+
+Contains a list of environment variables which should be tied
+to arrays. The key of the hash is the name of the variable, the
+value is the delimiter of the list (e.g. ':' in PATH)
 
 =item &psh::evl
 
