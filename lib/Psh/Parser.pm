@@ -23,7 +23,7 @@ my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
 my $def_quoteexp;
 my %def_qhash;
 my $def_metaexp= '[\[\]{}()``]';
-my $def_tokenizer='(\s+|\|\|\&\&|\||;;|;|\&|>>|>|<<|<|\\|=)';
+my $def_tokenizer='(\s+|\|\||\&\&|\||;;|;|\&|>>|>|<<|<|\\|=)';
 my $nevermatches = "(?!a)a";
 
 %def_qhash = %perlq_hash;
@@ -363,6 +363,10 @@ sub make_tokens {
 			push @t, @tokens;
 			push @t, [T_END],[$tmp eq '||'?T_OR:T_AND];
 			@tokens=();
+			$previous_token= '';
+		}
+		elsif ($tmp eq ';;') {
+			push @tokens, [T_WORD,';'];
 			$previous_token= '';
 		}
 		elsif( $tmp eq '|') {
