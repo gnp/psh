@@ -89,7 +89,7 @@ sub bi_option {
 						 $val !~ /^sub\s*\{/) {
 					$val=qq['$val'];
 				}
-				$val=~ s/[\033]/\\033/g;
+				$val=~ s/\033/\\033/g;
 				my @tmp= Psh::PerlEval::protected_eval($val,'eval');
 				Psh::Options::set_option($key,$tmp[0]);
 			} else {
