@@ -2,11 +2,9 @@
 
 psh - Perl SHell
 
-
 =for README
 Please read the perlpod manpage! Pay particular attention to the markup
 sequences (B<>, C<>, I<>, etc.).
-
 
 =head1 SYNOPSIS
 
@@ -32,6 +30,25 @@ employed so that the user is not bound by their stipulations.
 They can both be turned on via a command-line flag; or setting
 C<$^W = 1> will turn on warnings, and calling 'C<use strict>' will
 (almost) do the usual thing if called by the user (see LIMITATIONS, below).
+
+Each line of input is read. B<psh> knows a number of possible
+strategies for evaluating the line, such as "send it to C<system()> if it
+starts with the name of an executable visible in C<$ENV{PATH}>". (See
+below for a complete list.)
+Each strategy in turn (from a user-definable
+list) examines the command line to see if it can apply, and the first
+matching strategy evaluates the line. There is a B<psh> configuration
+variable (see below) which controls whether the perl value of the
+evaluation is saved and printed after each command.
+
+B<psh> automatically collects several lines of input into a unit
+processed as a single line if there are unfinished Perl constructs on
+the line. In particular, if there is an unmatched quote, paren, brace,
+or square bracket, input is read until these characters match. If an
+input line contains the Perl "here document" construct as in
+C<E<lt>E<lt>XXX>, (anywhere on the line), then input is read and
+accumulated until C<XXX> occurs on a line by itself. Then the
+accumulated input is processed as if it were a single line.
 
 
 =head1 OPTIONS
@@ -83,27 +100,6 @@ If any FILE1 ... arguments are specified on the command line, they
 will be read and executed and then B<psh> will exit. Otherwise, B<psh>
 will enter an interactive command loop.
 
-
-=head1 DESCRIPTION
-
-Each line of input is read. B<psh> knows a number of possible
-strategies for evaluating the line, such as "send it to C<system()> if it
-starts with the name of an executable visible in C<$ENV{PATH}>". (See
-below for a complete list.)
-Each strategy in turn (from a user-definable
-list) examines the command line to see if it can apply, and the first
-matching strategy evaluates the line. There is a B<psh> configuration
-variable (see below) which controls whether the perl value of the
-evaluation is saved and printed after each command.
-
-B<psh> automatically collects several lines of input into a unit
-processed as a single line if there are unfinished Perl constructs on
-the line. In particular, if there is an unmatched quote, paren, brace,
-or square bracket, input is read until these characters match. If an
-input line contains the Perl "here document" construct as in
-C<E<lt>E<lt>XXX>, (anywhere on the line), then input is read and
-accumulated until C<XXX> occurs on a line by itself. Then the
-accumulated input is processed as if it were a single line.
 
 =head2 TOKENIZATION
 
@@ -405,7 +401,7 @@ The fully qualified host name of the machine B<psh> is running on.
 
 Controls the prompt string in interactive use, see below.
 
-=item I<$Psh::prompt_cont> ('> ') [late]
+=item I<$Psh::prompt_cont> ('E<gt> ') [late]
 
 Just like I<$Psh::prompt>, but for continuation lines when multi-line
 input is being read.
@@ -596,6 +592,7 @@ or similar facilities.
 Takes one argument, a package name, and shows all of the symbols in
 that package.
 
+=back
 
 There are other functions in the psh:: package, but they are probably
 not useful except internally to B<psh>.
