@@ -579,6 +579,9 @@ sub minimal_initialize
 	$cmd                         = 1;
 	my @tmp= File::Spec->splitdir($0);
 	$bin= pop @tmp;
+	Psh::Options::set_option('history_file',
+							 File::Spec->catfile(Psh::OS::get_home_dir(),
+												 '.'.$Psh::bin.'_history'));
 
 	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
