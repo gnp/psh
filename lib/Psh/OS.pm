@@ -218,6 +218,11 @@ sub fb_reinstall_resize_handler { 1; }
 	my $handler_type=0;
 
 	sub fb_install_resize_handler {
+		eval '$Psh::term->get_screen_size()';
+		unless ($@) {
+			$handler_type=3;
+			return;
+		}
 		eval "use Term::Size;";
 		if ($@) {
 			eval "use Term::ReadKey;";
@@ -235,6 +240,10 @@ sub fb_reinstall_resize_handler { 1; }
 
 		if ($handler_type==0) {
 			return;
+		} elsif ($handler_type==3) {
+			eval {
+				($rows,$cols)= $Psh::term->get_screen_size();
+			};
 		} elsif ($handler_type==1) {
 			eval {
 				($cols,$rows)= Term::Size::chars();
