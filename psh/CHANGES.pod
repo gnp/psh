@@ -16,6 +16,19 @@
 
 =head1 CVS HEAD
 
+=head2 11 Jan 2000 - warp
+
+=over 4
+
+=item * Windows titles (PSH_TITLE and $Psh::window_title) behave like prompt
+strings now.
+
+=item * Perlfunc strategy is now again a default strategy. $Psh::perlfunc_builtins determines wether Perl builtins should be evaled (default 0)
+
+=item * Fallback builtins are loaded on demand
+
+=back
+
 =head2 04 Jan 2000 - warp
 
 Support for window titles. New environment variable PSH_TITLE,

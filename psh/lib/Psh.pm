@@ -46,10 +46,11 @@ use vars qw($bin $news_file $cmd $echo $host $debugging
 			$history_file $save_history $history_length $joblist
 			$eval_preamble $currently_active $handle_segfaults
 			$result_array $which_regexp $ignore_die $old_shell
-			$rc_file $login_shell $change_title
+			$rc_file $login_shell $change_title $perlfunc_builtins
+			$window_title
 			@val @wday @mon @strategies @unparsed_strategies @history
 			%text %perl_builtins %perl_builtins_noexpand
-			%strategy_which %built_ins %strategy_eval);
+			%strategy_which %built_ins %strategy_eval %fallback_builtin);
 
 # These constants are used in flock().
 use constant LOCK_SH => 1; # shared lock (for reading)
@@ -66,7 +67,7 @@ $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r 
 #
 
 
-my @default_strategies     = qw(brace built_in executable fallback_builtin eval);
+my @default_strategies = qw(brace built_in perlfunc executable fallback_builtin eval);
 my @default_unparsed_strategies = qw(comment bang);
 my $input;
 
@@ -162,6 +163,12 @@ waitpid 1 wantarray 1 warn 1 while 1 write 1 y/// 1 );
 %perl_builtins_noexpand = qw( continue 1 do 1 for 1 foreach 1 goto 1 if 1 last 1 local 1 my 1 next 1 package 1 redo 1 sub 1 until 1 use 1 while 1);
 
 #
+# Contains names of fallback builtins we support
+#
+
+%fallback_builtins = qw( ls env );
+
+#
 # bool matches_perl_binary(string FILENAME)
 #
 # Returns true if FILENAME referes directly or indirectly to the
@@ -223,10 +230,11 @@ sub matches_perl_binary
 
     'fallback_builtin' => sub {
 		my $fnname = ${$_[1]}[0];
-        no strict 'refs';
-        if( ref *{"Psh::Builtins::Fallback::bi_$fnname"}{CODE} eq 'CODE') {
-			return "(built_in $fnname)";
-		}
+		
+		if( $fallback_builtin{$fnname}) {
+			eval 'Psh::Builtins::Fallback::' . ucfirst( $fnname );
+            return "(fallback built in $fnname)";
+        }
 		return '';
 	},
 
@@ -254,15 +262,16 @@ sub matches_perl_binary
 		        $fnname = (split('\(', $firstword))[0];
 		}
 		my $qPerlFunc = 0;
-		if ( exists($perl_builtins{$fnname})) {
-		        my $needArgs = $perl_builtins{$fnname};
-    		        if ($needArgs > 0
+		if ( $perlfunc_builtins &&
+			 exists($perl_builtins{$fnname})) {
+			my $needArgs = $perl_builtins{$fnname};
+			if ($needArgs > 0
 			    and ($parenthesized
-				 or scalar(@{$_[1]}) >= $needArgs)) {
-			        $qPerlFunc = 1;
+					 or scalar(@{$_[1]}) >= $needArgs)) {
+				$qPerlFunc = 1;
 			}
-		} else {
-		        $qPerlFunc = (protected_eval("defined(&{'$fnname'})"))[0];
+        } elsif( $fnname =~ /^[a-zA-Z0-9]+$/) {
+			$qPerlFunc = (protected_eval("defined(&{'$fnname'})"))[0];
 		}
 		if ( $qPerlFunc ) {
 			my $copy = ${$_[0]};
@@ -461,7 +470,7 @@ sub matches_perl_binary
         my $rest= join(' ',@words);
         {
 	        no strict 'refs';
-	        $coderef= *{"Psh::Builtins::bi_$command"};
+	        $coderef= *{"Psh::Builtins::Fallback::bi_$command"};
             return (sub { &{$coderef}($rest,\@words); }, undef );
         }
 	},
@@ -1011,8 +1020,9 @@ sub minimal_initialize
 	$ENV{PSH_TITLE} = $bin;
 
 	Psh::OS::inc_shlvl();
-
 	Psh::OS::setup_signal_handlers();
+
+	$Psh::window_title='\w';
 
 	# The following accessible variables are undef during the
 	# .pshrc file:

@@ -209,10 +209,6 @@ directory".
 				if (-x _) {
 					$last_dir = cwd;
 					$ENV{OLDPWD}= $last_dir;
-					if( $Psh::change_title) {
-						$ENV{PSH_TITLE}=$dir;
-						Psh::Prompt::change_title();
-					}
 					chdir $dir;
 					return 0;
 				} else {
@@ -752,50 +748,6 @@ sub get_builtin_commands {
 	}
 	return @list;
 }
-
-
-#####################################################################
-# 'Fallback' builtins are following now
-# Fallback builtins are NOT called under normal circumstances
-# Instead they will be used if we expected a binary with that
-# name to exist on the system but it did not
-# (e.g. to simulate command.com/cmd.exe builtins on Win32
-#  or simple stuff like ls on MacOS)
-#####################################################################
-
-package Psh::Builtins::Fallback;
-
-#
-# void env
-#
-# Prints out the current environment if no 'env' command is on
-# the system
-#
-
-sub bi_env
-{
-	foreach my $key (keys %ENV) {
-		print_out("$key=$ENV{$key}\n");
-	}
-	return undef;
-}
-
-# void bi_ls
-# like the Unix binary but without options
-sub bi_ls
-{
-	my $pattern= shift || '*';
-	my $ps= $Psh::OS::FILE_SEPARATOR;
-	$pattern.=$ps.'*' if( $pattern !~ /\*/ &&
-						  -d Psh::Util::abs_path($pattern));
-	my @files= map { 
-		    return $1 if( m:\Q$ps\E([^\Q$ps\E]+)$:); $_
-		} Psh::OS::glob($pattern);
-	Psh::Util::print_list(@files);
-	return undef;
-}
-
-package Psh::Builtins;
 
 1;
 

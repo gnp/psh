@@ -29,6 +29,8 @@ lib/Psh/PerlEval.pm
 lib/Psh/Prompt.pm
 lib/Psh/Util.pm
 lib/Psh/Builtins.pm
+lib/Psh/Builtins/Fallback/Ls.pm
+lib/Psh/Builtins/Fallback/Env.pm
 lib/Psh/OS.pm
 lib/Psh/OS/Mac.pm
 lib/Psh/OS/Unix.pm
