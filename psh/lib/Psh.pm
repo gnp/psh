@@ -112,16 +112,13 @@ my $input;
 #
 
 %strategy_which = (
-	'bang'     => sub { if (${$_[1]}[0] =~ m/^!/)  { return 'system';  } return ''; },
+	'bang'     => sub { if ( substr(${$_[1]}[0],0,1) eq '!')  { return 'system';  } return ''; },
 
-	'comment'  => sub { if (${$_[1]}[0] =~ m/^\#/) { return 'comment'; } return ''; },
-	'brace'    => sub { if (${$_[1]}[0] =~ m/^\{/) { return 'perl evaluation'; } return ''; },
+	'comment'  => sub { if ( substr(${$_[1]}[0],0,1) eq '#') { return 'comment'; } return ''; },
+	'brace'    => sub { if ( substr(${$_[1]}[0],0,1) eq '{') { return 'perl evaluation'; } return ''; },
 	'built_in' => sub {
 	     my $fnname = ${$_[1]}[0];
          no strict 'refs';
-         if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
- 	         return "(Psh::Builtins::bi_$fnname)";
-         }
          if( $built_ins{$fnname}) {
 			 eval 'use Psh::Builtins::'.ucfirst($fnname);
 			 if ($@) {
@@ -129,6 +126,9 @@ my $input;
 			 }
              return "(Psh::Builtins::".ucfirst($fnname)."::bi_$fnname)";
 		 }
+         if( ref *{"Psh::Builtins::bi_$fnname"}{CODE} eq 'CODE') {
+ 	         return "(Psh::Builtins::bi_$fnname)";
+         }
 		 return '';
 	},
 
@@ -136,7 +136,6 @@ my $input;
 		my $executable = which(${$_[1]}[0]);
 
 		return "$executable" if defined($executable);
-
 		return '';
 	},
 
@@ -393,6 +392,7 @@ sub process
 		$control_d_counter=0;
 
 		if ($input =~ m/^\s*$/) { next; }
+
 		my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
 		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
 			my $terminator = $1;

@@ -5,56 +5,17 @@ use strict;
 
 require Psh::OS;
 require Psh::Util;
+require Exporter;
+
+sub T_END() { 0; }
+sub T_WORD() { 1; }
+sub T_PIPE() { 2; }
+sub T_REDIRECT() { 3; }
+sub T_BACKGROUND() { 4; }
 
 my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
 
-
-#
-# array decompose(regexp DELIMITER, string LINE, int PIECES, 
-#                 bool KEEP, hashref QUOTINGPAIRS, regexp METACHARACTERS
-#                 scalarref UNMATCHED_QUOTE)
-#
-# decompose is a cross between split() and
-# Text::ParseWords::parse_line: it breaks LINE into at most PIECES
-# pieces separated by DELIMITER, except that the hash given by the
-# reference QUOTINGPAIRS specifies pairs of quotes (each key is an
-# open quote which matches the corresponding value) which prevent
-# splitting on internal instances of DELIMITER, and negate the effect
-# of other quotes. The quoting characters are retained if KEEP is
-# true, discarded otherwise. Matches to the regexp METACHARACTERS
-# (outside quotes) are their own words, regardless of being delimited.
-# Backslashes escape the meanings of characters that might match
-# delimiters, quotes, or metacharacters.  Initial unquoted empty
-# pieces are suppressed. 
-
-# The regexp DELIMITER may contain a single back-reference parenthesis
-# construct, in which case the matches to the parenthesized
-# subexpression are also placed among the pieces, as with the
-# built-in split. METACHARACTERS may not contain any parenthesized
-# subexpression.
-
-# decompose returns the array of pieces. If UNMATCHED_QUOTE is
-# specified, 1 will be placed in the scalar referred to if LINE
-# contained an unmatched quote, 0 otherwise.
-
-# If DELIMITER is undefined or equal to ' ', the regexp '\s+' is used
-# to break on whitespace. If PIECES is undefined, as many pieces as
-# necessary are used. KEEP defaults to 1. If QUOTINGPAIRS is
-# undefined, {"'" => "'", "\"" => "\""} is used, i.e. single and
-# double quotes are recognized. Supply a reference to an empty hash to
-# have no quoting characters. METACHARACTERS defaults to a regexp that
-# never matches.
-
-# EXAMPLE: if $line is exactly
-
-# echo fred(joe, "Happy Days", ' steve"jan ', "\"Oh, no!\"")
-
-# then decompose(' ', $line) should break it at the
-# following places marked by vertical bars: 
-
-# echo|fred(joe,|"Happy Days",|' steve"jan',|"\"Oh, no!\"")
-
-sub decompose 
+sub decompose
 {
     my ($delimexp,$line,$num,$keep,$quotehash,$metaexp,$unmatched) = @_;
 
@@ -170,31 +131,11 @@ sub decompose
     return @pieces;
 }
 
-#
-# array std_tokenize(string LINE, [int PIECES])
-#
-# Wrapper for decompose, returns the "standard" psh tokenization of an
-# (unmodified) line of psh input
-#
-
 sub std_tokenize
 {
     my ($line,$pieces) = @_;
     return decompose(' ',$line,$pieces,1,undef,'\&');
 }
-
-#
-# int incomplete_expr(string LINE)
-#
-# Returns 2 if LINE has unmatched quotations. Returns -1 if LINE has
-# mismatched parens. Otherwise, returns 1 if LINE has an unmatched
-# open brace, parenthesis, or square bracket and 0 in all other
-# cases. Summing up, negative is a mismatch, 0 is all OK, and positive
-# is unfinished business. (Reasonably good, can be fooled with some
-# effort. I therefore have deliberately not taken comments into
-# account, which means you can use them to "unfool" this function, but
-# also that unmatched stuff in comments WILL fool this function.)
-#
 
 sub incomplete_expr
 {
@@ -288,10 +229,6 @@ sub glob_expansion
 	return @retval;
 }
 
-
-#
-# Removes quotes from a word and backslash escapes
-#
 sub unquote {
 	my $text= shift;
 
@@ -336,14 +273,14 @@ sub make_tokens {
 		if( $tmp =~ /^\s*\|\s*$/ ) {
 			if( $previous_token eq '|') {
 				pop @tokens;
-				push @tokens, ['WORD','||'];
+				push @tokens, [T_WORD,'||'];
 				$previous_token= '';
 			} elsif( $previous_token eq "\\") {
 				pop @tokens;
-				push @tokens, ['WORD','|'];
+				push @tokens, [T_WORD,'|'];
 				$previous_token= '';
 			} else {
-				push @tokens, ['PIPE'];
+				push @tokens, [T_PIPE];
 				$previous_token= '|';
 			}
 		} elsif( $tmp =~ /^([1-2]?)(>>?)$/) {
@@ -352,13 +289,13 @@ sub make_tokens {
 
 			if( $previous_token eq '=') {
 				pop @tokens;
-				push @tokens, ['WORD','=>'];
+				push @tokens, [T_WORD,'=>'];
 				$previous_token= '';
 			} elsif ($previous_token =~ /-$/) {
 				($tmp,$tmp)=@{pop @tokens};
 				$tmp=~s/-$//;
-				push @tokens, ['WORD',$tmp];
-				push @tokens, ['WORD','->'];
+				push @tokens, [T_WORD,$tmp];
+				push @tokens, [T_WORD,'->'];
 				$previous_token= '';
 			} else {
 				my $file;
@@ -372,17 +309,17 @@ sub make_tokens {
 												$tmp,$Psh::bin);
 					return undef;
 				}
-				push @tokens, ['REDIRECT',$tmp,$handle,unquote($file)];
+				push @tokens, [T_REDIRECT,$tmp,$handle,unquote($file)];
 				$previous_token='';
 			}
 		} elsif( $tmp eq '<') {
 			if( $previous_token eq '<') {
 				pop @tokens;
-				push @tokens, ['WORD','<<'];
+				push @tokens, [T_WORD,'<<'];
 				$previous_token='';
 			} elsif( $previous_token eq "\\") {
 				pop @tokens;
-				push @tokens, ['WORD','<'];
+				push @tokens, [T_WORD,'<'];
 				$previous_token='';
 			} else {
 				my $file;
@@ -396,20 +333,20 @@ sub make_tokens {
 												$tmp,$Psh::bin);
 					return undef;
 				}
-				push @tokens, ['REDIRECT','<',0,unquote($file)];
+				push @tokens, [T_REDIRECT,'<',0,unquote($file)];
 				$previous_token='<';
 			}
 		} elsif( $tmp eq '&') {
 			if( $previous_token eq '&') {
 				pop @tokens;
-				push @tokens, ['WORD','&&'];
+				push @tokens, [T_WORD,'&&'];
 				$previous_token='';
 			} elsif( $previous_token eq "\\") {
 				pop @tokens;
-				push @tokens, ['WORD','&'];
+				push @tokens, [T_WORD,'&'];
 				$previous_token='';
 			} else {
-				push @tokens, ['BACKGROUND'],['END'];
+				push @tokens, [T_BACKGROUND],[T_END];
 				$previous_token='&';
 			}
 		} elsif( $tmp eq ';') {
@@ -418,15 +355,15 @@ sub make_tokens {
 				# ;; parses as \; as one needs it often in .e.g
 				# finds
 				pop @tokens;
-				push @tokens, ['WORD',';'];
+				push @tokens, [T_WORD,';'];
 				$previous_token='';
 			} else {
-				push @tokens, ['END'];
+				push @tokens, [T_END];
 				$previous_token=';';
 			}
 		} elsif( $tmp=~ /^\s+$/) {
 		} else {
-			push @tokens, ['WORD',$tmp];
+			push @tokens, [T_WORD,$tmp];
 			$previous_token= $tmp;
 		}
 	}
@@ -461,7 +398,7 @@ sub parse_line {
 		$element=parse_complex_command(\@tokens,\@use_strats);
 		return undef if ! defined( $element); # TODO: Error handling
 
-		if (@tokens > 0 && $tokens[0]->[0] eq 'END') {
+		if (@tokens > 0 && $tokens[0][0] == T_END) {
 			shift @tokens;
 		}
 		push @elements, $element;
@@ -481,13 +418,13 @@ sub _subparse_complex_command {
 	my ($tokens,$use_strats,$piped,$foreground,$alias_disabled)=@_;
 	my @simplecommands= parse_simple_command($tokens,$use_strats, $piped,$alias_disabled,$foreground);
 
-	while (@$tokens > 0 && $tokens->[0]->[0] eq 'PIPE') {
+	while (@$tokens > 0 && $tokens->[0][0] == T_PIPE) {
 		shift @$tokens;
 		push @simplecommands, parse_simple_command($tokens,$use_strats,$piped,$alias_disabled,$foreground);
 		$$piped= 1;
 	}
 
-	if (@$tokens > 0 && $tokens->[0]->[0] eq 'BACKGROUND') {
+	if (@$tokens > 0 && $tokens->[0][0] == T_BACKGROUND) {
 		shift @$tokens;
 		$$foreground = 0;
 	}
@@ -500,19 +437,20 @@ sub parse_simple_command {
 
 	my $token = shift @$tokens;
 	push @words, $token->[1];
-	while (@$tokens > 0 &&
-		   ($tokens->[0]->[0] eq 'WORD' ||
-			$tokens->[0]->[0] eq 'REDIRECT')) {
+	while (@$tokens > 0 and
+		   ($tokens->[0][0] == T_WORD or
+			$tokens->[0][0] == T_REDIRECT)) {
 		my $token = shift @$tokens;
 		push @savetokens,$token;
-		if ($token->[0] eq 'WORD') {
+		if ($token->[0] == T_WORD) {
 			push @words, $token->[1];
-		} elsif ($token->[0] eq 'REDIRECT') {
+		} elsif ($token->[0] == T_REDIRECT) {
 			push @options, $token;
 		}
 	}
 
-	if( !$alias_disabled->{$words[0]} && $Psh::Builtins::aliases{$words[0]}) {
+	if ($Psh::Builtins::aliases{$words[0]} and
+	    !$alias_disabled->{$words[0]}) {
 		my $alias= $Psh::Builtins::aliases{$words[0]};
 		$alias =~ s/\'/\\\'/g;
 		$alias_disabled->{$words[0]}=1;
@@ -539,14 +477,6 @@ sub parse_simple_command {
 	Psh::Util::print_error_i18n('clueless',$line,$Psh::bin);
 }
 
-#
-# bool needs_double_quotes (string WORD) 
-#
-# Returns true if WORD needs double quotes around it to be interpreted
-# in a "shell-like" manner when passed to eval. This covers barewords,
-# expressions that just have \-escapes and $variables in them, and
-# filenames. 
-#
 # TODO: right now this is pretty much of a hack. Could it be improved?
 #        For example, 'print hello \n' on the command line gets double
 #        quotes around hello and \n, so that it ends up doing
@@ -575,18 +505,101 @@ __END__
 
 =head1 NAME
 
-Psh::Parser - bla
+  Psh::Parser - Perl Shell Parser
 
 =head1 SYNOPSIS
 
+  use Psh::Parser;
 
 =head1 DESCRIPTION
 
+=over 4
+
+=item *
+
+  array decompose(regexp DELIMITER, string LINE, int PIECES, 
+                  bool KEEP, hashref QUOTINGPAIRS, regexp METACHARACTERS
+                  scalarref UNMATCHED_QUOTE)
+
+decompose is a cross between split() and
+Text::ParseWords::parse_line: it breaks LINE into at most PIECES
+pieces separated by DELIMITER, except that the hash given by the
+reference QUOTINGPAIRS specifies pairs of quotes (each key is an
+open quote which matches the corresponding value) which prevent
+splitting on internal instances of DELIMITER, and negate the effect
+of other quotes. The quoting characters are retained if KEEP is
+true, discarded otherwise. Matches to the regexp METACHARACTERS
+(outside quotes) are their own words, regardless of being delimited.
+Backslashes escape the meanings of characters that might match
+delimiters, quotes, or metacharacters.  Initial unquoted empty
+pieces are suppressed. 
+
+The regexp DELIMITER may contain a single back-reference parenthesis
+construct, in which case the matches to the parenthesized
+subexpression are also placed among the pieces, as with the
+built-in split. METACHARACTERS may not contain any parenthesized
+subexpression.
+
+decompose returns the array of pieces. If UNMATCHED_QUOTE is
+specified, 1 will be placed in the scalar referred to if LINE
+contained an unmatched quote, 0 otherwise.
+
+If DELIMITER is undefined or equal to ' ', the regexp '\s+' is used
+to break on whitespace. If PIECES is undefined, as many pieces as
+necessary are used. KEEP defaults to 1. If QUOTINGPAIRS is
+undefined, {"'" => "'", "\"" => "\""} is used, i.e. single and
+double quotes are recognized. Supply a reference to an empty hash to
+have no quoting characters. METACHARACTERS defaults to a regexp that
+never matches.
+
+EXAMPLE: if $line is exactly
+
+echo fred(joe, "Happy Days", ' steve"jan ', "\"Oh, no!\"")
+
+then decompose(' ', $line) should break it at the
+following places marked by vertical bars: 
+
+echo|fred(joe,|"Happy Days",|' steve"jan',|"\"Oh, no!\"")
+
+=item *
+
+  array std_tokenize(string LINE, [int PIECES])
+
+Wrapper for decompose, returns the "standard" psh tokenization of an
+(unmodified) line of psh input
+
+=item *
+
+  int incomplete_expr(string LINE)
+
+Returns 2 if LINE has unmatched quotations. Returns -1 if LINE has
+mismatched parens. Otherwise, returns 1 if LINE has an unmatched
+open brace, parenthesis, or square bracket and 0 in all other
+cases. Summing up, negative is a mismatch, 0 is all OK, and positive
+is unfinished business. (Reasonably good, can be fooled with some
+effort. I therefore have deliberately not taken comments into
+account, which means you can use them to "unfool" this function, but
+also that unmatched stuff in comments WILL fool this function.)
+
+=item *
+
+  string unquote( string word)
+
+Removes quotes from a word and backslash escapes
+
+=item *
+
+  bool needs_double_quotes (string WORD)
+
+Returns true if WORD needs double quotes around it to be interpreted
+in a "shell-like" manner when passed to eval. This covers barewords,
+expressions that just have \-escapes and $variables in them, and
+filenames.
+
+=back
 
 =head1 AUTHOR
 
-
-=head1 SEE ALSO
-
+Various
 
 =cut

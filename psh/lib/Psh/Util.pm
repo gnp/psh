@@ -230,7 +230,7 @@ sub abs_path {
 		foreach my $dir (@Psh::absed_path) {
 			my $try = File::Spec->catfile($dir,$cmd);
 			foreach my $ext (@path_extension) {
-				if ((-x $try.$ext) and (!-d _)) { 
+				if ((-x $try.$ext) and (!-d _)) {
 					$command_hash{$cmd} = $try.$ext;
 					return $try.$ext;
 				}
