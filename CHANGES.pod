@@ -94,6 +94,10 @@ Handling of ~ for username expansion should be bug-free now
 The help builtin sometimes returned the wrong help (e.g. C<help set>
 returned the help of setenv)
 
+=item *
+
+The parser parsed '&&' as if the user entered '& &&'.
+
 =back
 
 =head2 Cleanups

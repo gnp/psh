@@ -374,6 +374,7 @@ sub make_tokens {
 		} elsif( $tmp eq '&') {
 			if( $previous_token eq '&') {
 				pop @tokens;
+				pop @tokens; # pop T_END and T_BACKGROUND
 				push @tokens, [T_WORD,'&&'];
 				$previous_token='';
 			} elsif( $previous_token eq "\\") {
