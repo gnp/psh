@@ -58,7 +58,7 @@ my $PS=$Psh::OS::PATH_SEPARATOR;
 %Psh::array_exports=('PATH'=>$PS,'CLASSPATH'=>$PS,'LD_LIBRARY_PATH'=>$PS,
 					 'FIGNORE'=>$PS,'CDPATH'=>$PS,'LS_COLORS'=>':');
 
-@dir_stack= (Psh::OS::getcwd());
+@dir_stack= (Psh::OS::getcwd_psh());
 $dir_stack_pos=0;
 
 

@@ -699,7 +699,7 @@ sub minimal_initialize
 
 	$old_shell = $ENV{SHELL} if $ENV{SHELL};
 	$ENV{SHELL} = $0;
-	$ENV{PWD} = Psh::OS::getcwd();
+	$ENV{PWD} = Psh::OS::getcwd_psh();
 	$ENV{PSH_TITLE} = $bin;
 
 	Psh::OS::inc_shlvl();
