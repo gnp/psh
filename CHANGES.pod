@@ -72,7 +72,12 @@ New builtin B<bind> which does keybindings (similar to B<bash>).
 New builtin B<drives> which shows the available drives on Windows.
 - warp [2000-08-26]
 
+=back
+
+
 =head2 Internals
+
+=over 4
 
 =item *
 
@@ -129,6 +134,8 @@ The B<help> builtin cleans up the temp files it creates.
 
 
 =head2 Fixes
+
+=over 4
 
 =item *
 
