@@ -1,6 +1,7 @@
 package Psh2;
 
 use strict;
+
 require Psh2::Parser;
 require Psh2::Jobs;
 
@@ -78,7 +79,8 @@ sub process {
 	    last;
 	}
 	my $tmp= eval { Psh2::Parser::parse_line($input, $self); };
-	print $@ if $@;
+	# Todo: Error handling
+	print STDERR $@ if $@;
 
 	if ($tmp and @$tmp) {
 	    _eval($tmp)
@@ -123,6 +125,7 @@ sub main_loop {
 sub init_minimal {
     my $self= shift;
     $| = 1;
+    setup_signal_handlers();
 }
 
 sub init_finish {
@@ -146,7 +149,7 @@ sub init_interactive {
     }
     $self->{frontend}= $frontend_name->new($self);
     $self->fe->init();
-
+    setup_signal_handlers();
 }
 
 ############################################################################
@@ -277,13 +280,46 @@ sub printdebug {
 	return $command_hash{$command} if exists $command_hash{$command}
 	  and !$all_flag;
 
-	return undef if $command !~ /^[-a-zA-Z0-9_.~+]$/;
+	return undef if $command !~ /^[-a-zA-Z0-9_.~+]+$/;
 
 	if (!@absed_path or $last_path_cwd ne ($ENV{PATH}.$ENV{PWD})) {
 	    $last_path_cwd= $ENV{PATH}.$ENV{PWD};
 	    _recalc_absed_path();
 	}
+	my $path_ext= get_path_extension();
+	my @all= ();
+	foreach my $dir (@absed_path) {
+	    next unless $dir;
+	    my $try= catfile($dir, $command);
+	    foreach my $ext (@$path_ext) {
+		my $tmp= $try.$ext;
+		if (-x $tmp and !-d _) {
+		    $command_hash{$command}= $tmp;
+		    return $tmp unless $all_flag;
+		    push @all, $tmp;
+		}
+	    }
+	}
+	if ($all_flag and @all) {
+	    return @all;
+	}
+	$command_hash{$command}= undef; # speeds up locating non-commands
 	return undef;
+    }
+
+    sub _recalc_absed_path {
+	@absed_path= ();
+	%command_hash= ();
+	my @path= split path_separator(), $ENV{PATH};
+	eval {
+	    foreach my $dir (@path) {
+		next unless $dir;
+		$dir= abs_path($dir);
+		next unless $dir and -r $dir and -x _;
+		push @absed_path, $dir;
+	    }
+	};
+	# TODO: Error handling
     }
 }
 
