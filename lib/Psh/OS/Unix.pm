@@ -527,13 +527,16 @@ sub restart_job
 		my $command = $job->{call};
 
 		if ($command) {
-			my $verb= ucfirst(Psh::Locale::get_text('restart'));
+			my $verb;
 			my $qRunning = $job->{running};
+
 			if ($fg_flag) {
 				$verb= ucfirst(Psh::Locale::get_text('foreground'));
 			} elsif ($qRunning) {
-			  # bg request, and it's already running:
-			  return;
+				# bg request, and it's already running:
+				return;
+			} else {
+				$verb= ucfirst(Psh::Locale::get_text('restart'));
 			}
 			my $visindex = Psh::Joblist::get_job_number($pid);
 			Psh::Util::print_out("[$visindex] $verb $pid $command\n");

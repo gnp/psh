@@ -656,8 +656,8 @@ sub initialize_interactive_mode {
 				$Psh::term->MinLine(10000);   # We will handle history adding
 				# ourselves (undef causes trouble).
 				$Psh::term->ornaments(0);
-				Psh::Util::print_debug_class('i',"[Using ReadLine: ", $Psh::term->ReadLine(), "]\n");
-				if ($Psh::term->ReadLine() eq "Term::ReadLine::Gnu") {
+				Psh::Util::print_debug_class('i','[Using ReadLine: ', $Psh::term->ReadLine(), "]\n");
+				if ($Psh::term->ReadLine() eq 'Term::ReadLine::Gnu') {
 					$readline_saves_history = 1;
 				}
 				my $attribs= $Psh::term->Attribs;

@@ -190,10 +190,10 @@ sub fb_getcwd_psh {
 	return eval { Cwd::getcwd(); } || '';
 }
 
-sub fb_LOCK_SH { 1; }
-sub fb_LOCK_EX { 2; }
-sub fb_LOCK_NB { 4; }
-sub fb_LOCK_UN { 8; }
+sub fb_LOCK_SH() { 1; }
+sub fb_LOCK_EX() { 2; }
+sub fb_LOCK_NB() { 4; }
+sub fb_LOCK_UN() { 8; }
 
 sub fb_lock {
 	my $file= shift;
@@ -222,9 +222,9 @@ sub fb_reinstall_resize_handler { 1; }
 			$handler_type=3;
 			return;
 		}
-		eval "use Term::Size;";
+		eval 'use Term::Size;';
 		if ($@) {
-			eval "use Term::ReadKey;";
+			eval 'use Term::ReadKey;';
 			unless ($@) {
 				$handler_type=2;
 			}
