@@ -12,7 +12,7 @@ in psh and:
     make realclean
     cvs upd -AdP
     cvs commit
-    perl Makefile.PL PREFIX=~
+    perl Makefile.PL PREFIX=$HOME
     make
     make test
     make install

@@ -25,6 +25,22 @@ A reverse-chronological ordered list of changes
 ###############################################################################
 ###############################################################################
 
+=head1 1.7 [2003-01-16]
+
+=head2 Fixes
+
+=over 4
+
+=item *
+
+Incremented version so $Psh::VERSION > 1.67, which was the version for that
+module in the 0.009 release (because at that time, version was set according
+to the CVS revision, rather than to match the release). This should (finally)
+make CPAN happy.
+
+=back
+
+
 =head1 1.1 [2003-01-16]
 
 =head2 Fixes
