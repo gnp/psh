@@ -11,6 +11,9 @@ CVS HEAD
   * Changed prompt evaluation to be more bash compatible and
     to handle even complex prompts
   * Fixed generation of weekday names
+  * Replaced Psh::OS::Unix::glob() - now uses an own glob
+    routine instead CORE::glob() - and is significantly faster
+    (important for executable completion)
 
 1999-12-17 gwhitney:
  Internal:

@@ -44,8 +44,26 @@ sub get_all_users {
 	return @result;
 }
 
+#
+# The Perl builtin glob STILL uses csh... so I guess this
+# is faster
+#
 sub glob {
-	my @result= glob(shift);
+	my( $pattern, $dir) = @_;
+	if( !$dir) {
+		$dir=$ENV{PWD};
+	} else {
+		$dir=abs_path($dir);
+	}
+	$pattern=~s/\\/\\\\/g;
+	$pattern=~s/\./\\./g;
+	$pattern=~s/\*/.*/g;
+	$pattern=~s/\?/./g;
+	$pattern='[^\.]'.$pattern if( substr($pattern,0,2) eq '.*');
+
+	opendir( DIR, $dir) || return ();
+	my @result= grep { /^$pattern$/ } readdir(DIR);
+	closedir( DIR);
 	return @result;
 }
 
