@@ -1,6 +1,5 @@
 Try out the new features:
-  * TAB completion
-  * Pipelines
-  * Locales for French, German, Italian, Portuguese and Spanish 
-  * New builtins: builtin, env, help, unalias
+  * Functional Win32 port.
+  * Pipeline Enhancements, including manifest filters.
+  * New builtin: killenv.
 
