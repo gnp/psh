@@ -4,8 +4,9 @@ How to make a Perl Shell release:
 Updated 2000-04-30 for Version 0.008
 
 
-After making all the appropriate changes to psh.pod
-and CHANGES.pod, psh.ppd and elsewhere:
+After making all the appropriate changes to psh.pod,
+CHANGES.pod, psh.ppd and elsewhere, update $VERSION
+in psh and:
 
     cd psh
     make realclean
@@ -17,8 +18,6 @@ and CHANGES.pod, psh.ppd and elsewhere:
     make install
 
 Go test it from the home directory and then come back.
-
-Update $VERSION in psh.
 
 Tag the repository, where X is the major version, Y is the
 minor version, and Z is the patch level.

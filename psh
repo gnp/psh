@@ -2,7 +2,7 @@
 #
 # psh - Perl Shell
 #
-# Copyright (C) 1999-2000 Gregor N. Purdy. All rights reserved.
+# Copyright (C) 1999-2001 Gregor N. Purdy. All rights reserved.
 # This script is free software. It may be copied or modified according
 # to the same terms as Perl itself.
 #
@@ -17,7 +17,7 @@ use Getopt::Std;
 
 use vars qw($VERSION %opt);
 
-$VERSION='0.008';
+$VERSION='0.009';
 
 #
 # Parse the command line and deal with the options except -r, which is
