@@ -476,6 +476,7 @@ my %special_handlers= (
 					   'TTOU' => \&_ttou_handler,
 					   'TTIN' => \&_ttou_handler,
 					   'TERM' => \&exit,
+					   'HUP'  => \&exit,
 					   'SEGV' => 0,
 					   'WINCH'=> 0,
 					   'ZERO' => 0,
