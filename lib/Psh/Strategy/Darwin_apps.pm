@@ -30,7 +30,7 @@ sub _recursive_search {
 	my @files= readdir(DIR);
 	closedir( DIR);
 	my @result= map { File::Spec->catdir($dir,$_) }
-	                     grep { /^$file\.app$/i } @files;
+	  grep { lc("$file.app") eq lc($_) } @files;
 	return $result[0] if @result;
 	if ($lvl<10) {
 		foreach my $tmp (@files) {
@@ -46,6 +46,7 @@ sub _recursive_search {
 
 sub applies {
 	my $com= @{$_[2]}->[0];
+	if ($com !~ m/$Psh::which_regexp/) { return ''; }
 	my $path=$ENV{APP_PATH}||'/Applications';
 	my @path= split /:/, $path;
 	my $executable;

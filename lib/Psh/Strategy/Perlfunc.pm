@@ -29,6 +29,7 @@ sub runs_before {
 
 my %perl_builtins = qw(
  print 1 printf 1 push 1 pop 1 shift 1 unshift 1 system 1
+ package 1
  chop 1 chomp 1 use 1 for 1 foreach 1 sub 1 do 1
 );
 
