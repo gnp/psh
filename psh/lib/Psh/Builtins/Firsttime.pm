@@ -8,12 +8,12 @@ use Psh::Util ':all';
 firsttime is a setup utility which should be used by first-time
 psh users. It will parse existing shell rc files and try to
 convert as much settings as possible and generate a .pshrc
-file. It currently cannot do much but this will change over
-time.
+file. It currently can only convert aliases, bash completions
+and environment variables.
 
 =cut
 
-my (%aliases,%setenvs,%exports);
+my (%aliases,$env,$complete);
 
 sub bi_firsttime
 {
@@ -52,8 +52,8 @@ EOT
 	$line=<STDIN>;
 
 	%aliases=();
-	%setenvs=();
-	%exports=();
+	$env='';
+	$complete='';
 
 	my @sh_files=qw(.bashrc .bash_login .login);
 	my @csh_files=qw(.cshrc);
@@ -75,22 +75,24 @@ EOT
 		}
 	}
 
-	foreach my $file (@sh_files) {
-		$tmp=File::Spec->catfile($home,$file);
-		$line=_prompt('yn',
-					  "Found sh-type file $file - parse it (y/n)? ");
-		if ($line eq 'y') {
-			_parse_sh_file($tmp);
+	$line=_prompt('cs',"Parse (s) bash/sh files or\n      (c) csh files? ");
+	if ($line eq 's') {
+		foreach my $file (@sh_files) {
+			$tmp=File::Spec->catfile($home,$file);
+			$line=_prompt('yn',
+						  "Found file $file - parse it (y/n)? ");
+			if ($line eq 'y') {
+				_parse_sh_file($tmp);
+			}
 		}
-	}
-
-
-	foreach my $file (@csh_files) {
-		$tmp=File::Spec->catfile($home,$file);
-		$line=_prompt('yn',
-					  "Found csh-type file $file - parse it (y/n)? ");
-		if ($line eq 'y') {
-			_parse_csh_file($tmp);
+	} else {
+		foreach my $file (@csh_files) {
+			$tmp=File::Spec->catfile($home,$file);
+			$line=_prompt('yn',
+						  "Found file $file - parse it (y/n)? ");
+			if ($line eq 'y') {
+				_parse_csh_file($tmp);
+			}
 		}
 	}
 
@@ -124,34 +126,7 @@ sub _generate_stuff {
 	my $text='';
 	my ($key,$value);
 
-	while ( ($key,$value)= each %setenvs) {
-		if ($key eq 'PATH' &&
-		   $value=~ /^\s*\((.*)\)\s*$/) {
-			# this was probably a csh set path=( )
-			my $pathtmp= $1;
-			my @pathtmp= split / /,$pathtmp;
-			$value='';
-			my $first=1;
-			foreach (@pathtmp) {
-				next if ! $_;
-				$value.=':' unless $first;
-				$first=0;
-				if ($_ eq '$path') {
-					$value.='$ENV{PATH}';
-				} else {
-					$value.=$_;
-				}
-			}
-		}
-		$value=~s/\$\{([a-zA-Z_]+)\}/\$ENV\{$1\}/g;
-		$value=Psh::Parser::unquote($value);
-		if ($exports{$key}) {
-			$text.="export $key=\"$value\"\n";
-		} else {
-			$text.="setenv $key=\"$value\"\n";
-		}
-	}
-
+	$text=$env.$complete;
 	while ( ($key,$value)= each %aliases) {
 		$text.="alias $key=$value\n";
 	}
@@ -165,6 +140,7 @@ sub _parse_sh_file {
 	while (<FILE>) {
 		my $line=$_;
 		chomp $line;
+		next if $line=~/^\s*#/;
 		if ($line=~/^\s*alias (\S+)\=(.+)$/) {
 			my $key= $1;
 			my $value= $2;
@@ -176,13 +152,12 @@ sub _parse_sh_file {
 			print STDERR "Warning: Could not convert function $1.\n";
 		} elsif ($line=~/^\s*(\S+)\=(.*)$/) {
 			my $key= uc($1);
-			my $value= $2;
-			$setenvs{$key}=$value;
+			my $value= _change_env_value($2);
+			$env.="setenv $key=\"$value\"\n";
 		} elsif ($line=~/^\s*export (\S+)\=(.+)$/) {
 			my $key= uc($1);
-			my $value= $2;
-			$setenvs{$key}=$value;
-			$exports{$key}=1;
+			my $value= _change_env_value($2);
+			$env.="export $key=\"$value\"\n";
 		}
 
 	}
@@ -198,6 +173,7 @@ sub _parse_csh_file {
 	while (<FILE>) {
 		my $line=$_;
 		chomp $line;
+		next if $line=~/^\s*#/;
 		if ($line=~/^\s*alias (\S+)\s+(.+)$/) {
 			my $key= $1;
 			my $value= $2;
@@ -207,20 +183,27 @@ sub _parse_csh_file {
 			$aliases{$key}=$value;
 		} elsif ($line=~/^\s*setenv\s+(\S+)\s+(.+)$/) {
 			my $key= uc($1);
-			my $value= $2;
-			$setenvs{$key}=$value;
+			my $value= _change_env_value($2);
+			$env.="setenv $key=\"$value\"\n";
 		} elsif ($line=~/^\s*set\s+(\S+)\=\s*["]([^\"]+)["]\s*$/ ||
 				 $line=~/^\s*set\s+(\S+)\=\s*[']([^\']+)[']\s*$/ ||
 				 $line=~/^\s*set\s+(\S+)\=\s*(\([^\']+\))\s*$/ ||
 				 $line=~/^\s*set\s+(\S+)\=([^#\s]+)\s*/) {
 			my $key= uc($1);
-			my $value= $2;
-			$setenvs{$key}=$value;
+			my $value= _change_env_value($2);
+			$env.="setenv $key=\"$value\"\n";
 		}
 
 	}
 	close(FILE);
 	return undef;
+}
+
+sub _change_env_value
+{
+	my $val= shift;
+	$val=~s/\$([a-zA-Z0-9_]+)/\$ENV\{$1\}/g;
+	return $val;
 }
 
 1;
