@@ -5,15 +5,7 @@
 #		by hiroo.hayashi@computer.org
 
 #
-# Emulation of the current completion code
-#
-
-# replace @netprogram in Completion.pm
-complete -A hostname ping ssh telnet ftp ncftp traceroute
-
-
-#
-# Other nice completions
+# Some nice stuff
 #
 
 complete -W '-daystart -depth -follow -help -mount -cnewer -ctime -gid -name -iname -newer -path -regex -type -exec -print' find
@@ -77,35 +69,6 @@ sub _psh_def_completion {
     return compgen('-f', $cur);
 }
 
-# 
-# Return 1 if $1 appears to contain a redirection operator.  Handles backslash
-# quoting (barely).
-#
-sub _redir_op {
-    local $_ = shift;
-    return 0 if /'[<>]'/;
-    return 1 if /[<>]/;
-    return 0;
-}
-
-# _redir_test tests the current word ($1) and the previous word ($2) for
-# redirection operators and does filename completion on the current word
-# if either one contains a redirection operator
-sub _redir_test {
-    my($cur, $prev) = @_;
-
-    if (_redir_op($cur)) {
-	return compgen('-f', $cur);
-    } elsif (_redir_op($prev)) {
-	return compgen('-f', $cur);
-    } else {
-	return ();
-    }
-}
-
-# optional, but without this you can't use extended glob patterns ##'
-#shopt -s extglob
-
 #
 # Easy ones for the shell builtins
 #
@@ -116,7 +79,7 @@ sub _redir_test {
 
 #complete -f -- . source
 #complete -A enabled builtin
-complete -d cd
+#complete -d cd
 
 # this isn't exactly right yet -- needs to skip shell functions and ##'
 # do $PATH lookup (or do compgen -c and filter out matches that also
@@ -157,34 +120,6 @@ sub _wait_func {
     }
 }
 complete -F _wait_func wait
-
-#
-# meta-completion (completion for complete/compgen)
-#
-sub _complete_meta_func {
-    my ($cur, $line, $start, $cmd) = @_;
-
-    my ($prev) = substr($line, 0, $start) =~ /(\S+)\s+$/;
-    my @COMPREPLY = _redir_test($cur, $prev);
-    return @COMPREPLY if @COMPREPLY;
-
-    if (substr($line, 0, $start) =~ /^\s*(\S+)\s+$/ || $cur eq '-' ) {
-	return qw(-a -b -c -d -e -f -j -k -v -u -r -p -A -G -W -P -S -X -F -C);;
-    }
-
-    if ($prev eq '-A') {
-	return qw(alias arrayvar binding builtin command directory
-		  disabled enabled export file function helptopic hostname
-		  job keyword running setopt shopt signal stopped variable);
-    } elsif ($prev eq '-F') {
-	return compgen('-A', 'function', $cur);
-#    } elsif ($prev eq '-C') {
-#	return compgen('-c', $cur);
-    } else {
-	return compgen('-c', $cur);
-    }
-}
-complete -F _complete_meta_func complete
 
 #
 # some completions for shell reserved words
@@ -292,7 +227,6 @@ complete -f -X '!*.+(gif|jpg|jpeg|GIF|JPG|bmp)' xv
 
 #complete -f -X '!*.pl' perl perl5
 
-complete -A hostname rsh telnet rlogin ftp ping xping host traceroute nslookup
 complete -A hostname rxterm rxterm3 rxvt2
 
 complete -u su

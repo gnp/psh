@@ -464,7 +464,7 @@ arguments.
 
 Supposed to contain your most used IP numbers, hostnames or URLs.
 Those will be eligible for TAB completion if you add a command
-for completion using complete -A hostname command. C<psh> will
+for completion using complete C<-A> hostname command. C<psh> will
 initialize this list with your /etc/hosts file
 
 =item I<@Psh::executable_noexpand> ( B<whois>, B<^ezmlm->, etc. )

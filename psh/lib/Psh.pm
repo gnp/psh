@@ -175,7 +175,7 @@ my $input;
 			$coderef= *{"Psh::Builtins::bi_$command"};
         } elsif( $built_ins{$command}) {
 			$coderef= *{'Psh::Builtins::'.ucfirst($command)."::bi_$command"};
-		}			
+		}
         return (sub { &{$coderef}($rest,\@words); }, [], 0, undef );
 	},
 
@@ -365,7 +365,7 @@ sub read_until_complete
 
 sub process
 {
-	my ($q_prompt, $get, $interaflag) = @_;
+	my ($q_prompt, $get) = @_;
 	local $cmd;
 
 	my $last_result_array = '';
@@ -373,10 +373,6 @@ sub process
 	my $result_array_name = 'Psh::val';
 
 	my $control_d_counter=0;
-	my $control_d_max=$ENV{IGNOREEOF}||0;
-	if ($control_d_max !~ /^\d$/) {
-		$control_d_max=10;
-	}
 
 	while (1) {
 		if ($q_prompt) {
@@ -390,11 +386,14 @@ sub process
 		$cmd++;
 
 		unless (defined($input)) {
+			last unless $interactive;
+			print STDOUT "\n";
 			$control_d_counter++;
-			if (!$interaflag || $control_d_counter>=$control_d_max) {
-				print "\n" if $interaflag;
-				last;
+			my $control_d_max=$ENV{IGNOREEOF}||0;
+			if ($control_d_max !~ /^\d$/) {
+				$control_d_max=10;
 			}
+			Psh::OS::exit() if ($control_d_counter>=$control_d_max);
 			next;
 		}
 		$control_d_counter=0;
@@ -535,7 +534,7 @@ sub process_file
 				my $txt=<$pfh>;
 				print_debug_class('f',$txt);
 				return $txt;
-			}, 0); # don't prompt
+			}); # don't prompt
 
 	eval { flock($pfh, LOCK_UN); };
 	$pfh->close();
@@ -623,13 +622,12 @@ sub iget
 	Psh::OS::remove_readline_handler();
 	Psh::OS::reinstall_resize_handler();
 
-	exit unless defined $line;
+	return undef unless defined $line;
 	chomp $line;
 
 	if ($line && $line !~ m/^\s*$/) {
 		if (!@history || $history[$#history] ne $line) {
 			$term->addhistory($line) if $term;
-		
 			push(@history, $line);
 			if( @Psh::history>$Psh::history_length) {
 				splice(@Psh::history,0,-$Psh::history_length);
@@ -881,12 +879,12 @@ sub main_loop
 	my $interactive = (-t STDIN) and (-t STDOUT);
 	my $get;
 
-	print_debug('i',"[STARTING MAIN LOOP]\n");
+	print_debug_class('i',"[STARTING MAIN LOOP]\n");
 
 	if ($interactive) { $get = \&iget;                  }
 	else              { $get = sub { return <STDIN>; }; }
 
-	process($interactive, $get, $interactive);
+	process($interactive, $get);
 }
 
 # bool is_number(ARG)

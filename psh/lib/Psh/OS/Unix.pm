@@ -78,6 +78,7 @@ sub display_pod {
 # MacOS
 #
 sub exit {
+	Psh::Util::print_debug_class('i',"[Psh::OS::Unix::exit() called]\n");
 	Psh::save_history();
 	$ENV{SHELL} = $Psh::old_shell if $Psh::old_shell;
 	CORE::exit($_[0]) if $_[0];
