@@ -87,6 +87,7 @@ perldoc for Psh::Locale
 
 =back
 
+=cut
 
 ###############################################################################
 ###############################################################################
@@ -118,7 +119,7 @@ B<psh> builtins on Unix.
 =item *
 
 Added new builtin B<fc> which is similar to the command of the same
-name from B<bash> - inspired by a command on the SourceForge
+name from B<bash> - inspired by a comment on the SourceForge
 message board (and I finally start to like this command ;-).
 - warp [2000-05-03]
 
@@ -230,6 +231,7 @@ Removed some errors and problems with Windows in prompt package.
 
 =back
 
+=cut
 
 ###############################################################################
 ###############################################################################
