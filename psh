@@ -143,7 +143,8 @@ use vars qw($bin $news_file $cmd $prompt $echo $host $debugging
 	    $perlfunc_expand_arguments $executable_expand_arguments
 	    $history_file $save_history $history_length
 	    $eval_preamble $currently_active $handle_segfaults
-	    @val @wday @mon @strategies %text @bookmarks @netprograms
+	    @val @wday @mon @strategies @bookmarks @netprograms
+		%array_exports %text
 	    %prompt_vars %built_ins %strategy_which %strategy_eval);
 
 
@@ -665,12 +666,6 @@ sub builtin_setenv
 # Like setenv, but also ties the variable so that changing it affects
 # the environment
 #
-# TODO: Right now this only works with scalar variables, altough it
-# doesn't produce an error message if you try to do it with an
-# array. Even better, could we add some magic so that environment
-# variables which are lists could be tied to array variables, so that
-# exporting @PATH does the obvious thing? Try the Env::Array module on
-# CPAN for this.
 
 sub builtin_export
 {
@@ -678,14 +673,20 @@ sub builtin_export
 	if ($var) {
 		my @result = protected_eval("tied(\$$var)");
 		my $oldtie = $result[0];
-	        if (defined($oldtie)) {
+		if (defined($oldtie)) {
 			if (ref($oldtie) ne 'Env') {
 				print_warning("Variable \$$var is already ",
-					      "tied via $oldtie, ",
-					      "can't export.\n");
+							  "tied via $oldtie, ",
+							  "can't export.\n");
 			}
 		} else {
-		        protected_eval("use Env '$var';");
+			protected_eval("use Env '$var';");
+			if( exists($array_exports{$var})) {
+				eval "use Env::Array";
+				if( ! @$) {
+					protected_eval("use Env::Array qw($var $array_exports{$var});");
+				}
+			}
 		}
 	} else {
 		print_error("Usage: export <variable> [=] <value>\n".
@@ -1666,10 +1667,12 @@ sub minimal_initialize
 	);
 
 	# We define these variables here so the user can easily add
-	# to them with a push in her .pshrc file
+	# to them with a push in her .pshrc file or delete them or
+	# whatever
 	@bookmarks=('http://','ftp://');
 	@netprograms=('ping','ssh','telnet','ftp','ncftp','traceroute',
 					  'netscape','lynx','mozilla','wget');
+	%array_exports=('PATH'=>':','CLASSPATH'=>':','LD_LIBRARY_PATH'=>':');
 
 
 	# The following accessible variables are undef during the
@@ -2286,4 +2289,13 @@ exit 0;
 #
 # End of file.
 #
+
+# The following is for Emacs - I hope it won't annoy anyone
+# but this could solve the problems with different tab widths etc
+#
+# Local Variables:
+# tab-width:4
+# indent-tabs-mode:t
+# c-basic-offset:4
+# End:
 
