@@ -35,11 +35,14 @@ sub applies {
 
 sub execute {
 	my $fnname= ${$_[1]};
-	my @tmp= Psh::Parser::make_tokens(substr($fnname,1));
+	my @tmp= Psh::Parser::make_tokens(substr($fnname,1),1);
+	use Data::Dumper;
+	print "Wordsplit:\n";
+	print Dumper(\@tmp);
+	@tmp= Psh::Parser::make_tokens(substr($fnname,1));
 	print "Tokenization:\n";
 	print Psh::Support::Debug::explain_tokens(\@tmp)."\n";
 	@tmp= Psh::Parser::parse_line(substr($fnname,1));
-	use Data::Dumper;
 	print Dumper(\@tmp);
     return (1,undef);
 }
