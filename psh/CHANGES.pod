@@ -68,8 +68,8 @@ Does not remove builtins of the same name anymore.
 
 =item *
 
-Extended Completion code for Perl (supports C<$#foo>, C<$foo->{key>,
-C<$foo->method>, subroutine without C<&>, B<perl> reserved symbol)
+Extended Completion code for Perl (supports C<$#foo>, C<$foo-E<gt>{key>,
+C<$foo-E<gt>method>, subroutine without C<&>, B<perl> reserved symbol)
 
 =item *
 
