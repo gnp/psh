@@ -400,6 +400,11 @@ sub setup_readline_handler
 	$SIG{INT}= \&_readline_handler;
 }
 
+sub remove_readline_handler
+{
+	$SIG{INT}= \&_signal_handler;
+}
+
 sub reinstall_resize_handler
 {
 	&_resize_handler('WINCH');
@@ -415,6 +420,7 @@ sub reinstall_resize_handler
 sub _readline_handler
 {
 	my $sig= shift;
+	setup_readline_handler();
     die "SECRET $Psh::bin: Signal $sig\n"; # changed to SECRET... just in case
 }
 

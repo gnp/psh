@@ -1198,7 +1198,8 @@ sub iget
 		$prompt=$2;
 	}
 
-	Psh::OS::setup_readline_handler;
+	my $error_msg;
+	Psh::OS::setup_readline_handler();
  
 	do {
 		if ($sigint) {
@@ -1210,7 +1211,15 @@ sub iget
 		if ($term) {
 			print $prompt_pre if $prompt_pre;
 			eval { $line = $term->readline($prompt); };
-			handle_message( $@, 'main_loop') if( $@);
+			$error_msg=$@;
+			if( $error_msg) {
+				if( $error_msg =~ /INT$/) {
+					$sigint= 1;
+					next;
+				} else {
+					handle_message( $error_msg, 'main_loop');
+				}
+			}
 			# Either the user pressed ^C or the Completion module
 			# had an error - we have to call handle_message for
 			# the second case
@@ -1221,10 +1230,9 @@ sub iget
 				$line = <STDIN>;
 			}
 		}
-		if ($@) { $sigint=1; }
 	} while ($sigint);
 
-	Psh::OS::remove_readline_handler;
+	Psh::OS::remove_readline_handler();
 
 	chomp $line;
 
