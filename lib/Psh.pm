@@ -635,7 +635,7 @@ sub iget
 sub add_history
 {
 	my $line=shift;
-	return unless $line or $line =~ /^\s*$/;
+	return if !$line or $line =~ /^\s*$/;
 	if (!@history || $history[$#history] ne $line) {
 		$term->addhistory($line) if $term;
 		push(@history, $line);
