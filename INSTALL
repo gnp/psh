@@ -12,6 +12,7 @@ Optional and recommended Perl Modules:
 or Term::EditLine for the editline frontend
 - Pod::Text::Color for colored help pages
 - Locale::gettext for localization
+- Test::More for the tests in t/
 
 INSTALLING psh2
 ---------------

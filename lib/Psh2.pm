@@ -738,6 +738,7 @@ sub del_option {
 
 	    my $fork= 0;
 	    if ($i<$tmplen or !$fgflag or
+                @$options or
 		$strategy eq 'execute') {
 		$fork= 1;
 	    }
