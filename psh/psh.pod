@@ -664,6 +664,12 @@ Tim says B<timtosh> ``is focused quite differently than B<psh> is, but is curren
 still waiting for a rewrite of the command line parsing.
 (It has been for almost a year now)''.
 
+=head2 vbsh
+
+Tom Christiansen and Nathan Torkington's book B<Perl Cookbook>, published by
+O'Reilly in 1998 (ISBN 1-56592-243-3) has "Example 15-4. vbsh" on page 531 for
+section 15.11 (Editing Input). It stands for Very Bad SHell.
+
 
 =head1 FILES
 
