@@ -3,10 +3,8 @@ package Psh::Completion;
 use strict;
 use vars qw($VERSION %custom_completions @bookmarks @netprograms);
 
-use Cwd;
-use Cwd 'chdir';
-use Psh::Util ':all';
-use Psh::Util qw(starts_with ends_with);
+use Cwd qw(:DEFAULT chdir);
+use Psh::Util qw(:all starts_with ends_with);
 use Psh::OS;
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker

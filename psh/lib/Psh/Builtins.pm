@@ -46,8 +46,7 @@ package Psh::Builtins;
 use strict;
 use vars qw($VERSION);
 
-use Cwd;
-use Cwd 'chdir';
+use Cwd qw(:DEFAULT chdir);
 use Config;
 use Psh::Util qw(:all print_list);
 use Psh::OS;
