@@ -17,6 +17,7 @@ lib/Psh/Completion.pm
 lib/Psh/Locale/Base.pm
 lib/Psh/Locale/Default.pm
 lib/Psh/Locale/German.pm
+lib/Psh/Locale/Spanish.pm
 lib/Psh/Parser.pm
 lib/Psh/Util.pm
 lib/Psh/Builtins.pm
