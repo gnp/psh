@@ -148,14 +148,14 @@ sub variable_expansion
 #
 
 use vars qw($bin $news_file $cmd $prompt $prompt_cont $echo $host $debugging
-	    $perlfunc_expand_arguments $executable_expand_arguments
-		$VERSION $term @absed_path $readline_saves_history
-	    $history_file $save_history $history_length $joblist
-	    $eval_preamble $currently_active $handle_segfaults
-            $result_array $which_regexp
-	    @val @wday @mon @strategies @bookmarks @netprograms
-		%text %perl_builtins %perl_builtins_noexpand
-	    %prompt_vars %strategy_which %built_ins %strategy_eval);
+			$perlfunc_expand_arguments $executable_expand_arguments
+			$VERSION $term @absed_path $readline_saves_history
+			$history_file $save_history $history_length $joblist
+			$eval_preamble $currently_active $handle_segfaults
+            $result_array $which_regexp $ignore_die
+			@val @wday @mon @strategies @bookmarks @netprograms
+			%text %perl_builtins %perl_builtins_noexpand
+			%prompt_vars %strategy_which %built_ins %strategy_eval);
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
@@ -732,7 +732,13 @@ sub handle_message
 			if ($from ne 'main_loop') { print_out("$1\n"); }
 		} else {
 			print_error("$from error ($message)!\n");
-			if ($from eq 'main_loop') { die("Internal psh error."); }
+			if ($from eq 'main_loop') {
+				if( $ignore_die) {
+					print_error("Internal psh error. psh would have died now.\n");
+				} else {
+					die("Internal psh error."); 
+				}
+			}
 		}
 	}
 }
