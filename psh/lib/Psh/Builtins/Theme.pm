@@ -118,7 +118,7 @@ sub bi_theme {
 		my @result=();
 		foreach my $dir (@dirs) {
 			next unless -r $dir;
-			my @tmp= Psh::OS::glob('*',$dir);
+			my @tmp= Psh::OS::glob('*',$dir,1);
 			foreach my $file (@tmp) {
 				my $full= Psh::OS::catfile($dir,$file);
 				next if !-r $full or -d _;

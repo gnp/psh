@@ -135,6 +135,8 @@ without loading them all at startup time - see the B<complete> builtin.
 
 =item * B<which> largely extended with flags B<-mrav>
 
+=item * B<package> for switching Perl namespace
+
 =item *
 
 Added a sudo builtin which adds some capabilities to the sudo command.

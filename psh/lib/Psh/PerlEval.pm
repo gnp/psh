@@ -13,6 +13,9 @@ package Psh::PerlEval;
 # If EXPR ends in an ampersand, it is stripped and the eval is done in
 # a forked copy of perl.
 #
+
+$Psh::PerlEval::current_package='main';
+
 sub protected_eval
 {
 	#
@@ -35,7 +38,7 @@ sub protected_eval
 		local $Psh::currently_active= -1;
 		$_= $Psh::PerlEval::lastscalar;
 		@_= @Psh::PerlEval::lastarray;
-		local @Psh::PerlEval::result= eval $Psh::eval_preamble.' '.$Psh::PerlEval::str;
+		local @Psh::PerlEval::result= eval $Psh::eval_preamble.' package '.$Psh::PerlEval::current_package.'; '.$Psh::PerlEval::str;
 		$Psh::PerlEval::lastscalar= $_;
 		@Psh::PerlEval::lastarray= @_;
 

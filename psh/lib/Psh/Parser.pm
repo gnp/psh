@@ -19,47 +19,36 @@ sub T_EXECUTE() { 1; }
 
 # ugly, ugly, but makes things faster
 
-my %perlq_hash = qw|' ' " " q( ) qw( ) qq( )|;
+my %quotehash = qw|' ' " " q( ) qw( ) qq( ) ` `|;
+my %quotedquotes = ();
 my $def_quoteexp;
-my %def_qhash;
-my $def_metaexp= '[\[\]{}()``]';
-my $def_tokenizer='(\s+|\|\||\&\&|\||;;|;|\&|>>|>|<<|<|\\|=)';
+my $def_tokenizer= '(\\s+|\\|\\||\\&\\&|\||=>|->|;;|;|\\&|>>|>|<<|<|\\(|\\)|\\{|\\}|\\[|\\])';
 my $nevermatches = "(?!a)a";
 
-%def_qhash = %perlq_hash;
+
 $def_quoteexp = $nevermatches;
-foreach my $opener (keys %def_qhash) {
+foreach my $opener (keys %quotehash) {
 	$def_quoteexp .= '|' . quotemeta($opener);
-	$def_qhash{$opener} = quotemeta($def_qhash{$opener});
+	$quotedquotes{$opener} = quotemeta($quotehash{$opener});
 }
+
+my $stdallinall= "^((?:[^\\\\]|\\\\.)*?)(?:$def_tokenizer|($def_quoteexp))(.*)\$";
 
 if ($]>=5.005) {
 	eval {
-		$def_quoteexp= qr{$def_quoteexp};
-		$def_metaexp= qr{$def_metaexp};
-		$def_tokenizer= qr{$def_tokenizer};
+		$stdallinall= qr{$stdallinall}s;
 	};
-	Psh::Util::print_debug_class('e',"Error: $@") if $@;
 }
 
-sub decompose
-{
-    my ($delimexp,$line,$num,$keep,$quotehash,$metaexp,$unmatched) = @_;
+sub decompose {
+    my ($delimexp,$line,$num,$keep,$unmatched) = @_;
 	my @matches;
 
     if (!defined($delimexp)) { $delimexp = $def_tokenizer; }
+	elsif ($delimexp eq ' ') { $delimexp='(\s+)'; }
+
     if (!defined($num)) { $num = -1; }
     if (!defined($keep)) { $keep = 1; }
-    if (!defined($metaexp)) { $metaexp = $nevermatches; }
-	else {
-		# See if metacharacters has any parenthesized subexpressions:
-		my @matches = ('x' =~ m/$metaexp|(.)/);
-		if (@matches > 1) {
-			require Carp;
-			Carp::carp "Metacharacter regexp '$metaexp' in decompose may not contain ().";
-			return undef;
-		}
-	}
 
     # Remember if delimexp came with any parenthesized subexpr, and
     # arrange for it to have exactly one so we know what each piece in
@@ -69,8 +58,8 @@ sub decompose
     @matches = ('x' =~ m/$delimexp|(.)/);
     if (@matches > 2) {
 		require Carp;
-		Carp::carp "Delimiter regexp '$delimexp' in decompose may " .
-		  "contain at most 1 ().";
+		Carp::carp("Delimiter regexp '$delimexp' in decompose may " .
+		  "contain at most 1 ().");
 		return undef;
     }
     if (@matches == 2) {
@@ -79,26 +68,18 @@ sub decompose
       $delimexp = "($delimexp)";
     }
 
+	return _decompose($line, "^((?:[^\\\\]|\\\\.)*?)(?:$delimexp|($def_quoteexp))(.*)\$", $keep, $num, $unmatched, $saveDelimiters-1);
+}
+
+sub _decompose
+{
+	my ( $line, $regexp, $keep, $num, $unmatched, $saveDelimiters)= @_;
+
+	$saveDelimiters++;
     my @pieces = ('');
     my $startNewPiece = 0;
     my $freshPiece = 1;
     my $uquote = 0;
-
-	my %qhash;
-	my $quoteexp;
-	if ($quotehash) {
-		%qhash = %{$quotehash};
-		$quoteexp = $nevermatches;
-		for my $opener (keys %qhash) {
-			$quoteexp .= '|' . quotemeta($opener);
-			$qhash{$opener} = quotemeta($qhash{$opener});
-		}
-	} else {
-		$quotehash=\%perlq_hash;
-		%qhash= %def_qhash;
-		$quoteexp= $def_quoteexp;
-	}
-
     while ($line) {
 		if ($startNewPiece) {
 			push @pieces, '';
@@ -109,8 +90,8 @@ sub decompose
 
 	    # $delimexp is unparenthesized below because we have
 	    # already arranged for it to contain exactly one backref ()
-		my ($prefix,$delimiter,$quote,$meta,$rest) =
-	      ($line =~ m/^((?:[^\\]|\\.)*?)(?:$delimexp|($quoteexp)|($metaexp))(.*)$/s);
+		my ($prefix,$delimiter,$quote,$rest) =
+	      ($line =~ m/$regexp/s);
 	    if (!$keep and defined($prefix)) {
 			# remove backslashes in unquoted part:
 			$prefix =~ s/\\(.)/$1/g;
@@ -129,36 +110,27 @@ sub decompose
 		    }
 		    $line = $rest;
 	    } elsif (defined($quote)) {
-		    my ($restOfQuote,$remainder) = 
-		      ($rest =~ m/^((?:[^\\]|\\.)*?)$qhash{$quote}(.*)$/s);
-		    if (defined($restOfQuote)) {
-			    if ($keep) {
+			my ($restOfQuote,$remainder) = 
+			  ($rest =~ m/^((?:[^\\]|\\.)*?)$quotedquotes{$quote}(.*)$/s);
+			if (defined($restOfQuote)) {
+				if ($keep) {
 					$pieces[$#pieces]= join('',$pieces[$#pieces],$prefix,
 											$quote,$restOfQuote,
-											$quotehash->{$quote});
-			    } else { #Not keeping, so remove backslash
-					     #from backslashed $quote occurrences
+											$quotehash{$quote});
+				} else { #Not keeping, so remove backslash
+					#from backslashed $quote occurrences
 					if (substr($restOfQuote,0,1) eq "\\") {
 						$restOfQuote= substr($restOfQuote,1);
 					}
 					$pieces[$#pieces]= join('',$pieces[$#pieces],
 											$prefix, $restOfQuote);
-			    }
-			    $line = $remainder;
-			    $freshPiece = 0;
-		    } else { # can't find matching quote, give up
+				}
+				$line = $remainder;
+				$freshPiece = 0;
+			} else { # can't find matching quote, give up
 				$uquote = 1;
 				last;
-		    }
-	    } elsif (defined($meta)) {
-			$pieces[$#pieces] .= $prefix;
-		    if (length($pieces[$#pieces]) or !$freshPiece) {
-			    push @pieces, $meta;
-		    } else {
-			    $pieces[$#pieces] = $meta;
-		    }
-		    $line = $rest;
-		    $startNewPiece = 1;
+			}
 	    } else { # nothing found, so remainder all one unquoted piece
 			if (!$keep and length($line)) {
 				$line =~ s/\\(.)/$1/g;
@@ -174,11 +146,12 @@ sub decompose
 sub incomplete_expr
 {
     my ($line) = @_;
-	return 0 unless $line=~/[\[{(]/;
+	return 0 unless $line=~/[\[{(]/s;
 
     my $unmatch = 0;
-    my @words = @{scalar(decompose(' ',$line,undef,1,undef,$def_metaexp, \$unmatch))};
+	my @words= 	@{scalar(_decompose($line,$stdallinall, 1, undef, \$unmatch))};
     if ($unmatch) { return 2; }
+
     my @openstack = (':'); # : is used as a bottom marker here
     my %open_of_close = qw|) ( } { ] [|;
 
@@ -319,8 +292,8 @@ sub parse_fileno {
 		if (/^\d+$/) {
 			push @result, $_+0;
 		} else {
-			if (ref *{"main::$_"}{FILEHANDLE}) {
-				push @result, fileno(*{"main::$_"});
+			if (ref *{"$Psh::PerlEval::current_package\:\:$_"}{FILEHANDLE}) {
+				push @result, fileno(*{"$Psh::PerlEval::current_package\:\:$_"});
 			}
 		}
 	}
@@ -329,8 +302,7 @@ sub parse_fileno {
 
 sub make_tokens {
 	my $line= shift;
-	my @tmpparts= @{scalar(decompose($def_tokenizer,
-									 $line, undef, 1,undef, $def_metaexp))};
+	my @tmpparts= @{scalar(_decompose($line,$stdallinall, 1))};
 
 	# Walk through parts and combine parenthesized parts properly
 	my @parts=();
@@ -356,161 +328,117 @@ sub make_tokens {
 
 	my @tokens= ();
 	my @t=();
-	my $previous_token= '';
 	my $tmp;
 	while( defined($tmp= shift @parts)) {
 		if ($tmp eq '||' or $tmp eq '&&') {
 			push @t, @tokens;
 			push @t, [T_END],[$tmp eq '||'?T_OR:T_AND];
 			@tokens=();
-			$previous_token= '';
 		}
 		elsif ($tmp eq ';;') {
 			push @tokens, [T_WORD,';'];
-			$previous_token= '';
 		}
 		elsif( $tmp eq '|') {
-			if( $previous_token eq "\\") {
-				pop @tokens;
-				push @tokens, [T_WORD,'|'];
-				$previous_token= '';
-			} else {
-				$previous_token= '|';
-				my @fileno=(1,0);
-				if (@parts>0) {
-					my $tmp= shift @parts;
-					if ($tmp=~/^\[(.+?)\]$/) {
-						my $tmp2= $1;
-						if (lc($tmp2) eq 'all') {
-							push @tokens, [T_REDIRECT, '>&', 2, 1];
-						}
-						@fileno= parse_fileno($tmp2,1,0);
-						if (!@fileno) {
-							print STDERR "Illegal syntax\n"; ## FIXME
-							return undef;
-						}
-					} else {
-						unshift @parts, $tmp;
+			my @fileno=(1,0);
+			if (@parts>0) {
+				my $tmp= shift @parts;
+				if ($tmp=~/^\[(.+?)\]$/) {
+					my $tmp2= $1;
+					if (lc($tmp2) eq 'all') {
+						push @tokens, [T_REDIRECT, '>&', 2, 1];
 					}
+					@fileno= parse_fileno($tmp2,1,0);
+					if (!@fileno) {
+						print STDERR "Illegal syntax\n"; ## FIXME
+						return undef;
+					}
+				} else {
+					unshift @parts, $tmp;
 				}
-				push @t, [T_REDIRECT, '>&', $fileno[0], 'chainout']; # needs to come first
-				push @t, @tokens;
-				push @t, [T_PIPE];
-				@tokens=( [T_REDIRECT, '<&', $fileno[1], 'chainin']);
 			}
+			push @t, [T_REDIRECT, '>&', $fileno[0], 'chainout']; # needs to come first
+			push @t, @tokens;
+			push @t, [T_PIPE];
+			@tokens=( [T_REDIRECT, '<&', $fileno[1], 'chainin']);
 		} elsif( $tmp =~ /^(>>?)$/) {
 			my $tmp= $1;
 
-			if( $previous_token eq '=' && $tmp eq '>') {
-				pop @tokens;
-				push @tokens, [T_WORD,'=>'];
-				$previous_token= '';
-			} elsif ($previous_token =~ /-$/ && $tmp eq '>') {
-				($tmp,$tmp)=@{pop @tokens};
-				$tmp=~s/-$//;
-				push @tokens, [T_WORD,$tmp];
-				push @tokens, [T_WORD,'->'];
-				$previous_token= '';
-			} else {
-				my $file;
-				my @fileno=(1,0);
-				my $allflag=0;
-				if (@parts>0) {
-					my $tmp= shift @parts;
-					if ($tmp=~/^\[(.+?)\]$/) {
-						my $tmp2= $1;
-						if (lc($tmp2) eq 'all') {
-							$allflag=1;
-						}
-						@fileno= parse_fileno($tmp2,1,0);
-						if (!@fileno) {
-							print STDERR "Illegal syntax\n"; ## FIXME
-							return undef;
-						}
-					} else {
-						unshift @parts, $tmp;
+			my $file;
+			my @fileno=(1,0);
+			my $allflag=0;
+			if (@parts>0) {
+				my $tmp= shift @parts;
+				if ($tmp=~/^\[(.+?)\]$/) {
+					my $tmp2= $1;
+					if (lc($tmp2) eq 'all') {
+						$allflag=1;
 					}
-				}
-				if ($fileno[1]==0) {
-					while( @parts>0) {
-						$file= shift @parts;
-						last if( $file !~ /^\s+$/);
-						$file='';
-					}
-					if( !$file or substr($file,0,1) eq '&') {
-						Psh::Util::print_error_i18n('redirect_file_missing',
-													$tmp,$Psh::bin);
+					@fileno= parse_fileno($tmp2,1,0);
+					if (!@fileno) {
+						print STDERR "Illegal syntax\n"; ## FIXME
 						return undef;
 					}
-					push @tokens, [T_REDIRECT,$tmp,$fileno[0],unquote($file)];
+				} else {
+					unshift @parts, $tmp;
+				}
+			}
+			if ($fileno[1]==0) {
+				while( @parts>0) {
+					$file= shift @parts;
+					last if( $file !~ /^\s+$/);
+						$file='';
+				}
+				if( !$file or substr($file,0,1) eq '&') {
+					Psh::Util::print_error_i18n('redirect_file_missing',
+												$tmp,$Psh::bin);
+					return undef;
+				}
+				push @tokens, [T_REDIRECT,$tmp,$fileno[0],unquote($file)];
 				} else {
 					push @tokens, [T_REDIRECT, '>&', @fileno];
 				}
-				if ($allflag) {
-					push @tokens, [T_REDIRECT, '>&', 2, 1];
-				}
-				$previous_token='';
+			if ($allflag) {
+				push @tokens, [T_REDIRECT, '>&', 2, 1];
 			}
 		} elsif( $tmp eq '<') {
-			if( $previous_token eq "\\") {
-				pop @tokens;
-				push @tokens, [T_WORD,'<'];
-				$previous_token='';
-			} else {
-				my $file;
-				my @fileno=(0,0);
-				if (@parts>0) {
-					my $tmp= shift @parts;
-					if ($tmp=~/^\[(.+?)\]$/) {
-						@fileno= parse_fileno($1,0,0);
-						if (!@fileno) {
-							print STDERR "Illegal syntax\n"; ## FIXME
-							return undef;
-						}
-					}
-					else {
-						unshift @parts, $tmp;
-					}
-				}
-				if ($fileno[0]==0) {
-					while( @parts>0) {
-						$file= shift @parts;
-						last if( $file !~ /^\s+$/);
-						$file='';
-					}
-					if( !$file or substr($file,0,1) eq '&') {
-						Psh::Util::print_error_i18n('redirect_file_missing',
-													$tmp,$Psh::bin);
+			my $file;
+			my @fileno=(0,0);
+			if (@parts>0) {
+				my $tmp= shift @parts;
+				if ($tmp=~/^\[(.+?)\]$/) {
+					@fileno= parse_fileno($1,0,0);
+					if (!@fileno) {
+						print STDERR "Illegal syntax\n"; ## FIXME
 						return undef;
 					}
-					push @tokens, [T_REDIRECT,'<',$fileno[1],unquote($file)];
-				} else {
-					push @tokens, [T_REDIRECT,'<&',$fileno[1],$fileno[0]];
 				}
-				$previous_token='<';
+				else {
+					unshift @parts, $tmp;
+				}
+			}
+			if ($fileno[0]==0) {
+				while( @parts>0) {
+					$file= shift @parts;
+					last if( $file !~ /^\s+$/);
+					$file='';
+				}
+				if( !$file or substr($file,0,1) eq '&') {
+					Psh::Util::print_error_i18n('redirect_file_missing',
+												$tmp,$Psh::bin);
+					return undef;
+				}
+				push @tokens, [T_REDIRECT,'<',$fileno[1],unquote($file)];
+			} else {
+				push @tokens, [T_REDIRECT,'<&',$fileno[1],$fileno[0]];
 			}
 		} elsif( $tmp eq '&') {
-			if( $previous_token eq "\\") {
-				pop @tokens;
-				push @tokens, [T_WORD,'&'];
-				$previous_token='';
-			} else {
-				push @t, @tokens;
-				push @t, [T_BACKGROUND],[T_END];
-				@tokens=();
-				$previous_token='&';
-			}
+			push @t, @tokens;
+			push @t, [T_BACKGROUND],[T_END];
+			@tokens=();
 		} elsif( $tmp eq ';') {
-			if( $previous_token eq "\\") {
-				pop @tokens;
-				push @tokens, [T_WORD,';'];
-				$previous_token='';
-			} else {
-				push @t, @tokens;
-				push @t, [T_END];
-				@tokens= ();
-				$previous_token=';';
-			}
+			push @t, @tokens;
+			push @t, [T_END];
+			@tokens= ();
 		} elsif ($tmp eq '`') {
 			my $tmp='';
 			while ( (my $tmp2= shift @parts) ne '`' ) {
@@ -526,7 +454,6 @@ sub make_tokens {
 		} elsif( $tmp=~ /^\s+$/) {
 		} else {
 			push @tokens, [T_WORD,$tmp];
-			$previous_token= $tmp;
 		}
 	}
     push @t, @tokens;
@@ -721,8 +648,8 @@ __END__
 
 =item *
 
-  array decompose(regexp DELIMITER, string LINE, int PIECES, 
-                  bool KEEP, hashref QUOTINGPAIRS, regexp METACHARACTERS
+  array decompose(regexp DELIMITER, string LINE, int PIECES,
+                  bool KEEP, hashref QUOTINGPAIRS,
                   scalarref UNMATCHED_QUOTE)
 
 decompose is a cross between split() and

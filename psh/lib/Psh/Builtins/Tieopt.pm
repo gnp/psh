@@ -102,14 +102,14 @@ sub bi_tieopt {
     if ($untie) {
         no strict 'refs';
         if ($requested_type eq 'SCALAR') {
-            untie ${"main\:\:$name"};
+            untie ${"$Psh::PerlEval::current_package\:\:$name"};
         }
         if ($requested_type eq 'ARRAY') {
 
-            untie @{"main\:\:$name"};
+            untie @{"$Psh::PerlEval::current_package\:\:$name"};
         }
         if ($requested_type eq 'HASH') {
-            untie %{"main\:\:$name"};
+            untie %{"$Psh::PerlEval::current_package\:\:$name"};
         }
     }
     else {
@@ -125,9 +125,9 @@ sub bi_tieopt {
             }
             return;
         }
-        # print STDERR "tying option: $name to \${main\:\:$var}\n" if $requested_type eq 'SCALAR';
-        # print STDERR "tying option: $name to \@{main\:\:$var}\n" if $requested_type eq 'ARRAY';
-        # print STDERR "tying option: $name to \%{main\:\:$var}\n" if $requested_type eq 'HASH';
+        # print STDERR "tying option: $name to \${$Psh::PerlEval::current_package\:\:$var}\n" if $requested_type eq 'SCALAR';
+        # print STDERR "tying option: $name to \@{$Psh::PerlEval::current_package\:\:$var}\n" if $requested_type eq 'ARRAY';
+        # print STDERR "tying option: $name to \%{$Psh::PerlEval::current_package\:\:$var}\n" if $requested_type eq 'HASH';
 
         {
 
@@ -135,16 +135,16 @@ sub bi_tieopt {
             no strict 'refs';
             if ($requested_type eq 'SCALAR') {
                 Psh::Options::set_option($name, '') unless $actual_type;
-                tie ${"main\:\:$var"}, 'Psh::Support::TiedOption::Scalar', $name;
+                tie ${"$Psh::PerlEval::current_package\:\:$var"}, 'Psh::Support::TiedOption::Scalar', $name;
             }
             if ($requested_type eq 'ARRAY') {
                 Psh::Options::set_option($name, []) unless $actual_type;
-                tie @{"main\:\:$var"}, 'Psh::Support::TiedOption::Array', $name;
+                tie @{"$Psh::PerlEval::current_package\:\:$var"}, 'Psh::Support::TiedOption::Array', $name;
 
             }
             if ($requested_type eq 'HASH') {
                 Psh::Options::set_option($name, {}) unless $actual_type;
-                tie %{"main\:\:$var"}, 'Psh::Support::TiedOption::Hash',   $name;
+                tie %{"$Psh::PerlEval::current_package\:\:$var"}, 'Psh::Support::TiedOption::Hash',   $name;
             }
         }
     }

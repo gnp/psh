@@ -11,7 +11,6 @@ my $APPEND="not_implemented";
 @Psh::Completion::bookmarks= ();
 @Psh::Completion::autoload=();
 
-my %modules=();
 my %module_loaded=();
 
 sub init
@@ -30,16 +29,9 @@ sub init
 	    = \&display_match_list;
 }
 
-sub add_module {
-	my ($commands,$file)= @_;
-	foreach (@$commands) {
-		$modules{$_}= $file;
-	}
-}
-
 sub start_module {
 	my $command= shift;
-	my $file= $modules{$command};
+	my $file= $Psh::Completion::modules{$command};
 	return unless $file;
 	return if $module_loaded{$file};
 	open(FILE, "< $file");
@@ -209,14 +201,6 @@ sub cmpl_executable
 
 #
 # Completes perl symbols
-#
-# TODO: Also complete package variables and package names
-#	by managing $CWP in top command loop or by buildin `package' command.
-#
-
-# $CWP : Current Working Package (not implemented yet)
-use vars qw($CWP);
-BEGIN { $CWP = 'main' }
 
 {
 	my %type;
@@ -235,7 +219,7 @@ BEGIN { $CWP = 'main' }
 			no strict qw(refs);
 		($prefix, $pre, $pkg) = ($text =~ m/^((\$#|[\@\$%&])(.*::)?)/);
 		my @packages = grep /::$/, $pkg ? keys %$pkg : keys %::;
-		$pkg = ($CWP eq 'main' ? '::' : $CWP . '::') unless $pkg;
+		$pkg = ($Psh::PerlEval::current_package eq 'main' ? '::' : $Psh::PerlEval::current_package . '::') unless $pkg;
 		
 		my @symbols;
 		if ($pre eq '$') {
@@ -271,7 +255,7 @@ sub cmpl_hashkeys {
 	return () unless $var;
 
 	no strict 'refs';
-	$var = "${CWP}::$var" unless ($var =~ m/::/);
+	$var = "$Psh::PerlEval::current_package::$var" unless ($var =~ m/::/);
 	return () unless $var;
 	if ($arrow) {
 		my $hashref = eval "\$$var";
@@ -294,7 +278,7 @@ sub cmpl_method {
 	my ($var, $pkg, $sym, $pk);
 	$var = (substr($line, 0, $start + 1)
 		=~ m/\$([\w:]+)\s*->\s*$/)[0];
-	$pkg = ref eval (($var =~ m/::/) ? "\$$var" : "\$${CWP}::$var");
+	$pkg = ref eval (($var =~ m/::/) ? "\$$var" : "\$$Psh::PerlEval::current_package::$var");
 	no strict qw(refs);
 	return grep(/^\Q$text/,
 		    map { $pk = $_ . '::';
@@ -314,7 +298,7 @@ sub cmpl_method {
 		no strict qw(refs);
 		($prefix, $pkg) = ($text =~ m/^((.*::)?)/);
 		my @packages = grep /::$/, $pkg ? keys %$pkg : keys %::;
-		$pkg = ($CWP eq 'main' ? '::' : $CWP . '::') unless $pkg;
+		$pkg = ($Psh::PerlEval::current_package eq 'main' ? '::' : $Psh::PerlEval::current_package . '::') unless $pkg;
 		
 		my @subs = grep (/^\w+$/
 				 && ($sym = $pkg . $_,
@@ -448,8 +432,8 @@ sub completion
 	my $base=$2||'';
 	my $cmd;
 
-	if ($modules{$cmd= $dir.$base} or
-		$modules{$cmd= $base}) {
+	if ($Psh::Completion::modules{$cmd= $dir.$base} or
+		$Psh::Completion::modules{$cmd= $base}) {
 		start_module($cmd);
 	}
 

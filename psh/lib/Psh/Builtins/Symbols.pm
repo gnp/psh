@@ -18,6 +18,8 @@ sub bi_symbols
 	my (@ref, @scalar, @array, @hash, @code, @glob, @handle);
 	my @sym;
 
+	$pack ||= $Psh::PerlEval::current_package;
+
 	{
 		no strict qw(refs);
 		@sym = keys %{*{"${pack}::"}};
@@ -39,6 +41,7 @@ sub bi_symbols
 		}
 	}
 
+	Psh::Util::print_out("Package: ".$pack."\n");
 	Psh::Util::print_out("Reference: ", join(' ', @ref),    "\n");
 	Psh::Util::print_out("Scalar:    ", join(' ', @scalar), "\n");
 	Psh::Util::print_out("Array:     ", join(' ', @array),  "\n");
