@@ -4,6 +4,16 @@ require File::Spec;
 require Psh::Util;
 require Psh::Parser;
 
+=item * C<theme list>
+
+Displays a list of available themes.
+
+=item * C<theme NAME>
+
+Activates the theme.
+
+=cut
+
 sub _parse_error {
 	my $file= shift;
 	Psh::Util::print_error("Error parsing themefile $file.\n");
