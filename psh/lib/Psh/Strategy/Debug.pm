@@ -5,6 +5,8 @@ package Psh::Strategy::Debug;
 Entering "? commandline" will show information about the
 way Perl Shell processes the input
 
+This has to be beautified a lot and should not use Data::Dumper.
+
 =cut
 
 require Psh::Strategy;

@@ -177,6 +177,25 @@ sub abs_path {
 	return $result;
 }
 
+sub recalc_absed_path {
+	@Psh::absed_path    = ();
+	%Psh::Util::command_hash    = ();
+
+	my @path = split($Psh::OS::PATH_SEPARATOR, $ENV{PATH});
+
+	eval {
+		foreach my $dir (@path) {
+			next unless $dir;
+			my $dir= Psh::Util::abs_path($dir);
+			next unless -r $dir and -x _;
+			push @Psh::absed_path, $dir;
+		}
+	};
+	print_debug_class('e',"(recalc_absed_path) Error: $@") if $@;
+	# Without the eval Psh might crash if the directory
+	# does not exist
+}
+
 #
 # string which(string FILENAME)
 #
@@ -206,11 +225,11 @@ sub abs_path {
 	sub which
     {
 		my $cmd= shift;
+		my $all= shift;
 		return undef unless $cmd;
 
-		return $Psh::Util::command_hash{$cmd} if exists $Psh::Util::command_hash{$cmd};
 
-		if ($cmd =~ m|$re1|o) {
+		if ($cmd =~ m|$re1|o ) {
 			$cmd =~ m|$re2|o;
 			my $path_element= $1 || '';
 			my $cmd_element=  $2 || '';
@@ -222,41 +241,32 @@ sub abs_path {
 			return undef;
 		}
 
+		return $Psh::Util::command_hash{$cmd} if exists $Psh::Util::command_hash{$cmd} and !$all;
+
 		if ($cmd !~ m/$Psh::which_regexp/) { return undef; }
 
 		if ($last_path_cwd ne ($ENV{PATH} . $ENV{PWD})) {
 			$last_path_cwd = $ENV{PATH} . $ENV{PWD};
-			@Psh::absed_path    = ();
-			%Psh::Util::command_hash    = ();
 
-			my @path = split($Psh::OS::PATH_SEPARATOR, $ENV{PATH});
-
-			eval {
-				foreach my $dir (@path) {
-					next unless $dir;
-					my $dir= Psh::Util::abs_path($dir);
-					next unless -r $dir and -x _;
-					push @Psh::absed_path, $dir;
-				}
-			};
-			print_debug_class('e',"(which) Error: $@") if $@;
-			# Without the eval Psh might crash if the directory
-			# does not exist
+			recalc_absed_path();
 		}
 
-		return $Psh::Util::command_hash{$cmd} if exists $Psh::Util::command_hash{$cmd};
-
 		my @path_extension=Psh::OS::get_path_extension();
+		my @all=();
 
 		foreach my $dir (@Psh::absed_path) {
 			next unless $dir;
 			my $try = Psh::OS::catfile($dir,$cmd);
 			foreach my $ext (@path_extension) {
 				if ((-x $try.$ext) and (!-d _)) {
-					$Psh::Util::command_hash{$cmd} = $try.$ext;
-					return $try.$ext;
+					$Psh::Util::command_hash{$cmd} = $try.$ext unless $all;
+					return $try.$ext unless $all;
+					push @all, $try.$ext;
 				}
 			}
+		}
+		if ($all and @all) {
+			return @all;
 		}
 		$Psh::Util::command_hash{$cmd} = undef; # no delete by purpose
 

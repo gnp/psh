@@ -50,10 +50,12 @@ sub bi_fc
 {
 	my $line= shift;
 	local @ARGV = @{shift()};
+
+	return (0,undef) unless $#Psh::history;
+
 	my $opt={};
 	Getopt::Std::getopts('splre:',$opt);
 
-	return (0,undef) unless $#Psh::history;
 	if ($opt->{'l'}) {
 		my $num=@Psh::history;
 		$num=15 if $num>15;

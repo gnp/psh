@@ -183,8 +183,9 @@ B<debug> strategy.
 =item *
 
 The builtin B<which> more conforms to the 'standard' which - it will only
-locate an executable. Strategy B<debug> is similar to the old function of
-B<which>
+locate an executable by default. Strategy B<debug> is similar to the old
+function of B<which>. B<which> knows some toggles tough for more advanced
+searches.
 
 =back
 
