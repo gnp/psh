@@ -8,6 +8,7 @@ use FileHandle;
 use Getopt::Std;
 use POSIX qw(:sys_wait_h getpid setpgid tcgetpgrp tcsetpgrp);
 
+use Psh::OS;
 use Psh::Joblist;
 use Psh::Job;
 use Psh::Completion;
@@ -1225,7 +1226,7 @@ sub finish_initialize
 	$history_length  = $ENV{HISTSIZE} || 50 if !defined($history_length);
 
 	if (!defined($longhost)) {
-		$longhost                    = qx(hostname);
+		$longhost                    = Psh::OS::get_hostname();
 		chomp $longhost;
 	}
 	if (!defined($host)) {

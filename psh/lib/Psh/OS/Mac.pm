@@ -5,6 +5,12 @@ use vars qw($VERSION);
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
+#
+# I just looked at MacPerl and currently doubt that a port of
+# psh with sensible functionality is possible at all
+# -warp (Markus Peter)
+
+
 1;
 
 __END__

@@ -1,21 +1,26 @@
 package Psh::OS;
 
 use strict;
-use vars qw($VERSION);
+use vars qw($VERSION $AUTOLOAD $ospackage);
+use Carp 'croak';
 
 $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r }; # must be all one line, for MakeMaker
 
-my $ospackage="Psh::OS::Unix";
+$ospackage="Psh::OS::Unix";
 
 $ospackage="Psh::OS::Mac" if( $^O eq "MacOS");
 $ospackage="Psh::OS::Win" if( $^O eq "MSWin32");
 
+eval "use $ospackage";
+die "Could not find OS specific package $ospackage" if( $@);
+
 sub AUTOLOAD {
 	$AUTOLOAD=~ s/.*:://;
-	my $name="$ospackage::$AUTOLOAD";
-	die "Function `$AUTOLOAD' in Psh::OS does not exist." unless
-		eval "exists ${ospackage}::\{$AUTOLOAD\}";
-	*$AUTOLOAD=  &$name;
+	no strict 'refs';
+	my $name="${ospackage}::$AUTOLOAD";
+	croak "Function `$AUTOLOAD' in Psh::OS does not exist." unless
+		ref *{"${ospackage}::$AUTOLOAD"}{CODE} eq 'CODE';
+	*$AUTOLOAD=  *$name;
 	goto &$AUTOLOAD;
 }
 
