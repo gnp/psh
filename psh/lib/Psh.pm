@@ -998,8 +998,6 @@ sub process_file
 #
 # Construct a prompt string from TEMPLATE.
 #
-# TODO: Should we have an entry for '\'?
-#
 
 %prompt_vars = (
 	'd' => sub {
@@ -1008,6 +1006,7 @@ sub process_file
 			$mon  = $mon[$mon];
 			return "$wday $mon $mday";
 		},
+	'E' => sub { return "\e"} ,
 	'h' => sub { return $host; },
 	'H' => sub { return $longhost; },
 	's' => sub {
@@ -1015,7 +1014,8 @@ sub process_file
 			$shell =~ s/^.*\///;
 			return $shell;
 		},
-	'n' => sub { return "\n"; },
+	'S' => sub { return "\0" }, # extends to \
+	'n' => sub { return "\n" },
 	't' => sub {
 			my ($hour, $min, $sec) = (localtime)[2, 1, 0];
 			return sprintf("%02d:%02d:%02d", $hour, $min, $sec);
@@ -1024,15 +1024,56 @@ sub process_file
 			# Camel, 2e, p. 172: 'getlogin'.
 			return getlogin || (getpwuid($>))[0] || "uid$>";
 		},
-	'w' => sub { return cwd; },
-	'W' => sub { my $dir = cwd; $dir =~ s/^.*\///; return $dir||'/' },
+	'w' => sub { 
+		    my $dir= cwd;
+			if( $ENV{HOME}) {
+				$dir =~ s/^$ENV{HOME}/\~/;
+			}
+		    return $dir;
+		},
+	'W' => sub {
+		    my $dir = cwd;
+			$dir =~ s/^.*\///;
+			return $dir||'/';
+		},
 	'#' => sub { return $cmd; },
-	'$' => sub { return ($> ? '$' : '#'); }
+	'$' => sub { return ($> ? '$' : '#'); },
+	'[' => sub { return ''},
+	']' => sub { return ''},
 );
+
+
+sub prompt_helper {
+	my $code= shift;
+	my $var = $prompt_vars{$code};
+
+	if (ref $var eq 'CODE') {
+		$sub = &$var();
+	} elsif($code =~ /^[0-9]+$/) {
+		$sub= chr(oct($code));
+	} elsif($code =~ /^\:[0-9]+$/) {
+		$sub= chr($code);
+	} elsif($code =~ /^0x/) {
+		$sub= chr(hex($code));
+	} else {
+		print_warning_i18n('prompt_unknown_escape',$code,$Psh::bin);
+		$sub = ''
+	}
+	
+	{
+		local $1;
+		if ($sub =~ m/\\([^\\])/) {
+			print_warning_i18n('prompt_expansion_error',$code,
+							   $1, $Psh::bin);
+			$sub =~ s/\\[^\\]//g;
+		}
+	}
+	return $sub;
+}
 
 sub prompt_string
 {
-        my $prompt_templ = shift;
+	my $prompt_templ = shift;
 	my $temp;
 
 	#
@@ -1051,41 +1092,33 @@ sub prompt_string
 	#
 	# Now, subject it to substitutions:
     #
-	# There are two kinds of escapes: (1) Single (non-digit) character, and (2) one or more
-	# digits. The former are looked up in %prompt_vars, and the latter are mapped to ascii
-	# characters.
+	# Substitution is in x steps:
+	# 1) \\ is substituted by \0 to be able to restore them later on
+	# 2) The special construct \$( ... ) or $(...) is interpreted
+	# 3) \char and \digits are interpreted
+	# 4) \0 is restored to \
 	#
 
-	while ($temp =~ m/^(.*)\\([0-9]+|[^0-9])(.*)$/) {
-		my $sub;
+	$temp=~ s/\\\\/\0/g; # save double backslash
 
+	# Substitute program execution (for bash compatibility)
+	$temp=~ s/\\\$\(/\$\(/g;
+	while ($temp =~ m/^(.*)\$\(([^\)]+)\)(.*)$/) {
+		my $sub='';
 		my ($save1, $code, $save2) = ($1, $2, $3);
-		my $var = $prompt_vars{$code};
-
-		if (ref $var eq 'CODE') {
-			$sub = &$var();
- 		} elsif($code =~ /[0-9]+/) {
- 			# I want my colour prompt back!
- 			if ($code =~ /^0/) { $sub = chr(oct($code)); }
- 			else               { $sub = chr(hex($code)); }
-
-		} else {
-			print_warning("$bin: Warning: \$Psh::prompt (`$temp') contains unknown escape sequence `\\$code'.\n");
-			$sub = ''
-		}
-
-		{
-			local $1;
-			if ($sub =~ m/\\(.)/) {
-				print_warning("$bin: Warning: Expansion of `\\$code' in prompt string yielded\n",
-					  "     string containing `$1'. Stripping escape sequences from\n",
-					  "     substitution.\n");
-				$sub =~ s/\\(.)//g;
-			}
-		}
-
-		$temp = $save1 . $sub . $save2
+		eval {
+			$sub=Psh::OS::system($code);
+			chomp $sub;
+		};
+		$sub='' if( $@);
+		$sub=~ s/\\/\0/g;
+		$temp=$save1 . $sub . $save2;
 	}
+
+	# Standard prompt_var substitution
+	$temp=~ s/\\([0-9]x?[0-9a-fA-F]*|[^0-9\\])/&prompt_helper($1)/ge;
+
+	$temp=~ s/\0/\\/g; # restore former double backslash
 
 	return $temp;
 }

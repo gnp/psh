@@ -62,6 +62,11 @@ sub fork_process {
 	}
 }
 
+# Simply doing backtick eval - mainly for Prompt evaluation
+sub system {
+	return `@_`;
+}
+
 sub has_job_control { return 0; }
 
 sub glob {

@@ -38,6 +38,13 @@ BEGIN {
 	$Psh::text{no_jobcontrol}="Your system does not support job control\n";
 	$Psh::text{help_header}="psh supports following built in commands\n";
 	$Psh::text{no_help}="Sorry, help for builtin %1 is not available\n";
+	$Psh::text{prompt_expansion_error}=<<EOT;
+%3: Warning: Expansion of '\\%1' in prompt string yielded
+string containing '%2'. Stripping escape sequence from
+substitution.
+EOT
+	$Psh::text{prompt_unknown_escape}="%2: Warning: \$Psh::prompt contains unknown escape sequence `\\%1'.\n";
+
 }
 
 
