@@ -1,6 +1,6 @@
 package Psh::Builtins::Bind;
 
-use Psh::Util ':all';
+require Psh::Util;
 
 =pod
 
@@ -87,7 +87,7 @@ sub bi_bind {
         while (my $command = shift(@$args)) {
             if ($command eq '-l') {
                 for my $function (sort($Psh::term->get_all_function_names)) {
-                    print_out("$function\n");
+                    Psh::Util::print_out("$function\n");
                 }
             } elsif ($command eq '-m') { # Set keymap
                 my $keymap_name = shift(@$args);
@@ -95,17 +95,17 @@ sub bi_bind {
                 if (defined($map)) {
                     $Psh::term->set_keymap($map);
                 } else {
-                    print_out(qq{bind: `$keymap_name': illegal keymap name\n});
+                    Psh::Util::print_out(qq{bind: `$keymap_name': illegal keymap name\n});
                     $status = 1;
                 }
             } elsif ($command eq '-v') { # Show values
                 for my $function (sort($Psh::term->get_all_function_names)) {
-                    print_out("$function ");
+                    Psh::Util::print_out("$function ");
                     my(@keys) = $Psh::term->invoking_keyseqs($function);
                     if (@keys) {
-                        print_out(qq{can be found on "},join('", "',@keys),qq{".\n});
+                        Psh::Util::print_out(qq{can be found on "},join('", "',@keys),qq{".\n});
                     } else {
-                        print_out("is not bound to any keys\n");
+                        Psh::Util::print_out("is not bound to any keys\n");
                     }
                 }
             } elsif ($command eq '-d') { # Dump values
@@ -113,27 +113,27 @@ sub bi_bind {
                     my(@keys) = $Psh::term->invoking_keyseqs($function);
                     if (@keys) {
                         foreach (@keys) {
-                            print_out(qq{"$_": $function\n});
+                            Psh::Util::print_out(qq{"$_": $function\n});
                         }
                     } else {
-                        print_out("# $function (not bound)\n");
+                        Psh::Util::print_out("# $function (not bound)\n");
                     }
                 }
             } elsif ($command eq '-f') { # Read file
                 my $file = shift(@$args);
                 $Psh::term->read_init_file($file);
                 if ($!) {
-                    print_out("bind: cannot read $file: $!\n");
+                    Psh::Util::print_out("bind: cannot read $file: $!\n");
                     $status = 1;
                 }
             } elsif ($command eq '-q') { # Query a single function
                 my $function = shift(@$args);
-                print_out("$function ");
+                Psh::Util::print_out("$function ");
                 my(@keys) = $Psh::term->invoking_keyseqs($function);
                 if (@keys) {
-                    print_out(qq{can be found on "},join('", "',@keys),qq{".\n});
+                    Psh::Util::print_out(qq{can be found on "},join('", "',@keys),qq{".\n});
                 } else {
-                    print_out("is not bound to any keys\n");
+                    Psh::Util::print_out("is not bound to any keys\n");
                 }
             } elsif ($command =~ /:/) {
                 unless ($command =~ /:./) {
@@ -150,8 +150,8 @@ sub bi_bind {
                 $Psh::term->parse_and_bind($command);
             } else {
                 # print help (unknown option)
-                print_out("bind: illegal option: $command\n");
-                print_out("usage: bind [-lvd] [-m keymap] [-f filename] [-q name] [keyseq:readline_func]\n");
+                Psh::Util::print_out("bind: illegal option: $command\n");
+                Psh::Util::print_out("usage: bind [-lvd] [-m keymap] [-f filename] [-q name] [keyseq:readline_func]\n");
                 $status = 1;
                 last;
             }
@@ -161,7 +161,7 @@ sub bi_bind {
         my $args = pop;
         while (my $command = shift(@$args)) {
             if ($command eq '-l') {
-                print_out("bind: -l option currently not supported by ".ref($Psh::term)."\n");
+                Psh::Util::print_out("bind: -l option currently not supported by ".ref($Psh::term)."\n");
                 $status = 1;
                 last;
             } elsif ($command eq '-m') { # Set keymap
@@ -170,23 +170,23 @@ sub bi_bind {
                 if (defined($map)) {
                     $Psh::term->set('EditingMode',$map);
                 } else {
-                    print_out(qq{bind: `$keymap_name': illegal keymap name\n});
+                    Psh::Util::print_out(qq{bind: `$keymap_name': illegal keymap name\n});
                     $status = 1;
                 }
             } elsif ($command eq '-v') { # Show values
-                print_out("bind: -v option currently not supported by ".ref($Psh::term)."\n");
+                Psh::Util::print_out("bind: -v option currently not supported by ".ref($Psh::term)."\n");
                 $status = 1;
                 last;
             } elsif ($command eq '-d') { # Dump values
-                print_out("bind: -d option currently not supported by ".ref($Psh::term)."\n");
+                Psh::Util::print_out("bind: -d option currently not supported by ".ref($Psh::term)."\n");
                 $status = 1;
                 last;
             } elsif ($command eq '-f') { # Read file
-                print_out("bind: -f option currently not supported by ".ref($Psh::term)."\n");
+                Psh::Util::print_out("bind: -f option currently not supported by ".ref($Psh::term)."\n");
                 $status = 1;
                 last;
             } elsif ($command eq '-q') { # Query a single function
-                print_out("bind: -q option currently not supported by ".ref($Psh::term)."\n");
+                Psh::Util::print_out("bind: -q option currently not supported by ".ref($Psh::term)."\n");
                 $status = 1;
                 last;
             } elsif ($command =~ /:/) {
@@ -201,20 +201,19 @@ sub bi_bind {
                 $Psh::term->bind($keys,$function);
             } else {
                 # print help (unknown option)
-                print_out("bind: illegal option: $command\n");
-                print_out("usage: bind [-lvd] [-m keymap] [-f filename] [-q name] [keyseq:readline_func]\n");
+                Psh::Util::print_out("bind: illegal option: $command\n");
+                Psh::Util::print_out("usage: bind [-lvd] [-m keymap] [-f filename] [-q name] [keyseq:readline_func]\n");
                 $status = 1;
                 last;
             }
         }
     } elsif (defined($Psh::term) and ref($Psh::term)) {
-        print_out("bind requires a more capable readline than ".ref($Psh::term)."\n");
+        Psh::Util::print_out("bind requires a more capable readline than ".ref($Psh::term)."\n");
         $status = 1;
     } else {
-        print_out("bind: No effect in non-interactive terminal\n");
+        Psh::Util::print_out("bind: No effect in non-interactive terminal\n");
         $status = 1;
     }
-    
     return ($status,undef);
 }
 

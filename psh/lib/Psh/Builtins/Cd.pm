@@ -66,7 +66,7 @@ sub bi_cd
 		$dirpath.=$ENV{CDPATH};
 	}
 
-	foreach my $cdbase (split $PS,$dirpath) {
+	foreach my $cdbase (split $Psh::OS::PATH_SEPARATOR,$dirpath) {
 		my $dir= $in_dir;
 		if( $cdbase eq '.') {
 			$dir = Psh::Util::abs_path($dir);

@@ -1,8 +1,9 @@
 package Psh::Builtins::Fc;
 
 use strict;
-use Psh::Util qw(:all starts_with);
-use Getopt::Std;
+require Psh;
+require Psh::Util;
+require Getopt::Std;
 
 =item * C<fc> -s [OLD=NEW] [command]
 
@@ -38,7 +39,7 @@ sub _locate_command {
 			}
 		}
 		unless ($found) {
-			print_error_i18n('bi_fc_notfound');
+			Psh::Util::print_error_i18n('bi_fc_notfound');
 			return undef;
 		}
 	}
@@ -50,14 +51,14 @@ sub bi_fc
 	my $line= shift;
 	local @ARGV = @{shift()};
 	my $opt={};
-	getopts('splre:',$opt);
+	Getopt::Std::getopts('splre:',$opt);
 
 	return (0,undef) unless $#Psh::history;
 	if ($opt->{'l'}) {
 		my $num=@Psh::history;
 		$num=15 if $num>15;
 		for (my $i=@Psh::history-$num; $i<@Psh::history; $i++) {
-			print_out(' '.sprintf('%3d',$i+1).'  '.$Psh::history[$i]."\n");
+			Psh::Util::print_out(' '.sprintf('%3d',$i+1).'  '.$Psh::history[$i]."\n");
 		}
 	} elsif ($opt->{'s'}) {
 		my $subst='';
@@ -76,7 +77,7 @@ sub bi_fc
 			my ($old,$new)=$subst=~/^(.*?[^\\])\=(.*)$/;
 			$comtext=~s/$old/$new/;
 		}
-		print_out($comtext."\n");
+		Psh::Util::print_out($comtext."\n");
 		Psh::add_history($comtext);
 		return Psh::evl($comtext);
 	} elsif ($opt->{'p'}) {
@@ -85,7 +86,7 @@ sub bi_fc
 		my $comnum= _locate_command($command);
 		return (0,undef) unless defined $comnum;
 		my $comtext="$prepend $Psh::history[$comnum]";
-		print_out($comtext."\n");
+		Psh::Util::print_out($comtext."\n");
 		Psh::add_history($comtext);
 		return Psh::evl($comtext);
 	} else {

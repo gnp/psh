@@ -132,13 +132,16 @@ sub decompose
 		      ($rest =~ m/^((?:[^\\]|\\.)*?)$qhash{$quote}(.*)$/s);
 		    if (defined($restOfQuote)) {
 			    if ($keep) {
-				    $pieces[$#pieces] .= "$prefix$quote$restOfQuote${$quotehash}{$quote}";
+					$pieces[$#pieces]= join('',$pieces[$#pieces],$prefix,
+											$quote,$restOfQuote,
+											$quotehash->{$quote});
 			    } else { #Not keeping, so remove backslash
 					     #from backslashed $quote occurrences
 					if (substr($restOfQuote,0,1) eq "\\") {
 						$restOfQuote= substr($restOfQuote,1);
 					}
-				    $pieces[$#pieces] .= "$prefix$restOfQuote";
+					$pieces[$#pieces]= join('',$pieces[$#pieces],
+											$prefix, $restOfQuote);
 			    }
 			    $line = $remainder;
 			    $freshPiece = 0;

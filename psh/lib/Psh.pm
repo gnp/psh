@@ -1,8 +1,8 @@
 package Psh;
 
 use locale;
-use Psh::Util ':all';
 require File::Spec;
+require Psh::Util;
 require Psh::Locale;
 require Psh::Strategy;
 require Psh::OS;
@@ -77,12 +77,12 @@ sub handle_message
 	if ($message) {
 		return if ($from eq 'hide');
 		if ($message =~ m/^SECRET $bin:(.*)$/s) {
-			if ($from ne 'main_loop') { print_out("$1\n"); }
+			if ($from ne 'main_loop') { Psh::Util::print_out("$1\n"); }
 		} else {
-			print_error("$from error ($message)!\n");
+			Psh::Util::print_error("$from error ($message)!\n");
 			if ($from eq 'main_loop') {
 				if( $ignore_die) {
-					print_error_i18n('internal_error');
+					Psh::Util::print_error_i18n('internal_error');
 				} else {
 					die("Internal psh error.");
 				}
@@ -109,7 +109,7 @@ sub evl {
 	return undef unless @elements;
 
 	my ($success,$result)= _evl(@elements);
-	print_debug_class('i',"Success: $success\n");
+	Psh::Util::print_debug_class('i',"Success: $success\n");
 	return ($success,@$result);
 }
 
@@ -159,7 +159,7 @@ sub read_until
 		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),
 					  1,\&Psh::Prompt::pre_prompt_hook);
 		if (!defined($temp)) {
-			print_error_i18n('input_incomplete',$sofar,$bin);
+			Psh::Util::print_error_i18n('input_incomplete',$sofar,$bin);
 			return '';
 		}
 		last if $temp =~ m/^$terminator$/;
@@ -188,7 +188,7 @@ sub read_until_complete
 		$temp = &$get(Psh::Prompt::prompt_string($prompt_templ),1,
 					  \&Psh::Prompt::pre_prompt_hook);
 		if (!defined($temp)) {
-			print_error_i18n('input_incomplete',$sofar,$bin);
+			Psh::Util::print_error_i18n('input_incomplete',$sofar,$bin);
 			return '';
 		}
 		$sofar .= $temp;
@@ -255,10 +255,11 @@ sub process
 		next if $input=~ m/^\s*$/;
 
 		if ($input =~ m/<<([a-zA-Z_0-9\-]*)/) {
-			my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
 			my $terminator = $1;
-			$input .= read_until($continuation, $terminator, $get);
-			$input .= "$terminator\n";
+			my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
+			$input = join('',$input,
+						  read_until($continuation, $terminator, $get),
+						  $terminator,"\n");
 		} elsif (Psh::Parser::incomplete_expr($input) > 0) {
 			my $continuation = $q_prompt ? Psh::Prompt::continue_prompt() : '';
 			$input = read_until_complete($continuation, $input, $get);
@@ -272,7 +273,7 @@ sub process
 		if (ref($echo) eq 'CODE') {
 			$qEcho = &$echo(@result);
 		} elsif (ref($echo)) {
-			print_warning_i18n('psh_echo_wrong',$bin);
+			Psh::Util::print_warning_i18n('psh_echo_wrong',$bin);
 		} else {
 			if ($echo) { $qEcho = defined_and_nonempty(@result); }
 		}
@@ -290,7 +291,7 @@ sub process
 						$result_array_name = 'anonymous';
 					}
 				} elsif ($what) {
-					print_warning_i18n('psh_result_array_wrong',$bin);
+					Psh::Util::print_warning_i18n('psh_result_array_wrong',$bin);
 					$result_array_ref = \@Psh::val;
 					$result_array_name = 'Psh::val';
 				} else { # Ordinary string
@@ -302,12 +303,12 @@ sub process
 			if (scalar(@result) > 1) {
 				my $n = scalar(@{$result_array_ref});
 				push @{$result_array_ref}, \@result;
-				print_out("\$$result_array_name\[$n] = [", join(',',@result), "]\n") if $interactive;
+				Psh::Util::print_out("\$$result_array_name\[$n] = [", join(',',@result), "]\n") if $interactive;
 			} else {
 				my $n = scalar(@{$result_array_ref});
 				my $res = $result[0];
 				push @{$result_array_ref}, $res;
-				print_out("\$$result_array_name\[$n] = \"$res\"\n") if $interactive;
+				Psh::Util::print_out("\$$result_array_name\[$n] = \"$res\"\n") if $interactive;
 			}
 			if (@{$result_array_ref}>100) {
 				shift @{$result_array_ref};
@@ -371,26 +372,26 @@ sub process_file
 {
 	my $path= shift;
 
-	print_debug("[PROCESSING FILE $path]\n");
+	Psh::Util::print_debug("[PROCESSING FILE $path]\n");
 	local $interactive=0;
 
 	if (!-r $path) {
-		print_error_i18n('cannot_read_script',$path,$bin);
+		Psh::Util::print_error_i18n('cannot_read_script',$path,$bin);
 		return;
 	}
 
 	unless (open(FILE, "< $path")) {
-		print_error_i18n('cannot_open_script',$path,$bin);
+		Psh::Util::print_error_i18n('cannot_open_script',$path,$bin);
 		return;
 	}
 
 	Psh::OS::lock(*FILE);
 
-	if ($Psh::debugging=~ /$class/ or
-	   $Psh::debugging==1) {
+	if ($Psh::debugging=~ /f/ or
+		$Psh::debugging==1) {
 		process(0, sub {
 					my $txt=<FILE>;
-					print_debug_class('f',$txt);
+					Psh::Util::print_debug_class('f',$txt);
 					return $txt;
 				}); # don't prompt
 	} else {
@@ -400,7 +401,7 @@ sub process_file
 	Psh::OS::unlock(*FILE);
 	close(FILE);
 
-	print_debug("[FINISHED PROCESSING FILE $path]\n");
+	Psh::Util::print_debug("[FINISHED PROCESSING FILE $path]\n");
 }
 
 sub process_variable {
@@ -479,7 +480,7 @@ sub iget
 		if( $@) {
 			if( $@ =~ /Signal INT/) {
 				$sigint= 1;
-				print_out_i18n('readline_interrupted');
+				Psh::Util::print_out_i18n('readline_interrupted');
 				if( $returnflag) {
 					Psh::OS::remove_readline_handler();
 					return undef;
@@ -626,7 +627,7 @@ sub finish_initialize
 		eval { require Term::ReadLine; };
 		if ($@) {
 			$term = undef;
-			print_error_i18n(no_readline);
+			Psh::Util::print_error_i18n(no_readline);
 		} else {
 			eval { $term= Term::ReadLine->new('psh'); };
 			if( $@) {
@@ -635,7 +636,7 @@ sub finish_initialize
 				sleep 1;
 				eval { $term= Term::ReadLine->new('psh'); };
 				if( $@) {
-					print_error_i18n(readline_error,$@);
+					Psh::Util::print_error_i18n(readline_error,$@);
 					$term= undef;
 				}
 			}
@@ -643,7 +644,7 @@ sub finish_initialize
 				$term->MinLine(10000);   # We will handle history adding
 				# ourselves (undef causes trouble).
 				$term->ornaments(0);
-				print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
+				Psh::Util::print_debug_class('i',"[Using ReadLine: ", $term->ReadLine(), "]\n");
 				if ($term->ReadLine() eq "Term::ReadLine::Gnu") {
 					$readline_saves_history = 1;
 					$term->StifleHistory($history_length); # Limit history
@@ -658,13 +659,13 @@ sub finish_initialize
 		#
 		eval { require Term::Size; };
 		if ($@) {
-			print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
+			Psh::Util::print_debug_class('i',"[Term::Size not available. Trying Term::ReadKey\n]");
 			eval { require Term::ReadKey; };
 			if( $@) {
-				print_debug_class('i',"[Term::ReadKey not available]\n");
+				Psh::Util::print_debug_class('i',"[Term::ReadKey not available]\n");
 			}
 		}
-		else    { print_debug_class('i',"[Using Term::Size::chars().]\n"); }
+		else    { Psh::Util::print_debug_class('i',"[Using Term::Size::chars().]\n"); }
 
 		Psh::OS::reinstall_resize_handler();
 		# ReadLine objects often mess with the SIGWINCH handler
@@ -735,7 +736,7 @@ sub process_rc
 
 	foreach my $rc (@rc) {
 		if (-r $rc) {
-			print_debug_class('i',"[PROCESSING $rc]\n");
+			Psh::Util::print_debug_class('i',"[PROCESSING $rc]\n");
 			process_file($rc);
 		}
 	}
@@ -750,11 +751,11 @@ sub process_rc
 
 sub process_args
 {
-	print_debug_class('i',"[PROCESSING @ARGV FILES]\n");
+	Psh::Util::print_debug_class('i',"[PROCESSING @ARGV FILES]\n");
 
 	foreach my $arg (@ARGV) {
 		if (-r $arg) {
-			print_debug('i',"[PROCESSING $arg]\n");
+			Psh::Util::print_debug('i',"[PROCESSING $arg]\n");
 			process_file($arg);
 		}
 	}
@@ -774,7 +775,7 @@ sub main_loop
 	my $interactive = (-t STDIN) and (-t STDOUT);
 	my $get;
 
-	print_debug_class('i',"[STARTING MAIN LOOP]\n");
+	Psh::Util::print_debug_class('i',"[STARTING MAIN LOOP]\n");
 
 	if ($interactive) { $get = \&iget;                  }
 	else              { $get = sub { return <STDIN>; }; }

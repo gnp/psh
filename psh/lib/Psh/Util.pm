@@ -1,28 +1,15 @@
 package Psh::Util;
 
 use strict;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 require Cwd;
 require Psh::OS;
 require File::Spec;
-require Exporter;
-
-@ISA= qw(Exporter);
-
-@EXPORT= qw( );
-@EXPORT_OK= qw( starts_with ends_with print_list);
-%EXPORT_TAGS = ( all => [qw(print_warning print_debug print_debug_class
-							print_warning_i18n print_error
-							print_out print_error_i18n print_out_i18n
-							which abs_path)] );
 
 use vars qw(%command_hash %path_hash);
 
 %command_hash=();
 %path_hash=();
-
-Exporter::export_ok_tags('all'); # Add EXPORT_TAGS to EXPORT_OK
 
 sub print_warning
 {
@@ -201,13 +188,16 @@ sub abs_path {
 	sub which
     {
 		my $cmd= shift;
+		return undef unless $cmd;
 
 		if ($cmd =~ m|$re1|o) {
 			$cmd =~ m|$re2|o;
-			my $path_element= $1;
-			my $cmd_element= $2||'';
-			my $try= join('',Psh::Util::abs_path($path_element),$FS,
-						  $cmd_element);
+			my $path_element= $1 || '';
+			my $cmd_element=  $2 || '';
+			return undef unless $path_element and $cmd_element;
+			$path_element=Psh::Util::abs_path($path_element);
+			return undef unless $path_element;
+			my $try= File::Spec->catfile($path_element,$cmd_element);
 			if ((-x $try) and (! -d _)) { return $try; }
 			return undef;
 		}
@@ -223,6 +213,7 @@ sub abs_path {
 
 			eval {
 				foreach my $dir (@path) {
+					next unless $dir and -r $dir;
 					push @Psh::absed_path, Psh::Util::abs_path($dir);
 				}
 			};
@@ -235,6 +226,7 @@ sub abs_path {
 		my @path_extension=Psh::OS::get_path_extension();
 
 		foreach my $dir (@Psh::absed_path) {
+			next unless $dir;
 			my $try = File::Spec->catfile($dir,$cmd);
 			foreach my $ext (@path_extension) {
 				if ((-x $try.$ext) and (!-d _)) {

@@ -1,6 +1,8 @@
 package Psh::Builtins::Jobs;
 
-use Psh::Util ':all';
+require Psh::Util;
+require Psh::Joblist;
+require Psh::OS;
 
 =item * C<jobs>
 
@@ -10,7 +12,7 @@ List the currently running jobs.
 
 sub bi_jobs {
 	if( ! Psh::OS::has_job_control()) {
-		print_error_i18n('no_jobcontrol');
+		Psh::Util::print_error_i18n('no_jobcontrol');
 		return (0,undef);
 	}
 
@@ -33,11 +35,11 @@ sub bi_jobs {
 	}
 
 	if (!$result) {
-		print_out_i18n('bi_jobs_none');
+		Psh::Util::print_out_i18n('bi_jobs_none');
 		return (0,undef);
 	}
 	else {
-		print_out($result);
+		Psh::Util::print_out($result);
 		return (1,undef);
 	}
 }

@@ -16,18 +16,9 @@ use vars qw($VERSION);
 
 $VERSION='0.009';
 
-BEGIN {
-	# Let's speed up locating our other modules
-
-	require File::Spec;
-	require Psh;
-	my $tmp =$INC{'Psh.pm'};
-	my @tmp= File::Spec->splitdir($tmp);
-	pop @tmp;
-	$tmp= File::Spec->catfile(@tmp);
-	unshift @INC, $tmp;
-	require Psh::Locale;
-}
+use Psh;
+require Psh::Locale;
+require Psh::Util;
 
 #
 # Parse the command line and deal with the options except -r, which is

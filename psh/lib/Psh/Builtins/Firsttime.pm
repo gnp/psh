@@ -1,7 +1,7 @@
 package Psh::Builtins::Firsttime;
 use strict;
 
-use Psh::Util ':all';
+require Psh::Util;
 
 =item * C<firsttime>
 
@@ -203,14 +203,3 @@ sub _change_env_value
 }
 
 1;
-
-# Local Variables:
-# mode:perl
-# tab-width:4
-# indent-tabs-mode:t
-# c-basic-offset:4
-# perl-label-offset:0
-# perl-indent-level:4
-# cperl-indent-level:4
-# cperl-label-offset:0
-# End:

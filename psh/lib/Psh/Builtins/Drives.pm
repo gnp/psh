@@ -1,7 +1,6 @@
 package Psh::Builtins::Drives;
-use strict;
 
-use Psh::Util ':all';
+require Psh::Util;
 
 =item * C<drives>
 
@@ -19,22 +18,10 @@ sub bi_drives
 		my @result=();
 		eval "use Win32::NetAdmin;";
 		Win32::NetAdmin::GetServerDisks("",\@result);
-		print_out($_."\n") foreach @result;
+		Psh::Util::print_out($_."\n") foreach @result;
 	} else {
 	}
 	return (1,undef);
 }
 
 1;
-
-# Local Variables:
-# mode:perl
-# tab-width:4
-# indent-tabs-mode:t
-# c-basic-offset:4
-# perl-label-offset:0
-# perl-indent-level:4
-# cperl-indent-level:4
-# cperl-label-offset:0
-# End:
-

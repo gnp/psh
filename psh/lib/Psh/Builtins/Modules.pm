@@ -1,6 +1,6 @@
 package Psh::Builtins::Modules;
 
-use Psh::Util ':all';
+require Psh::Util;
 
 =item * C<modules>
 
@@ -29,11 +29,11 @@ sub bi_modules
 
 	@strategies= map { s/^Psh::Strategy:://; $_ } @strategies;
 
-	print_out('Pragmas:    '.join(', ',@pragmas)."\n\n");
-	print_out('Modules:    '.join(', ',@modules)."\n\n");
-	print_out('Builtins:   '.join(', ',@builtins)."\n\n");
-	print_out('Strategies: '.join(', ',@strategies)."\n\n");
-	print_out('Psh:        '.join(', ',@psh)."\n\n");
+	Psh::Util::print_out('Pragmas:    '.join(', ',@pragmas)."\n\n");
+	Psh::Util::print_out('Modules:    '.join(', ',@modules)."\n\n");
+	Psh::Util::print_out('Builtins:   '.join(', ',@builtins)."\n\n");
+	Psh::Util::print_out('Strategies: '.join(', ',@strategies)."\n\n");
+	Psh::Util::print_out('Psh:        '.join(', ',@psh)."\n\n");
 	return (0,undef);
 }
 

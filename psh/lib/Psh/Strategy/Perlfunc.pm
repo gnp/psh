@@ -40,9 +40,9 @@ sub applies {
 	my $parenthesized = 0;
 
 	# catch "join(':',@foo)" here as well:
-	if ($firstword =~ m/\(/) {
+	if ($fnname =~ m/\(/) {
 		$parenthesized = 1;
-		$fnname = (split('\(', $firstword))[0];
+		$fnname = (split('\(', $fnname))[0];
 	}
 
 	my $qPerlFunc = 0;

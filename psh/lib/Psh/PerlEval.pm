@@ -20,8 +20,8 @@ sub protected_eval
 	# variables of the same name in main!!
 	#
  
-	local ($Psh::string, $Psh::from) = @_;
-	local $Psh::redo_sentinel        = 0;
+	local ($Psh::PerlEval::str, $Psh::PerlEval::from) = @_;
+	local $Psh::PerlEval::redo_sentinel        = 0;
 
 	# It's not possible to use fork_process for foreground perl
 	# as we would lose all variables etc.
@@ -30,21 +30,22 @@ sub protected_eval
 		#level in EXPR 
 		# First, protect against infinite loop
 		# caused by redo:
-		if ($Psh::redo_sentinel) { last; } 
-		$Psh::redo_sentinel = 1;
+		if ($Psh::PerlEval::redo_sentinel) { last; }
+		$Psh::PerlEval::redo_sentinel = 1;
 		local $Psh::currently_active= -1;
 		$_= $Psh::PerlEval::lastscalar;
 		@_= @Psh::PerlEval::lastarray;
-		local @Psh::result= eval $Psh::eval_preamble.' '.$Psh::string;
+		local @Psh::PerlEval::result= eval $Psh::eval_preamble.' '.$Psh::PerlEval::str;
 		$Psh::PerlEval::lastscalar= $_;
 		@Psh::PerlEval::lastarray= @_;
 
-		if ( !$@ && @Psh::result &&
-			 $#Psh::result==0 &&
-			 $Psh::result[0] eq $Psh::string &&
-			 !Psh::is_number($Psh::string) &&
-			 $Psh::string=~ /^\s*\S+\s*$/ &&
-			 $Psh::string!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {
+		if ( !$@ && @Psh::PerlEval::result &&
+			 $#Psh::PerlEval::result==0 && $Psh::PerlEval::str &&
+			 $Psh::PerlEval::result[0] &&
+			 $Psh::PerlEval::result[0] eq $Psh::PerlEval::str &&
+			 !Psh::is_number($Psh::PerlEval::str) &&
+			 $Psh::PerlEval::str=~ /^\s*\S+\s*$/ &&
+			 $Psh::PerlEval::str!~ /^\s*(\'|\")\S+(\'|\")\s*$/ ) {
 			#
 			# Very whacky error handling
 			# If you pass one word to perl and it's no function etc
@@ -53,16 +54,16 @@ sub protected_eval
 			# so we try to detect these cases
 			#
 
-			Psh::Util::print_error_i18n('no_command',$Psh::string);
+			Psh::Util::print_error_i18n('no_command',$Psh::PerlEval::str);
 			return undef;
 		}
 		else {
-			Psh::handle_message($@, $Psh::from);
+			Psh::handle_message($@, $Psh::PerlEval::from);
 		}
-		return @Psh::result;
+		return @Psh::PerlEval::result;
 	}
 	Psh::handle_message("Can't use loop control outside a block",
-						$Psh::from);
+						$Psh::PerlEval::from);
 	return undef;
 }
 

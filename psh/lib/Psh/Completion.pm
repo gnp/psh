@@ -3,7 +3,7 @@ package Psh::Completion;
 use strict;
 use vars qw(@bookmarks $ac $complete_first_word_dirs);
 
-use Psh::Util qw(:all starts_with ends_with);
+require Psh::Util;
 require Psh::OS;
 
 my $APPEND="not_implemented";
@@ -71,7 +71,7 @@ sub cmpl_filenames
 		my @ignore= split(':',$ENV{FIGNORE});
 		@result= grep {
 			my $item= $_;
-			my $result= ! grep { ends_with($item,$_) } @ignore;
+			my $result= ! grep { Psh::Util::ends_with($item,$_) } @ignore;
 			$result;
 		} @result;
 	}
@@ -137,7 +137,7 @@ sub cmpl_directories
 sub cmpl_usernames
 {
 	my $text= shift;
-	my @result= grep { starts_with($_,$text) } Psh::OS::get_all_users();
+	my @result= grep { Psh::Util::starts_with($_,$text) } Psh::OS::get_all_users();
 	return @result;
 }
 
@@ -155,8 +155,8 @@ sub cmpl_executable
 	}
 
 	if (Psh::Strategy::active('built_in')) {
-		push @result, grep { starts_with($_,$cmd) } Psh::Support::Alias::get_alias_commands();
-		push @result, grep { starts_with($_,$cmd) } Psh::Support::Builtins::get_builtin_commands();
+		push @result, grep { Psh::Util::starts_with($_,$cmd) } Psh::Support::Alias::get_alias_commands();
+		push @result, grep { Psh::Util::starts_with($_,$cmd) } Psh::Support::Builtins::get_builtin_commands();
 	}
 	push @result, cmpl_directories($cmd) if $complete_first_word_dirs;
 	
@@ -463,7 +463,7 @@ sub completion
 	if (Psh::Strategy::active('built_in') and
 		grep { $_ eq $startword } Psh::Support::Builtins::get_builtin_commands() ) {
 		my $pkg= ucfirst($startword);
-		eval "use Psh::Builtins::$pkg";
+		eval "require Psh::Builtins::$pkg";
 		my @tmp2= eval 'Psh::Builtins::'.$pkg.'::cmpl_'."$startword('$text','$pretext','$starttext','$line')";
 		if( @tmp2 && $tmp2[0]) {
 			shift(@tmp2);

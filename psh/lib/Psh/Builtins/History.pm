@@ -1,7 +1,6 @@
 package Psh::Builtins::History;
-use strict;
 
-use Psh::Util ':all';
+require Psh::Util;
 
 =item * C<history> [n]
 
@@ -42,7 +41,7 @@ sub bi_history
 	}
 	for ($i=@Psh::history-$num; $i<$max; $i++) {
 		next if $grep and $Psh::history[$i]!~/\Q$grep\E/;
-		print_out(' '.sprintf('%3d',$i+1).'  '.$Psh::history[$i]."\n");
+		Psh::Util::print_out(' '.sprintf('%3d',$i+1).'  '.$Psh::history[$i]."\n");
 		$success=1;
 	}
 	return ($success,undef);
