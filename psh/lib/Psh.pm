@@ -133,6 +133,9 @@ my $input;
          }
          if( $built_ins{$fnname}) {
 			 eval 'use Psh::Builtins::'.ucfirst($fnname);
+			 if ($@) {
+				 Psh::Util::print_error_i18n('builtin_failed',$@);
+			 }
              return "(Psh::Builtins::".ucfirst($fnname)."::bi_$fnname)";
 		 }
 		 return '';
