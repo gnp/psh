@@ -47,7 +47,7 @@ sub cmpl_bookmarks
 	my ($text, $prefix)= @_;
 	my $length=length($prefix);
 	return
-		grep { length($_)>0 }
+		sort grep { length($_)>0 }
            map { substr($_,$length) }
 	         grep { starts_with($_,$prefix.$text) } @bookmarks;
 }
@@ -161,7 +161,7 @@ sub cmpl_symbol
 		@sym = keys %{*{$package}};
 	}
 	
-	for my $sym (sort @sym) {
+	for my $sym (@sym) {
 		next unless $sym =~ m/^[a-zA-Z]/; # Skip some special variables
 		next if     $sym =~ m/::$/ && length($text)==1;
             # Skip all package hashes if only $, %, @ etc. was
@@ -204,7 +204,7 @@ sub cmpl_symbol
 			}
 		}
 	}
-	return @result;
+	return sort @result;
 }
 
 #
@@ -222,7 +222,7 @@ sub cmpl_hashkeys {
 		if( eval "\%$package$varname") {
 			my $var= *{"$package$varname"}{HASH};
 			$ac='} ';
-			return grep { starts_with($_,$keystart) } keys %$var;
+			return sort grep { starts_with($_,$keystart) } keys %$var;
 		}
 	}
 	return ();
@@ -246,6 +246,9 @@ sub completion
 	my $starttext= substr($line, 0, $start);
 	$starttext =~ /^\s*(\S+)\s+/;
 	my $startword= $1;
+	if( $starttext =~ /[\|\`]\s*(\S+)\s+$/) {
+		$startword= $1;
+	}
 
 	$ac=' ';
 
@@ -295,7 +298,7 @@ sub completion
 	}
 
 	$attribs->{$APPEND}=$ac;
-	return sort @tmp;
+	return @tmp;
 }
 
 1;
