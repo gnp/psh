@@ -1,14 +1,24 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More 'no_plan';
 use vars qw($scalar_opt $surprise_scalar_opt %hash_opt @array_opt);
 
 BEGIN {
-	use_ok 'Psh::OS';
-	use_ok 'Psh::Builtins::Tieopt';
-	use_ok 'Psh::Options';
+	eval {
+		require Test::More;
+	};
+	if ($@) {
+		print "1..0 # Skipped: Test::More is not installed\n";
+		exit(0);
+	}
 }
+
+use Test::More 'no_plan';
+
+use_ok 'Psh::OS';
+use_ok 'Psh::Builtins::Tieopt';
+use_ok 'Psh::Options';
+
 
 # test cases:
 
