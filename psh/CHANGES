@@ -23,8 +23,8 @@ tell it not to trigger on "grep" or "chmod" or whatever you like.
  Internal:
   * Used Pod::Text to generate the output of "help" builtin. Looks
 much nicer now!
-  * Probably other things that gwhitney didn't notice when he put this 
-list of changes in. Perhaps warp can replace this with a fuller list.
+  * Support for TAB completions for builtins
+  * Small fixes for setenv, print_list and abs_path
 
 1999-12-15 gwhitney:
  Internal:
