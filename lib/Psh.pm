@@ -2,8 +2,7 @@ package Psh;
 
 use locale;
 use Config;
-use Cwd;
-use Cwd 'chdir';
+use Cwd qw(:DEFAULT chdir);
 use FileHandle;
 use File::Spec;
 use File::Basename;

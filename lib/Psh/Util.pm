@@ -3,8 +3,7 @@ package Psh::Util;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-use Cwd;
-use Cwd 'chdir';
+use Cwd qw(:DEFAULT chdir);
 use Config;
 use Psh::OS;
 use File::Spec;
