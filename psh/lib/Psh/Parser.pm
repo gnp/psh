@@ -356,6 +356,12 @@ sub make_tokens {
 				pop @tokens;
 				push @tokens, ['WORD','=>'];
 				$previous_token= '';
+			} elsif ($previous_token =~ /-$/) {
+				($tmp,$tmp)=@{pop @tokens};
+				$tmp=~s/-$//;
+				push @tokens, ['WORD',$tmp];
+				push @tokens, ['WORD','->'];
+				$previous_token= '';
 			} else {
 				my $file;
 				while( @parts>0) {
