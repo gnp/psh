@@ -66,7 +66,7 @@ if ($@) {
 # Does anyone know how to get MakeMaker to do this automatically ?
 #
 
-if ($^O =~ /win/) {
+if ($^O eq 'MSWin32') {
 	print <<TEXT;
 #########################################################################
 
@@ -81,7 +81,7 @@ print <<TEXT;
 #########################################################################
 
 Do not forget to copy the 'share' directory to
-/usr/share/psh or /usr/local/share/psh or ~/.psh after building and
+/usr/share/psh or /usr/local/share/psh or ~/.psh/share after building and
 installing !!!
 
 #########################################################################
