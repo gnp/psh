@@ -1,0 +1,22 @@
+REQUIREMENTS
+------------
+
+You may have success with psh on a Win32 system. However, installation and
+usage is considerably more complicated, so for now it is recommended only
+for developers. You'll want the latest ActivePerl distribution
+(http://www.activestate.com/ActivePerl/) or at least perl 5.005 and the 
+latest libwin32 bundle from CPAN.
+
+
+INSTALLING psh
+--------------
+
+These instructions are temporary; they allow you to run psh, but not make
+it run when you open a terminal window.
+
+Assuming perl is in your %PATH% and you are in the directory containing
+the psh script, try
+	perl -Ilib psh
+
+You can manually move the modules into your lib directory. You might also
+have success imitating the Unix instructions with nmake.
