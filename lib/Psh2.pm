@@ -45,6 +45,7 @@ sub new {
 	       function => {},
                variable => {},
 	       dirstack => [],
+               history => [],
 	       dirstack_pos => 0,
 	       tmp => {},
 	       status => 0,
@@ -912,6 +913,28 @@ sub delete_function {
         undef *{$name};
         delete $self->{function}{$name};
     }
+}
+
+############################################################################
+##
+## History
+##
+############################################################################
+
+sub add_history {
+    my ($self, $line)= @_;
+    my $history= $self->{history};
+
+    if (!scalar(@$history) or $history->[@$history-1] ne $line) {
+        my $maxlen= $self->get_option('historysize');
+
+        push @$history, $line;
+        if ($maxlen and @$history > $maxlen) {
+            splice @$history, 0, -$maxlen;
+        }
+        return 1;
+    }
+    return 0;
 }
 
 ############################################################################

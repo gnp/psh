@@ -1,5 +1,7 @@
 2004-01-29  Markus Peter  <warp@spin.de>
 
+	* lib/Psh2/Builtins/History.pm: Added history builtin
+
 	* lib/Psh2/Parser.pm: Aliases cannot contain complex commands anymore (functions will be available for those). Simplifies parsing a lot. 
 
 	* lib/Psh2/Builtins/Ulimit.pm: Simple ulimit builtin 

@@ -32,6 +32,7 @@ sub init {
 	    }
 	    if ( $self->{term} ) {
                 my $attribs= $self->{term}->Attribs;
+                $self->{term}->MinLine(1000000);
                 $self->{term}->add_defun('complete2', sub { tab_completion($self)} );
                 $self->{term}->parse_and_bind(qq["\t":complete2]);
                 $self->{term}->parse_and_bind(qq["\\M-\e":complete2]);
@@ -51,9 +52,13 @@ sub getline {
     if ($@) {
 	# TODO: Error handling
     }
+    if (defined $line) {
+        chomp $line;
+        if ($self->{psh}->add_history($line)) {
+            $self->{term}->addhistory($line);
+        }
+    }
 
-    return undef unless defined $line;
-    chomp $line;
     return $line;
 }
 

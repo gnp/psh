@@ -41,16 +41,18 @@ sub getline {
     eval {
 	$self->{term}->set_prompt('> ');
 	$line= $self->{term}->gets();
-	if (defined $line) {
-	    $self->{term}->history_enter($line);
-	}
+
+        if (defined $line) {
+            chomp $line;
+            if ($self->{psh}->add_history($line)) {
+                $self->{term}->history_enter($line);
+            }
+        }
     };
     if ($@) {
 	# TODO: Error handling
     }
 
-    return undef unless defined $line;
-    chomp $line;
     return $line;
 }
 
