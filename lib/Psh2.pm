@@ -612,9 +612,6 @@ sub completor {
 ##
 ############################################################################
 
-my %env_option= qw( cdpath 1 fignore 1 histsize 1 ignoreeof 1 ps1 1
-		     psh2 1 path 1);
-
 sub set_option {
     my $self= shift;
     my $option= lc(shift());
@@ -622,24 +619,13 @@ sub set_option {
     return unless $option;
     return unless @value;
     my $val;
-    if ($env_option{$option}) {
-	if (@value>1 or (ref $value[0] and ref $value[0] eq 'ARRAY')) {
-	    if (ref $value[0]) {
-		@value= @{$value[0]};
-	    }
-            $val= $value[0];
-	} else {
-	    $val= $value[0];
-	}
-	$ENV{uc($option)}= $val;
+
+    if (@value>1) {
+        $val= \@value;
     } else {
-	if (@value>1) {
-	    $val= \@value;
-	} else {
-	    $val= $value[0];
-	}
-	$self->{option}{$option}= $val;
+        $val= $value[0];
     }
+    $self->{option}{$option}= $val;
 }
 
 sub get_option {
