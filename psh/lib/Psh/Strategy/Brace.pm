@@ -12,10 +12,7 @@ interpreter.
 require Psh::Strategy;
 require Psh::Strategy::Eval;
 
-use strict;
-use vars qw(@ISA);
-
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Brace::ISA=('Psh::Strategy');
 
 sub consumes {
 	return Psh::Strategy::CONSUME_TOKENS;

@@ -11,9 +11,7 @@ if possible.
 require Psh::Strategy;
 require Psh::Options;
 
-use vars qw(@ISA);
-
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Executable::ISA=('Psh::Strategy');
 
 my %built_ins=();
 

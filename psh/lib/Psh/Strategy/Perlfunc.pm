@@ -13,9 +13,7 @@ perlfunc_heavy
 require Psh::Strategy;
 require Psh::Strategy::Eval;
 
-use vars qw(@ISA);
-@ISA=('Psh::Strategy');
-
+@Psh::Strategy::Perlfunc::ISA=('Psh::Strategy');
 
 sub new { Psh::Strategy::new(@_) }
 

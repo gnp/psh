@@ -11,10 +11,7 @@ sent unchanged to the perl interpreter
 require Psh::Strategy;
 require Psh::Strategy::Eval;
 
-use strict;
-use vars qw(@ISA);
-
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Perl::ISA=('Psh::Strategy');
 
 sub consumes {
 	return Psh::Strategy::CONSUME_LINE;

@@ -10,8 +10,7 @@ execute them using the system 'open' command'
 
 require Psh::Strategy;
 
-use vars qw(@ISA);
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Darwin_apps::ISA=('Psh::Strategy');
 
 sub consumes {
 	return Psh::Strategy::CONSUME_TOKENS;

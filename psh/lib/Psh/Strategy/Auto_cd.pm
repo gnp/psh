@@ -10,8 +10,7 @@ it will be handled as an implicit cd.
 require Psh::Strategy;
 require Psh::Builtins::Cd;
 
-use vars qw(@ISA);
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Auto_cd::ISA=('Psh::Strategy');
 
 
 sub new { Psh::Strategy::new(@_) }

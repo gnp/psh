@@ -1,9 +1,8 @@
 package Psh::Support::Alias;
 
 use strict;
-use vars qw(%aliases);
 
-%aliases=();
+%Psh::Support::Alias::aliases=();
 
 #
 # bool _is_aliased( string COMMAND )
@@ -12,7 +11,7 @@ use vars qw(%aliases);
 
 sub is_aliased {
        my $command = shift;
-       if (exists($aliases{$command})) { return 1; }
+       if (exists($Psh::Support::Alias::aliases{$command})) { return 1; }
        return 0;
 }
 
@@ -23,7 +22,7 @@ sub _is_aliases {
 
 # Returns a list of aliases commands
 sub get_alias_commands {
-	return keys %aliases;
+	return keys %Psh::Support::Alias::aliases;
 }
 
 1;

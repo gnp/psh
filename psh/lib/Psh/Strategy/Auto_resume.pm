@@ -11,8 +11,7 @@ a new program with that name
 require Psh::Strategy;
 require Psh::Joblist;
 
-use vars qw(@ISA);
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Auto_resume::ISA=('Psh::Strategy');
 
 sub new { Psh::Strategy::new(@_) }
 

@@ -1,7 +1,6 @@
 package Psh::Strategy;
 
 use strict;
-require File::Spec;
 require Psh::Util;
 require Psh::OS;
 

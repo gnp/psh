@@ -12,9 +12,7 @@ package Psh; # still use a package so getopt etc. is not imported into
 
 use locale;
 
-use vars qw($VERSION);
-
-$VERSION='0.009';
+$Psh::VERSION='0.010pre';
 
 use Psh;
 require Psh::Locale;
@@ -22,7 +20,7 @@ require Psh::Util;
 
 #
 # Parse the command line and deal with the options except -r, which is
-# handled in the MAIN program below. We do this part vary early in this
+# handled in the MAIN program below. We do this part very early in this
 # file so that the results apply to all the setting up we do before the
 # MAIN program.
 #

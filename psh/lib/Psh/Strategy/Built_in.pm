@@ -4,10 +4,7 @@ require Psh::Strategy;
 require Psh::Options;
 require Psh::Support::Builtins;
 
-use strict;
-use vars qw(@ISA);
-
-@ISA=('Psh::Strategy');
+@Psh::Strategy::Built_in::ISA=('Psh::Strategy');
 
 Psh::Support::Builtins::build_autoload_list();
 

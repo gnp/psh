@@ -1,6 +1,5 @@
 package Psh::Builtins::Strategy;
 
-require File::Spec;
 require Psh::Strategy;
 
 =item * C<strategy list> shows the list of currently used strategies
