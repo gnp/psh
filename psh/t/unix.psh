@@ -1,0 +1,10 @@
+#!/usr/bin/psh
+
+# This will eventually provide a thorough test of psh features.
+
+!sleep 1&
+builtin kill %1
+
+sleep 1&jobs&fg&
+
+exit
