@@ -298,6 +298,26 @@ sub parse_hosts_file {
 	return @result;
 }
 
+#
+# char prompt( string allowedchars, string prompt)
+# prompts the user until he answers with one of the
+# allowed characters
+#
+sub prompt {
+	my $allowed= shift;
+	$allowed= "^[$allowed]\$";
+	my $text= shift;
+	my $line='';
+
+	do {
+		print $text;
+		$line=<STDIN>;
+	} while (!$line || lc($line) !~ $allowed);
+	chomp $line;
+	return lc($line);
+}
+
+
 1;
 
 __END__

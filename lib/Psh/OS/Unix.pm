@@ -359,7 +359,8 @@ sub _setup_redirects {
 			my $type= $option->[2];
 
 			if( $type==0) {
-				open(OLDIN,"<&STDIN");
+				push @cache, [$type,fileno(STDIN)];
+				close(STDIN);
 				open(STDIN,$file);
 				select(STDIN);
 				$|=1;
@@ -368,17 +369,18 @@ sub _setup_redirects {
 					# Just to get rid of the warning
 				}
 			} elsif( $type==1) {
-				open(OLDOUT,">&STDOUT");
+				push @cache, [$type,fileno(STDOUT)];
+				close(STDOUT);
 				open(STDOUT,$file);
 				select(STDOUT);
 				$|=1;
 			} elsif( $type==2) {
-				open(OLDERR,">&STDERR");
+				push @cache, [$type,fileno(STDERR)];
+				close(STDERR);
 				open(STDERR,$file);
 				select(STDERR);
 				$|=1;
 			}
-			push @cache, $type;
 		}
 	}
 	select(STDOUT);
@@ -389,18 +391,15 @@ sub _remove_redirects {
 	my $cache= shift;
 
 	foreach my $type (@$cache) {
-		if( $type==0) {
+		if( $type->[0]==0) {
 			close(STDIN);
-			open(STDIN,"<&OLDIN");
-			close(OLDIN);
-		} elsif( $type==1) {
+			open(STDIN,"<& $type->[1]");
+		} elsif( $type->[1]==1) {
 			close(STDOUT);
-			open(STDOUT,">&OLDOUT");
-			close(OLDOUT);
-		} elsif( $type==2) {
+			open(STDOUT,">& $type->[1]");
+		} elsif( $type->[2]==2) {
 			close(STDERR);
-			open(STDERR,">&OLDERR");
-			close(OLDERR);
+			open(STDERR,">& $type->[1]");
 		}
 	}
 }
@@ -517,7 +516,22 @@ sub restart_job
 
 # Simply doing backtick eval - mainly for Prompt evaluation
 sub backtick {
-	return `@_`;
+	my $com=join ' ',@_;
+	local $^F=50;
+	pipe(READ,WRITE);
+	$|=1;
+	unless(my $pid=fork) {
+		close(READ);
+		open(STDOUT,">&WRITE");
+		Psh::evl($com);
+		exit;
+	}
+	close(WRITE);
+	my $result='';
+	while(<READ>) {
+		$result.=$_;
+	}
+	return $result;
 }
 
 ###################################################################

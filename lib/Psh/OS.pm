@@ -32,12 +32,6 @@ sub AUTOLOAD {
 # If you need to override them, then modify the symbol
 # table :-)
 
-
-# Simply doing backtick eval - mainly for Prompt evaluation
-sub backtick {
-	return `@_`;
-}
-
 # recursive glob function used for **/anything glob
 sub _recursive_glob {
 	my( $pattern, $dir)= @_;
