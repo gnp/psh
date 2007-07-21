@@ -2,7 +2,7 @@ package Psh;
 
 use vars qw($VERSION);
 
-$VERSION='1.8';
+$VERSION='1.8.1';
 
 BEGIN {
 	require Psh::OS;
