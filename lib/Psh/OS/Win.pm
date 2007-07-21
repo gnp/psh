@@ -1,6 +1,11 @@
 package Psh::OS::Win;
 
 use strict;
+$Psh::OS::PATH_SEPARATOR=';';
+$Psh::OS::FILE_SEPARATOR='\\';
+
+$Psh::history_file = "psh_history";
+
 require Psh::Util;
 
 eval {
@@ -23,10 +28,6 @@ my @user_cache=();
 # For documentation see Psh::OS::Unix
 #
 
-$Psh::OS::PATH_SEPARATOR=';';
-$Psh::OS::FILE_SEPARATOR='\\';
-
-$Psh::history_file = "psh_history";
 
 sub set_window_title {
 	my $title=shift;
@@ -327,7 +328,8 @@ sub canonpath {
     $path =~ s|(\\\.)+\\|\\|g;                     # xx/././xx -> xx/xx
     $path =~ s|^(\.\\)+||s unless $path eq ".\\";  # ./xx      -> xx
     $path =~ s|\\\Z(?!\n)||
-	  unless $path =~ m#^([A-Z]:)?\\\Z(?!\n)#s;   # xx/       -> xx    return $path;
+	  unless $path =~ m#^([A-Z]:)?\\\Z(?!\n)#s;   # xx/       -> xx    
+	  return $path;
 }
 
 sub catfile {
