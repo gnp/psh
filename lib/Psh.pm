@@ -211,7 +211,8 @@ sub process
 		require Psh::Prompt;
 	}
 
-	while (1) {
+	$Psh::quit = 0;
+	until ($Psh::quit) {
 		if ($q_prompt) {
 			$input = &$get(Psh::Prompt::prompt_string(Psh::Prompt::normal_prompt()), 0, \&Psh::Prompt::pre_prompt_hook);
 		} else {
