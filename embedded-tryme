@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+use rlib 'blib/lib';
+use rlib 'lib';
+print "Starting program to show Psh embedding inside another Perl program\n";
+print "To return to the debugger, set: \$Psh::quit = 1\n";
+use Psh;
+
+Psh::minimal_initialize;
+Psh::finish_initialize;
+Psh::initialize_interactive_mode;
+Psh::Options::set_option('ps1', "embedded tryme \$ ");
+$Psh::quit = 0;
+until ($Psh::quit) {
+  eval { Psh::main_loop(); };
+  Psh::handle_message($@,'main_loop');
+}
+print "Returned to main Perl program.... That's all, folks!\n";

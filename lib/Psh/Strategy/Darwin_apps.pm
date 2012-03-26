@@ -44,7 +44,7 @@ sub _recursive_search {
 
 
 sub applies {
-	my $com= @{$_[2]}->[0];
+	my $com= $_[2]->[0];
 	if ($com !~ m/$Psh::which_regexp/) { return ''; }
 	my $path=$ENV{APP_PATH}||'/Applications';
 	my @path= split /:/, $path;
