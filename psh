@@ -39,7 +39,7 @@ if (@ARGV) {
 	}
 
 	#
-	# -V is "vresion flag":
+	# -V shows psh version and exits
 	#
 	if ($opt{'V'}) {
 		Psh::Util::print_warning("$program, version $Psh::VERSION\n");
