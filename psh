@@ -14,6 +14,9 @@ use Psh;
 require Psh::Locale;
 require Psh::Util;
 
+use File::Basename;
+my $program=basename(__FILE__);  # Or use $0
+
 #
 # Parse the command line and deal with the options except -r, which is
 # handled in the MAIN program below. We do this part very early in this
@@ -28,11 +31,19 @@ my %opt=();
 
 if (@ARGV) {
 	require Getopt::Std;
-	Getopt::Std::getopts('Fiwrd:f:c:', \%opt);
+	Getopt::Std::getopts('FiwrVd:f:c:', \%opt);
 
 	if ($opt{'r'}) {
 		Psh::Util::print_error_i18n('no_r_flag');
 		exit 1;
+	}
+
+	#
+	# -V shows psh version and exits
+	#
+	if ($opt{'V'}) {
+		Psh::Util::print_warning("$program, version $Psh::VERSION\n");
+		exit 0;
 	}
 
 	#
