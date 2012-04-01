@@ -78,7 +78,8 @@ WriteMakefile (
 	MAN1PODS     => $pods,
     PM           => $pms,
 #	PM_FILTER    => 'grep -v \\"^\\#\\"',  # remove comments on install
-	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' }
+	dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' },
+        clean        => { FILES => "psh-*.tar.gz lib/Psh/StrategyBunch.pm" },
 );
 
 eval {
