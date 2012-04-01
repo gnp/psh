@@ -13,6 +13,7 @@ README.upgrade
 RELEASE
 TODO
 psh
+psh.ppd
 doc/psh.pod
 doc/pshdevel.pod
 doc/pshcomplete.pod
