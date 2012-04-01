@@ -27,8 +27,8 @@ a CVS repository, a release archive, mailing list management and more.
 
 WHO WROTE IT
 
-The original version was written by Gregor N. Purdy, but now there have been
-numerous contributors, and much of the more advanced functionality was
+The original version was written by Gregor N. Purdy, Sr. but now there have
+been numerous contributors, and much of the more advanced functionality was
 actually implemented by members of the Perl Shell Core Team (see the file
 psh.pod, or the manpage for psh if you've installed the Perl Shell for more
 information).
