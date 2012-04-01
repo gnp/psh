@@ -1,0 +1,63 @@
+=head1 Introduction
+
+The core developers use L<GitHub|https://github.com> to coordinate their work.
+The official version lives at L<https://github.com/gnp/psh>. Anyone can clone the
+code from there to their local machine and make local changes but only the core
+developers can push their local commits back up to that GitHub project. However,
+anyone can can create a GitHub account, and anyone with a GitHub account can fork a
+copy of the project into their own user account, and then they can clone that copy
+to their local machine and the commits they make to that can be pushed back up
+to their fork on GitHub. People who do this are able to make a I<pull request>
+asking for specific changes in their fork to be considered for merging into
+the official version, all within the GitHub web site.
+
+Requests for core developer status should be directed to the project
+administrator, Gregor N. Purdy, Sr. E<lt>F<gnp@acm.org>E<gt>. We keep the number of core
+developers low, but occasionally slots will open up. People who have submitted
+useful and high quality pull requests in the past will be given priority for
+membership in the project.
+
+
+=head1 GitHub
+
+Creating a GitHub account is quick, easy and free. Just go to their web site at
+L<https://github.com/signup/free>. You can upgrade a free account to a paid
+account in future if you decide you want some of the paid account features.
+
+GitHub has great help on getting started with git as well as with their
+service.
+
+
+=head1 Welcome
+
+Welcome to the wonderful world of Perl Shell hacking. We look forward to your
+contributions.
+
+Here are some things to keep in mind while hacking:
+
+=over 4
+
+=item *
+
+Please write good commit messages. Some more specific advice is available
+L<here|http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html>.
+
+=item *
+
+Please write test programs in the F<t/> directory whenever you can. The better
+we make this test suite, the higher the quality of our releases.
+
+=item *
+
+Please make high level notes in the F<CHANGES.pod> file, because these are
+edited to make the final F<CHANGES.pod> when we make releases.
+
+=item *
+
+After you've made some major contributions, you may want to create an
+entry for yourself in the F<psh.pod> file's CONTRIBUTORS section.
+
+=back
+
+--I<The Perl Shell Core Team>
+
