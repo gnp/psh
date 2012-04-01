@@ -1,7 +1,7 @@
 <SOFTPKG NAME="psh" VERSION="1,1,0,0">
 	<TITLE>psh</TITLE>
 	<ABSTRACT>Perl Shell</ABSTRACT>
-	<AUTHOR>Gregor N. Purdy (gregor@focusresearch.com)</AUTHOR>
+	<AUTHOR>Gregor N. Purdy, Sr. (gnp@acm.org)</AUTHOR>
 	<IMPLEMENTATION>
 		<OS NAME="MSWin32" />
 		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />

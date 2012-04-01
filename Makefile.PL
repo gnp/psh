@@ -68,7 +68,7 @@ chdir '..';
 WriteMakefile (
 	NAME         => 'psh',
 	VERSION_FROM => 'lib/Psh.pm',
-	AUTHOR       => 'Gregor N. Purdy (gregor@focusresearch.com)',
+	AUTHOR       => 'Gregor N. Purdy, Sr. (gnp@acm.org)',
 	ABSTRACT     => 'Perl Shell',
 	EXE_FILES    => [ qw(psh) ],
     PREREQ_PM    => {
