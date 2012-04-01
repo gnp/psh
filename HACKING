@@ -2,197 +2,34 @@
 Introduction
 -------------------------------------------------------------------------------
 
-These are instructions for using a SourceForge (http://www.sourceforge.net/)
-developer account to update psh with CVS. If you aren't a psh core developer
-(that is, you don't have commit access to the CVS repository), you can follow
-the instructions on the SourceForge CVS page for anonymous access.
-
-Other psh developers are encouraged to submit patches for things they fix. See
-the manpages for diff and patch for information on how to produce patches. In
-this case, the core developers will evaluate the patch.
+The core developers use GitHub to coordinate their work. The official version
+lives at https://github.com/gnp/psh. Anyone can clone the code from their to
+their local machine and make local changes but only the core developers can
+push their local commits back up to that GitHub project. However, anyone can
+can create a GitHub account, and anyone with a GitHub account can fork a copy
+of the project into their own user account, and then they can clone that copy
+to their local machine and the commits they make to that can be pushed back up
+to their fork on GitHub. People who do this are able to make a "pull request"
+asking for specific changes in their fork to be considered for merging into
+the official version, all within the GitHub web site.
 
 Requests for core developer status should be directed to the project
-administrator, Gregor N. Purdy (gregor@focusresearch.com). We keep the number
-of people with CVS commit privileges low, but occasionally slots will open up.
-People who have submitted useful and high quality patches in the past will be
-given priority for write access.
-
-In the examples that follow, the host name is foo, the local user name is bar,
-and the home directories are stored under /home. Source code is installed under
-/usr/local/src, and programs are installed under /usr/local. If these aspects
-differ in your setup, substitute as appropriate.
+administrator, Gregor N. Purdy, Sr. (gnp@acm.org). We keep the number of core
+developers low, but occasionally slots will open up. People who have submitted
+useful and high quality pull requests in the past will be given priority for
+membership in the project.
 
 
 -------------------------------------------------------------------------------
-Source Forge
+GitHub
 -------------------------------------------------------------------------------
 
-Obtain a source forge user account via http://www.sourceforge.net/. There is a
-"New User via SSL" menu item on the main page that will allow you to create an
-account. You will need to use this user id and password in the instructions
-below.
+Creating a GitHub account is quick, easy and free. Just go to their web site at
+https://github.com/signup/free. You can upgrade a free account to a paid
+account in future if you decide you want some of the paid account features.
 
-
--------------------------------------------------------------------------------
-SSH
--------------------------------------------------------------------------------
-
-Make sure you have ssh 1.x installed (even if you already have 2.x installed).
-The home page for SSH is http://www.ssh.org/. Versions 2.x are commercial,
-and versions 1.x are freeware. There is a page with downloading information
-on the site above. For quick access, one of the mirrors in the USA is
-ftp://sunsite.unc.edu/pub/packages/security/ssh/.
-
-Here is an example session. First su to root and cd to the directory where you
-keep source code distributions:
-
-	foo$ su -
-	Password:
-	foo# cd /usr/local/src
-	foo#
-
-Retrieve the latest 1.x version of SSH from one of the ftp sites listed
-on the mirrors list at http://www.ssh.org/download.html:
-
-	foo# ftp sunsite.unc.edu
-	...
-	Name (...): anonymous
-	331 Guest login ok, send your complete e-mail address as password.
-	Password: your@email.address
-	...
-	230 Guest login ok, access restrictions apply.
-	Remote system type is UNIX.
-	Using binary mode to transfer files.
-	ftp> cd pub/packages/security/ssh
-	...
-	250 CWD command successful.
-	ftp> get ssh-1.2.27.tar.gz
-	local: ssh-1.2.27.tar.gz remote: ssh-1.2.27.tar.gz
-	200 PORT command successful.
-	150 Opening BINARY mode data connection for ssh-1.2.27.tar.gz (1022546 bytes).
-	226 Transfer complete.
-	1022546 bytes received in 12.6 secs (79 Kbytes/sec)
-	ftp> bye
-	221-You have transferred 1022546 bytes in 1 files.
-	221-Total traffic for this session was 1033430 bytes in 2 transfers.
-	221-Thank you for using the FTP service on helios.oit.unc.edu.
-	221 Goodbye.
-	foo# 
-
-Unpack the distribution, enter the directory, and configure the package:
-
-	foo# tar xvzf ssh-1.2.27.tar.gz
-	ssh-1.2.27/
-	ssh-1.2.27/COPYING
-	...
-	ssh-1.2.27/zlib-1.0.4/Makefile
-	foo# ./configure --prefix=/usr/local
-	creating cache ./config.cache
-	...
-	foo#
-	
-Make the programs and install them:
-
-	foo# make
-	...
-	foo# make install
-	...
-	foo#
-
-Go back to your regular user account and make sure you can find the ssh1
-program:
-
-	foo# exit
-	foo$ which ssh1
-	/usr/local/bin/ssh1
-	foo$
-
-Generate your SSH1 key:
-
-	foo$ ssh-keygen1
-	Initializing random number generator...
-	Generating p:  ......................++ (distance 380)
-	Generating q:  ...........++ (distance 168)
-	Computing the keys...
-	Testing the keys...
-	Key generation complete.
-	Enter file in which to save the key (/home/bar/.ssh/identity): 
-	Enter passphrase: 
-	Enter the same passphrase again: 
-	Your identification has been saved in /home/bar/.ssh/identity.
-	Your public key is:
-	...
-	Your public key has been saved in /home/bar/.ssh/identity.pub
-	foo$
-
-
--------------------------------------------------------------------------------
-CVS
--------------------------------------------------------------------------------
-
-You need to configure CVS to use ssh1 as the remote shell program (the default
-is rsh, which won't work for connecting to Source Forge). You can either try
-to remember to do this every time you want to access Source Forge (necessary
-if you have other remote CVS repositories you access that use a different
-remote shell), or you can add a line to your .bashrc (assuming you are using
-bash) file. Either way, the command is:
-
-	export CVS_RSH=ssh1
-
-To locate the repository, you can either set the CVSROOT environment variable
-(handy if you are only going to use this repository), or specify the locator
-on the command-line used to initially check out the code (CVS will cache the
-locator in its sandbox metadata files so you won't have to enter the locator
-again while working with that sandbox). Here is the command (again for either
-.bashrc or interactive use) to set the CVSROOT variable:
-
-	export CVSROOT=sfuser@cvs.psh.sourceforge.net:/cvsroot/psh
-
-Substitute your SourceForge user id (in all lowercase) for sfuser.
-
-If you've added lines to your .bashrc, you'll need to log out and back in
-again for the changes to take effect. You can check the settings of the
-environment variables by running 'set | grep CVS' or 'env | grep CVS'.
-
-	foo$ cvs checkout psh
-	Host key not found from the list of known hosts.
-	Are you sure you want to continue connecting (yes/no)? yes
-	Host 'cvs.psh.sourceforge.net' added to the list of known hosts.
-	sfuser@cvs.psh.sourceforge.net's password: 
-	cvs server: Updating psh
-	U psh/.cvsignore
-	...
-	foo$
-
-When prompted, agree to connect, and use your SourceForge password.
-
-If you didn't set the CVSROOT variable, you'll need to to use this form of
-the command:
-
-	foo$ cvs -dsfuser@cvs.psh.sourceforge.net:/cvsroot/psh checkout psh
-
-Go into the psh directory and do cvs upd -dP to prune the directories that
-we are not currently using.
-
-	foo$ cd psh
-	foo$ cvs upd -dP
-	sfuser@cvs.psh.sourceforge.net's password: 
-	...
-	foo$
-
-
--------------------------------------------------------------------------------
-Committing Changes:
--------------------------------------------------------------------------------
-
-After you've edited a file, built and tested psh, then:
-
-	foo$ cvs commit -m 'Fixed minor tpyos' HACKING
-	sfuser@cvs.psh.sourceforge.net's password: 
-	Checking in HACKING;
-	/cvsroot/psh/psh/HACKING,v <-- HACKING
-	new revision: 1.3; previous revision: 1.2
-	done
+GitHub has great help on getting started with git as well as with their
+service.
 
 
 -------------------------------------------------------------------------------
@@ -204,9 +41,8 @@ contributions.
 
 Here are some things to keep in mind while hacking:
 
-  * Please make log entries when committing. The core team members receive
-    these in email, so its a good way to keep everyone up to date with what
-    you are doing.
+  * Please write good commit messages. Some more specific advice is available
+    here: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
 
   * Please write test programs in the t/ directory whenever you can. The better
     we make this test suite, the higher the quality of our releases.
@@ -218,4 +54,3 @@ Here are some things to keep in mind while hacking:
     entry for yourself in the psh.pod file's CONTRIBUTORS section.
 
 --The Perl Shell Core Team
-
