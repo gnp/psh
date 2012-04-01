@@ -36,20 +36,22 @@ information).
 
 WHERE TO GET IT
 
-The official project home page is:
+The official project home page and devlepment sources is in git on github:
 
-    http://www.focusresearch.com/gregor/psh/index.html 
+    https://github.com/gnp/psh
 
 The Source Forge main page for the project is:
 
     http://sourceforge.net/project/?group_id=475
 
-
 HOW TO USE IT
 
 Download it from one of the locations listed above, and follow the instructions
 in the INSTALL file. If you want to keep tabs on or participate in development,
-then join Source Forge and sign up for mailing list memberships. Use anonymous
-CVS access to keep an up-to-date copy of the code on your system. Become a
-core developer to get CVS write access.
+then join Source Forge and sign up for mailing list memberships. 
+
+You can clone the github repository to keep an up-to-date copy of the
+code on your system. One way to submit patches back is to fork the
+repository on github to your own github account and then issue a pull
+request.
 
