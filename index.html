@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Perl Shell (psh) by gnp</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Perl Shell (psh)</h1>
+<p>Aspiring to be your primary login shell</p>
+        <p class="view"><a href="https://github.com/gnp/psh">View the Project on GitHub <small>gnp/psh</small></a></p>
+        <ul>
+          <li><a href="https://github.com/gnp/psh/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/gnp/psh/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/gnp/psh">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <p>Perl Shell (psh) combines aspects of <code>bash</code> and other shells with the power
+of Perl scripting. Some of its features:</p>
+
+<ul>
+<li>Globbing: <code>grep foo lib/**/*.pm</code>
+</li>
+<li>Redirects, including to file handles: <code>command &gt;[=FOO]</code>
+</li>
+<li>Inline filters: <code>ls | { print ++$i, ": $_"; }q</code> (adds line numbers)</li>
+<li>Inline grep filters: <code>netstat | { $_[1]&gt;2; }g</code>
+</li>
+<li>Inline substitution filters: <code>ls | s/y/k/</code>
+</li>
+<li>... and more</li>
+</ul><h2>Genesis</h2>
+
+<p>Numerous times when developing Perl code, I (Gregor) wished for an interactive
+Perl execution environment in which to try out code snippets. After some
+looking around, I didn't see a handy solution that acted enough
+like a shell to be satisfactory. It all might have ended (or rather not begun)
+here except that while discussing the idea at lunch with my friend Denny Dahl
+the pressure finally became too much to bear. That evening, version 0.001 of
+the Perl Shell was born.</p>
+
+<p>Initially Perl Shell development was privately hosted, with low-tech manual
+mailing lists. Soon that became too unwieldy so I moved the project
+to <a href="http://sourceforge.net/projects/psh/">Source Forge</a> where they provided
+a CVS repository (now Subversion), a release archive, mailing list management and more. Years
+later in 2010 I moved the project to <a href="https://github.com/">GitHub</a>, although
+the mailing lists <a href="http://sourceforge.net/mail/?group_id=475">are still hosted at Source Forge</a>.</p>
+
+<h2>Contributors</h2>
+
+<p>The original version was written by Gregor N. Purdy, Sr. but now there have
+been numerous contributors, and much of the more advanced functionality was
+actually implemented by members of the Perl Shell Core Team (see the file
+<code>psh.pod</code>, or the manpage for <code>psh</code> if you've installed Perl Shell for more
+information).</p>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/gnp">gnp</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+  </body>
+</html>
