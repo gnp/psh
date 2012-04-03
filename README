@@ -14,7 +14,7 @@ WHERE IT CAME FROM:
 Numerous times when developing Perl code, the author wished for an interactive
 Perl execution environment in which to try out code snippets. After some
 looking around, there didn't appear to be a handy solution that acted enough
-like a shell to be satisfactory. It all might have ended (or rather not bugun)
+like a shell to be satisfactory. It all might have ended (or rather not begun)
 here except that while discussing the idea at lunch with his friend Denny Dahl
 the pressure finally became too much to bear. That evening, version 0.001 of
 the Perl Shell was born.
@@ -36,7 +36,7 @@ information).
 
 WHERE TO GET IT
 
-The official project home page and devlepment sources is in git on github:
+The official project home page and development sources is in git on github:
 
     https://github.com/gnp/psh
 
