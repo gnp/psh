@@ -96,7 +96,8 @@ sub display_pod {
 
 	eval {
 		require Pod::Text;
-		Pod::Text::pod2text($tmp,*STDOUT);
+		open STDOUT_SAVE, ">&", STDOUT;
+		Pod::Text::pod2text($tmp,*STDOUT_SAVE);
 	};
 	Psh::Util::print_debug_class('e',"Error: $@") if $@;
 	print $text if $@;
