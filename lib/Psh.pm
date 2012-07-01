@@ -368,7 +368,7 @@ sub find_array_name {
 
 sub defined_and_nonempty
 {
-	if (!defined(@_))    { return 0; }
+	if (!@_)    { return 0; }
 	if (scalar(@_) == 0) { return 0; }
 
 	if (scalar(@_) == 1) {
