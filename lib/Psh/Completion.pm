@@ -309,7 +309,7 @@ sub cmpl_method {
 		my @subs = grep (/^\w+$/
 				 && ($sym = $pkg . $_,
 				     defined *$sym{CODE}
-				     || defined *$sym{FILEHANDLE}),
+				     || defined *$sym{IO}),
 				 keys %$pkg);
 		# Do we need a user customizable variable to ignore @packages?
 		my @result= grep(/^\Q$text/,
