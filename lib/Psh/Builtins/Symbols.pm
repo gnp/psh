@@ -37,7 +37,7 @@ sub bi_symbols
 			push @array,  "\@$sym" if ref *{"${pack}::$sym"}{ARRAY}  eq 'ARRAY';
 			push @hash,   "\%$sym" if ref *{"${pack}::$sym"}{HASH}   eq 'HASH';
 			push @code,   "\&$sym" if ref *{"${pack}::$sym"}{CODE}   eq 'CODE';
-			push @handle, "$sym"   if ref *{"${pack}::$sym"}{FILEHANDLE};
+			push @handle, "$sym"   if ref *{"${pack}::$sym"}{IO};
 		}
 	}
 
