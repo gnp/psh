@@ -3,4 +3,9 @@
 	print "\n";
 }
 
-$Psh::prompt = '[\u@\h \W]{TESTING psh}$ ';
+# Set prompt like 'Psh [1] > ' with colors
+option ps1= sub {$i++; "\\\\[\\\\033[1;32m\\\\]Psh \\\\[\\\\033[1;33m\\\\][$i]\\\\[\\\\033[0m > ";}
+
+# Your aliases go here
+alias p print
+alias ls ls --color 
