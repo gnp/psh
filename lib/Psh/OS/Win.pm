@@ -134,7 +134,7 @@ sub execute_complex_command {
 			Psh::Util::print_out("[$visindex] Background $pid $string\n");
 		}
 	}
-	return ($success,@return_val);
+	return ($success,\@return_val);
 }
 
 sub _fork_process {
@@ -152,7 +152,7 @@ sub _fork_process {
 		if ($Psh::words) {
 			my $obj;
 			Win32::Process::Create($obj,
-								   @$Psh::words->[0],
+								   $Psh::words->[0],
 								   $Psh::string,
 								   0,
 								   NORMAL_PRIORITY_CLASS,
