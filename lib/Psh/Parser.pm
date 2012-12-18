@@ -304,7 +304,7 @@ sub parse_fileno {
 		if (/^\d+$/) {
 			push @result, $_+0;
 		} else {
-			if (ref *{"$Psh::PerlEval::current_package\:\:$_"}{FILEHANDLE}) {
+			if (ref *{"$Psh::PerlEval::current_package\:\:$_"}{IO}) {
 				push @result, fileno(*{"$Psh::PerlEval::current_package\:\:$_"});
 			}
 		}
