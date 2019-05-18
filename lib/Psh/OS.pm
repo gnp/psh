@@ -160,9 +160,15 @@ sub fb_signal_description {
 }
 
 # Return a name for a temp file
-
+# Legacy security risk, but leaving in case
+# anyone's using it. We're already loading
+# POSIX anyway, and it gives its own warning.
 sub fb_tmpnam {
 	return POSIX::tmpnam();
+}
+sub fb_tmpfile {
+	require IO::File;
+	return IO::File::new_tmpfile();
 }
 
 sub fb_get_window_size {}

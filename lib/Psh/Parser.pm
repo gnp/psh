@@ -264,7 +264,19 @@ sub remove_backslash {
 	$text=~ s/\\e/\e/g;
 	$text=~ s/\\(0[0-7][0-7])/chr(oct($1))/ge;
 	$text=~ s/\\(x[0-9a-fA-F][0-9a-fA-F])/chr(oct($1))/ge;
-	$text=~ s/\\(.)/$1/g;
+	#
+	#$text=~ s/\\(.)/$1/g;
+	#
+	# this breaks constructs like:
+	# > print "\\\\\n"
+	# \
+	# >
+	# should be:
+	# > print "\\\\\n"
+	# \\
+	# >
+	#
+
 	return $text;
 }
 
