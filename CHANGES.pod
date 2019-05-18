@@ -39,6 +39,10 @@ Removed POSIX::tempnam() deprecation warning.
 
 Fixed over-escaping problem. "\\\\" now evaluates as "\\" instead of "\".
 
+=item *
+
+Added Win32 module prereqs to Makefile.PL.
+
 =back
 
 

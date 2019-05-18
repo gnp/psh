@@ -75,6 +75,16 @@ WriteMakefile (
 					 'Cwd'   => '0',
 					 'File::Spec' => '0',
 					 'IO::File' => '0',
+					 ( $^O eq 'MSWin32'
+						? (
+							'Win32'              =>    '0',
+							'Win32::TieRegistry' => '0.20',
+							'Win32::Process'     =>    '0',
+							'Win32::Console'     =>    '0',
+							'Win32::NetAdmin'    =>    '0',
+						)
+						: ()
+					 ),
 					},
 	MAN1PODS     => $pods,
     PM           => $pms,
