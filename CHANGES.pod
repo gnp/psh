@@ -35,6 +35,10 @@ A reverse-chronological ordered list of changes
 
 Removed POSIX::tempnam() deprecation warning.
 
+=item *
+
+Fixed over-escaping problem. "\\\\" now evaluates as "\\" instead of "\".
+
 =back
 
 
