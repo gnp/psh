@@ -63,21 +63,18 @@ sub get_known_hosts {
 # void display_pod(text)
 #
 sub display_pod {
-	my $tmp= Psh::OS::tmpnam();
+	my $tmpfh= Psh::OS::tmpfile();
 	my $text= shift;
 
-	open( TMP,">$tmp");
-	print TMP $text;
-	close(TMP);
+	print $tmpfh $text;
+	$tmpfh->flush();
+	$tmpfh->seek(0,0); # rewind
 
 	eval {
 		require Pod::Text;
-		open STDOUT_SAVE, ">&", STDOUT;
-		Pod::Text::pod2text($tmp,*STDOUT_SAVE);
+		Pod::Text::pod2text($tmpfh);
 	};
 	print $text if $@;
-
-	unlink($tmp);
 }
 
 sub inc_shlvl {

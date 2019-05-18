@@ -25,6 +25,19 @@ A reverse-chronological ordered list of changes
 ###############################################################################
 ###############################################################################
 
+=head1 1.9 [????-??-??]
+
+=head2 Fixes
+
+=over 4
+
+=item *
+
+Removed POSIX::tempnam() deprecation warning.
+
+=back
+
+
 =head1 1.8.1 [2007-07-20]
 
 =head2 Fixes

@@ -74,6 +74,7 @@ WriteMakefile (
     PREREQ_PM    => {
 					 'Cwd'   => '0',
 					 'File::Spec' => '0',
+					 'IO::File' => '0',
 					},
 	MAN1PODS     => $pods,
     PM           => $pms,
